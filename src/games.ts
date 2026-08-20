@@ -25,12 +25,44 @@ export interface RustData {
 
 /** Project Zomboid-specific data collected from A2S sources. */
 export interface ProjectZomboidData {
+  readonly description?: string;
+  readonly pvp?: boolean;
+  readonly pauseWhenEmpty?: boolean;
+  /** Omitted when Rules is unavailable; empty means the server confirmed no mod IDs. */
+  readonly mods?: readonly string[];
+  /** Omitted when Player is unavailable; empty means the server confirmed no listed players. */
+  readonly players?: readonly ProjectZomboidPlayer[];
   readonly rules?: GameRuleMap;
+}
+
+/** One player reported by Project Zomboid's optional A2S Player source. */
+export interface ProjectZomboidPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
 }
 
 /** 7 Days to Die-specific data collected from A2S sources. */
 export interface SevenDaysToDieData {
+  readonly description?: string;
+  readonly gameName?: string;
+  readonly gameWorld?: string;
+  readonly gameMode?: string;
+  /** Raw game clock value advertised by A2S Rules. */
+  readonly currentServerTime?: string;
+  readonly websiteUrl?: string;
+  /** Omitted when Player is unavailable; empty means the server confirmed no listed players. */
+  readonly players?: readonly SevenDaysToDiePlayer[];
   readonly rules?: GameRuleMap;
+}
+
+/** One player reported by 7 Days to Die's optional A2S Player source. */
+export interface SevenDaysToDiePlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
 }
 
 /** Normalized Minecraft message-of-the-day representations. */

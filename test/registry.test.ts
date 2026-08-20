@@ -51,6 +51,14 @@ describe("game registry", () => {
   it("looks up definitions without losing their game identity", () => {
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
     expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
+    expect(getGameDefinition("project-zomboid")).toMatchObject({
+      defaultPort: 16_261,
+      capabilities: { summary: "supported", players: "conditional", mods: "conditional" },
+    });
+    expect(getGameDefinition("7-days-to-die")).toMatchObject({
+      defaultPort: 26_900,
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
     expect(getGameDefinition("minecraft-java").defaultPort).toBe(25_565);
   });
 

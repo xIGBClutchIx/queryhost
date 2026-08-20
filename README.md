@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–8:
+The repository currently contains the strict package foundation and Slices 1–9:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -16,9 +16,9 @@ The repository currently contains the strict package foundation and Slices 1–8
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and a complete Rust profile that merges A2S Info, Player, and Rules
+- the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
 
-Rust is the first implemented game profile. Other registry entries already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land.
+Minecraft Java, Minecraft Bedrock, and FiveM already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land.
 
 ## Public contract
 
@@ -42,7 +42,11 @@ if (result.ok) {
 
 `QueryResult` is a discriminated union. Check `ok` before reading `data` or `error`. A dynamic `GameId` can be narrowed with an exhaustive switch on `result.game`.
 
-Rust queries default to `mode: "full"`: A2S Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`. `port` is the gameplay port. QueryHost follows Rust's conventional two-port offset, so game port 28015 queries A2S on 28017. An explicit `queryPort` always takes precedence for servers with custom port layouts.
+Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
+
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+
+Project Zomboid interprets its description, PvP state, pause-when-empty state, and semicolon-delimited mod IDs from Rules. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both retain the complete raw Rules map, and all rule-derived values remain omitted when Rules is unavailable.
 
 ## Command-line queries
 
@@ -57,6 +61,8 @@ The installed package also provides the same command as `queryhost`. It writes t
 ```bash
 queryhost rust play.example.com 28015 --mode full --timeout 3000
 queryhost rust play.example.com --query-port 28017 --mode summary
+queryhost project-zomboid play.example.com 16261
+queryhost 7-days-to-die play.example.com 26900
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.
@@ -100,7 +106,7 @@ npm run verify
 
 `npm run verify` checks formatting, linting, runtime tests, type tests, the production build, package contents, exports, and published type compatibility.
 
-The codebase uses strict TypeScript across library code, tests, and project scripts. Explicit `any` and `unknown` types are forbidden by ESLint; boundary data must be validated into a concrete type before it enters the library.
+The codebase uses strict TypeScript across library code, runtime tests, and type tests. Explicit `any` and `unknown` types are forbidden by ESLint; boundary data must be validated into a concrete type before it enters the library.
 
 ## Package layout
 
@@ -108,7 +114,6 @@ The codebase uses strict TypeScript across library code, tests, and project scri
 src/       Public contracts and internal library implementation
 test/      Runtime tests
 test-d/    Published TypeScript contract tests
-scripts/   Package and consumer verification
 docs/      Maintainer-facing technical documentation
 ```
 

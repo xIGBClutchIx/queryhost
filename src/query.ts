@@ -73,6 +73,7 @@ export interface QueryFailure<G extends GameId> extends QueryResultBase<G> {
  * Discriminated query result that preserves game-specific narrowing for both literal and dynamic
  * game identifiers.
  */
-export type QueryResult<G extends GameId = GameId> = G extends GameId
-  ? QuerySuccess<G> | QueryFailure<G>
-  : never;
+type QuerySuccessFor<G extends GameId> = G extends GameId ? QuerySuccess<G> : never;
+
+/** Success remains correlated by game; failure needs no game-specific data correlation. */
+export type QueryResult<G extends GameId = GameId> = QuerySuccessFor<G> | QueryFailure<G>;

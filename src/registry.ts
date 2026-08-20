@@ -72,7 +72,7 @@ export const GAME_REGISTRY: GameRegistry = {
       summary: "supported",
       players: "conditional",
       rules: "conditional",
-      mods: "unsupported",
+      mods: "conditional",
       plugins: "unsupported",
       resources: "unsupported",
       srv: "unsupported",

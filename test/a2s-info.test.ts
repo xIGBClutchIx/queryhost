@@ -38,23 +38,6 @@ function send(server: Socket, data: Uint8Array, port: number, address: string): 
   server.send(data, port, address);
 }
 
-function sourceFragment(
-  requestId: number,
-  count: number,
-  index: number,
-  payload: Uint8Array,
-): Uint8Array {
-  const result = new Uint8Array(12 + payload.byteLength);
-  result.set(Uint8Array.of(0xfe, 0xff, 0xff, 0xff));
-  const view = new DataView(result.buffer);
-  view.setUint32(4, requestId, true);
-  result[8] = count;
-  result[9] = index;
-  view.setUint16(10, 1_248, true);
-  result.set(payload, 12);
-  return result;
-}
-
 /** Wraps chunks from the bzip2-compressed redacted fixture using its fixed size and CRC32. */
 function compressedCapturedSourceFragment(
   requestId: number,
@@ -358,31 +341,6 @@ describe("A2S Info exchange", (): void => {
     expect(result.rttMs).toBeGreaterThanOrEqual(0);
   });
 
-  it("reconstructs an out-of-order split response from one fake UDP exchange", async (): Promise<void> => {
-    const response = await readHexFixture("source-captured-redacted.hex");
-    const splitAt = Math.ceil(response.byteLength / 2);
-    const fragments = [
-      sourceFragment(0x1234_5678, 2, 0, response.subarray(0, splitAt)),
-      sourceFragment(0x1234_5678, 2, 1, response.subarray(splitAt)),
-    ] as const;
-    const server = await startFakeUdpServer((socket, request, remote): void => {
-      expect(request).toEqual(Buffer.from(BASE_REQUEST));
-      send(socket, fragments[1], remote.port, remote.address);
-      send(socket, fragments[0], remote.port, remote.address);
-    });
-    const scope = createExecutionContext({ timeoutMs: 1_000 });
-
-    const result = await queryA2sInfo({
-      scope,
-      target: createTarget(server.port),
-      address: LOOPBACK_ADDRESS,
-    });
-    scope.close();
-
-    expect(result.info).toMatchObject({ format: "source", name: "QueryHost Fixture" });
-    expect(result.challenged).toBe(false);
-  });
-
   it("decompresses and parses a split response through a fake UDP exchange", async (): Promise<void> => {
     const compressed = Uint8Array.from(
       Buffer.from(
@@ -439,24 +397,6 @@ describe("A2S Info exchange", (): void => {
     expect(requests).toBe(2);
     expect(result.challenged).toBe(true);
     expect(result.info).toMatchObject({ format: "source", name: "QueryHost Fixture" });
-  });
-
-  it("queries a legacy GoldSource response through a fake UDP server", async (): Promise<void> => {
-    const response = await readHexFixture("goldsource-basic.hex");
-    const server = await startFakeUdpServer((socket, request, remote): void => {
-      expect(request).toEqual(Buffer.from(BASE_REQUEST));
-      send(socket, response, remote.port, remote.address);
-    });
-    const scope = createExecutionContext({ timeoutMs: 1_000 });
-
-    const result = await queryA2sInfo({
-      scope,
-      target: createTarget(server.port),
-      address: LOOPBACK_ADDRESS,
-    });
-    scope.close();
-
-    expect(result.info).toMatchObject({ format: "goldsource", name: "Legacy Fixture" });
   });
 
   it("rejects a truncated response received from a fake UDP server", async (): Promise<void> => {

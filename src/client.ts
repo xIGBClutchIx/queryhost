@@ -1,7 +1,14 @@
 /** Public query orchestration over validated targets and implemented game profiles. */
 
 import { executeWithDeadline, type ExecutionScope } from "./execution.js";
-import type { GameId, QueryFailure, QueryInput, QueryResult, QuerySuccess } from "./query.js";
+import type {
+  GameDataMap,
+  GameId,
+  QueryFailure,
+  QueryInput,
+  QueryResult,
+  QuerySuccess,
+} from "./query.js";
 import { GAME_REGISTRY } from "./registry.js";
 import type {
   QueryError,
@@ -9,6 +16,8 @@ import type {
   QuerySource,
   QuerySourceName,
   QuerySourceStatus,
+  QueryWarning,
+  ServerInfo,
 } from "./shared.js";
 import {
   resolveTarget,
@@ -20,11 +29,10 @@ import {
 import { UdpTransportError } from "./transports/udp.js";
 import { A2sProtocolError } from "./protocols/a2s/errors.js";
 import type { A2sExchangeDependencies } from "./protocols/a2s/network.js";
-import {
-  queryRustProfile,
-  type RustProfileObserver,
-  type RustProfileResult,
-} from "./profiles/rust.js";
+import type { A2sProfileObserver, A2sProfileOptions } from "./profiles/a2s.js";
+import { queryProjectZomboidProfile } from "./profiles/project-zomboid.js";
+import { queryRustProfile } from "./profiles/rust.js";
+import { querySevenDaysToDieProfile } from "./profiles/seven-days-to-die.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -49,9 +57,71 @@ interface SourceTrace {
   readonly completed: Map<QuerySourceName, QuerySource>;
 }
 
-type RustTaskResult =
-  | { readonly ok: true; readonly profile: RustProfileResult }
-  | { readonly ok: false; readonly error: QueryError };
+type ImplementedGame = "rust" | "project-zomboid" | "7-days-to-die";
+
+interface GameProfileResult<G extends ImplementedGame> {
+  readonly server: ServerInfo;
+  readonly data: GameDataMap[G];
+  readonly sources: readonly QuerySource[];
+  readonly warnings: readonly QueryWarning[];
+  readonly partial: boolean;
+}
+
+interface ProfileTaskSuccess<G extends ImplementedGame> {
+  readonly ok: true;
+  readonly complete: (durationMs: number) => QuerySuccess<G>;
+}
+
+type AnyProfileTaskSuccess = {
+  readonly [G in ImplementedGame]: ProfileTaskSuccess<G>;
+}[ImplementedGame];
+
+type ProfileRunner<G extends ImplementedGame> = (
+  options: A2sProfileOptions,
+) => Promise<ProfileTaskSuccess<G>>;
+
+type AnyProfileRunner = {
+  readonly [G in ImplementedGame]: ProfileRunner<G>;
+}[ImplementedGame];
+
+type ProfileRunnerRegistry = {
+  readonly [G in GameId]: G extends ImplementedGame ? ProfileRunner<G> : undefined;
+};
+
+type ProfileTaskResult = AnyProfileTaskSuccess | { readonly ok: false; readonly error: QueryError };
+
+function createProfileRunner<G extends ImplementedGame>(
+  game: G,
+  queryProfile: (options: A2sProfileOptions) => Promise<GameProfileResult<G>>,
+): ProfileRunner<G> {
+  return async (options): Promise<ProfileTaskSuccess<G>> => {
+    const profile = await queryProfile(options);
+    return Object.freeze({
+      ok: true,
+      complete(durationMs: number): QuerySuccess<G> {
+        return Object.freeze({
+          ok: true,
+          game,
+          server: profile.server,
+          data: profile.data,
+          sources: profile.sources,
+          partial: profile.partial,
+          warnings: profile.warnings,
+          durationMs,
+        });
+      },
+    });
+  };
+}
+
+const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
+  rust: createProfileRunner("rust", queryRustProfile),
+  "project-zomboid": createProfileRunner("project-zomboid", queryProjectZomboidProfile),
+  "7-days-to-die": createProfileRunner("7-days-to-die", querySevenDaysToDieProfile),
+  "minecraft-java": undefined,
+  "minecraft-bedrock": undefined,
+  fivem: undefined,
+});
 
 const DEFAULT_DEPENDENCIES: QueryDependencies = {
   now: (): number => performance.now(),
@@ -79,28 +149,6 @@ function failure<G extends GameId>(
     sources: frozenSources(sources),
     warnings: Object.freeze([]),
   });
-}
-
-function failureForGame(
-  game: GameId,
-  error: QueryError,
-  durationMs: number,
-  sources: readonly QuerySource[] = [],
-): QueryResult {
-  switch (game) {
-    case "rust":
-      return failure(game, error, durationMs, sources);
-    case "project-zomboid":
-      return failure(game, error, durationMs, sources);
-    case "7-days-to-die":
-      return failure(game, error, durationMs, sources);
-    case "minecraft-java":
-      return failure(game, error, durationMs, sources);
-    case "minecraft-bedrock":
-      return failure(game, error, durationMs, sources);
-    case "fivem":
-      return failure(game, error, durationMs, sources);
-  }
 }
 
 function normalizeTimeout(timeoutMs: number | undefined): number {
@@ -209,7 +257,7 @@ function traceSources(trace: SourceTrace, terminalError?: QueryError): readonly 
   return sources;
 }
 
-function observer(trace: SourceTrace): RustProfileObserver {
+function observer(trace: SourceTrace): A2sProfileObserver {
   return {
     onSourceStarted(source): void {
       trace.started.add(source);
@@ -220,23 +268,24 @@ function observer(trace: SourceTrace): RustProfileObserver {
   };
 }
 
-async function runRustTask(
+async function runProfileTask(
+  runner: AnyProfileRunner,
   input: QueryInput,
   mode: QueryMode,
   scope: ExecutionScope,
   trace: SourceTrace,
   dependencies: QueryDependencies,
-): Promise<RustTaskResult> {
+): Promise<ProfileTaskResult> {
   try {
     const target = await pinnedTarget(input, dependencies);
-    const profile = await queryRustProfile({
+    const options = {
       scope,
       target,
       mode,
       observer: observer(trace),
       ...(dependencies.a2s === undefined ? {} : { a2s: dependencies.a2s }),
-    });
-    return { ok: true, profile };
+    };
+    return await runner(options);
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error;
@@ -249,27 +298,15 @@ async function runRustTask(
   }
 }
 
-function rustSuccess(profile: RustProfileResult, durationMs: number): QuerySuccess<"rust"> {
-  return Object.freeze({
-    ok: true,
-    game: "rust",
-    server: profile.server,
-    data: profile.data,
-    sources: profile.sources,
-    partial: profile.partial,
-    warnings: profile.warnings,
-    durationMs,
-  });
-}
-
 /** Internal dependency-injected form of {@link query}; not exported from the package root. */
 export async function queryWithDependencies(
   input: QueryInput,
   dependencies: QueryDependencies,
 ): Promise<QueryResult> {
   const startedAt = dependencies.now();
-  if (input.game !== "rust") {
-    return failureForGame(input.game, UNSUPPORTED_ERROR, duration(startedAt, dependencies));
+  const runner = PROFILE_RUNNERS[input.game];
+  if (runner === undefined) {
+    return failure(input.game, UNSUPPORTED_ERROR, duration(startedAt, dependencies));
   }
 
   let timeoutMs: number;
@@ -288,7 +325,7 @@ export async function queryWithDependencies(
       timeoutMs,
       ...(input.signal === undefined ? {} : { signal: input.signal }),
     },
-    (scope) => runRustTask(input, mode, scope, trace, dependencies),
+    (scope) => runProfileTask(runner, input, mode, scope, trace, dependencies),
   );
   const durationMs = duration(startedAt, dependencies);
   if (!execution.ok) {
@@ -302,7 +339,7 @@ export async function queryWithDependencies(
       traceSources(trace, execution.value.error),
     );
   }
-  return rustSuccess(execution.value.profile, durationMs);
+  return execution.value.complete(durationMs);
 }
 
 /** Queries one game server through its typed QueryHost profile. */

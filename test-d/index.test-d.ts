@@ -1,8 +1,7 @@
-import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
+import { expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
   GAME_IDS,
-  QUERYHOST_NAME,
   getGameDefinition,
   isGameId,
   query,
@@ -12,17 +11,16 @@ import {
   type MinecraftBedrockData,
   type MinecraftJavaData,
   type ProjectZomboidData,
+  type ProjectZomboidPlayer,
   type QueryError,
   type QueryInput,
   type QueryResult,
-  type QuerySourceStatus,
   type RustData,
   type RustPlayer,
   type SevenDaysToDieData,
+  type SevenDaysToDiePlayer,
 } from "queryhost";
 
-expectType<"queryhost">(QUERYHOST_NAME);
-expectAssignable<QuerySourceStatus>("failed");
 expectType<
   readonly [
     "rust",
@@ -41,6 +39,12 @@ const rustInput: QueryInput<"rust"> = {
 };
 expectType<"rust">(rustInput.game);
 expectType<Promise<QueryResult<"rust">>>(query(rustInput));
+expectType<Promise<QueryResult<"project-zomboid">>>(
+  query({ game: "project-zomboid", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"7-days-to-die">>>(
+  query({ game: "7-days-to-die", host: "play.example.com" }),
+);
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -93,6 +97,10 @@ if (dynamicResult.ok) {
 declare const dataMap: GameDataMap;
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
+expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);
+expectType<readonly string[] | undefined>(dataMap["project-zomboid"].mods);
+expectType<readonly SevenDaysToDiePlayer[] | undefined>(dataMap["7-days-to-die"].players);
+expectType<string | undefined>(dataMap["7-days-to-die"].currentServerTime);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
 
 declare const rustPlayer: RustPlayer;

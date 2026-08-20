@@ -34,10 +34,9 @@ export type {
   MinecraftSoftware,
   MinecraftSrvTarget,
   ProjectZomboidData,
+  ProjectZomboidPlayer,
   RustData,
   RustPlayer,
   SevenDaysToDieData,
+  SevenDaysToDiePlayer,
 } from "./games.js";
-
-/** The public package name. */
-export const QUERYHOST_NAME = "queryhost" as const;

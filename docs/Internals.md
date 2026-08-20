@@ -21,7 +21,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 ## Module ownership
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
-- `client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches implemented profiles, and produces stable success or failure envelopes.
+- `client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
 - `cli-options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
 - `query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
 - `games.ts` contains stable game-specific fields. It does not contain transport or parser state.
@@ -32,6 +32,8 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
+- `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
+- Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
 ## Result invariants
 
@@ -84,13 +86,21 @@ A2S Player and Rules share the same bounded exchange and split reconstruction pa
 
 After a required source succeeds, requested independent optional sources receive separate child operation scopes and start concurrently. Their reports remain in deterministic profile order regardless of completion order. Confirmed empty Player or Rules responses are preserved as empty values; failed values are omitted. Timeout, malformed data, policy blocking, unsupported capability, deliberate omission, and other transport failure remain distinct provenance states and do not reject optional enrichment. Root timeout or caller cancellation still terminates the whole operation rather than being reduced to an optional-source report.
 
-## Rust profile invariants
+## Shared A2S profile invariants
 
-Rust uses A2S Info as its required source. The profile tries only addresses from the validated target in their resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+Rust, Project Zomboid, and 7 Days to Die use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
 
-Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Rust keywords become an ordered, trimmed tag list; Player records become stable `RustPlayer` values; and generic A2S rule names remain unchanged under `data.rules`. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections.
+Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
 
-The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline. The registry records Rust's conventional 28015 game port and 28017 query port. QueryHost preserves that two-port offset when callers supply a custom game port, while an explicit `queryPort` overrides the convention because Rust administrators can configure it independently.
+The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline.
+
+## Game-specific A2S merges
+
+- Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
+- Project Zomboid converts Player records and interprets `PublicDescription`, `PVP`, `PauseEmpty`, and semicolon-delimited `Mods`. Its default A2S destination is UDP 16261. Other rule names remain available unchanged.
+- 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `GameWorld`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
+
+Each game owns independent successful-source fixtures and tests for its merge semantics and port convention. Shared profile tests own common timeout, malformed-response, target-policy, summary-mode, and provenance behavior so those cases are not repeated for every game. A shared parser or orchestration module must never branch on one of these game IDs.
 
 ## Command-line invariants
 
@@ -112,4 +122,4 @@ Run the complete gate before committing:
 npm run verify
 ```
 
-The gate checks formatting, production declarations, strict type safety, lint rules, runtime tests, published type tests, packed-package consumption, package metadata, and ESM compatibility.
+The gate checks formatting, production declarations, strict type safety, lint rules, runtime tests, published type tests, packed-package metadata, and ESM compatibility.

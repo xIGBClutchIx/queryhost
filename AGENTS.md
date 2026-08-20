@@ -42,3 +42,5 @@ npm run verify
 ```
 
 Add focused regression tests with every behavior change. Do not commit generated `dist/` output or publish/push unless explicitly requested.
+
+Use the repository's conventional, imperative commit subjects. When a commit needs supporting detail, format its body as a concise `-` list with one meaningful change per item; omit the body when the subject is sufficient.
