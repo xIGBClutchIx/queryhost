@@ -6,6 +6,7 @@ import { createExecutionContext, type ExecutionScope } from "../src/execution.js
 import type { PinnedAddress, PinnedTarget } from "../src/target.js";
 import {
   UdpTransportError,
+  udpCollect,
   udpExchange,
   type UdpRemotePeer,
   type UdpSocketAdapter,
@@ -277,6 +278,53 @@ describe("udpExchange integration", (): void => {
 
     expect([...first.data]).toEqual([11]);
     expect([...second.data]).toEqual([12]);
+  });
+});
+
+describe("udpCollect integration", (): void => {
+  it("collects matching datagrams until the protocol reports completion", async (): Promise<void> => {
+    const server = await startFakeUdpServer((socket, _message, remote): void => {
+      send(socket, Uint8Array.of(1), remote.port, remote.address);
+      send(socket, Uint8Array.of(2), remote.port, remote.address);
+    });
+    const scope = createScope();
+
+    const result = await udpCollect({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+      request: Uint8Array.of(9),
+      maxResponseBytes: 4,
+      maxDatagrams: 2,
+      maxTotalResponseBytes: 8,
+      isComplete: (datagrams): boolean => datagrams.length === 2,
+    });
+    scope.close();
+
+    expect(result.datagrams).toEqual([Uint8Array.of(1), Uint8Array.of(2)]);
+  });
+
+  it("fails closed when a sender exceeds the datagram-count bound", async (): Promise<void> => {
+    const server = await startFakeUdpServer((socket, _message, remote): void => {
+      send(socket, Uint8Array.of(1), remote.port, remote.address);
+      send(socket, Uint8Array.of(1), remote.port, remote.address);
+      send(socket, Uint8Array.of(1), remote.port, remote.address);
+    });
+    const scope = createScope();
+
+    await expect(
+      udpCollect({
+        scope,
+        target: createTarget(server.port),
+        address: LOOPBACK_ADDRESS,
+        request: Uint8Array.of(9),
+        maxResponseBytes: 1,
+        maxDatagrams: 2,
+        maxTotalResponseBytes: 2,
+        isComplete: (): boolean => false,
+      }),
+    ).rejects.toSatisfy(expectTransportCode("RESPONSE_TOO_LARGE"));
+    scope.close();
   });
 });
 

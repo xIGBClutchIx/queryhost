@@ -1,4 +1,4 @@
-/** One-datagram UDP exchanges with strict peer, size, deadline, and cleanup boundaries. */
+/** Bounded UDP exchanges with strict peer, size, deadline, and cleanup boundaries. */
 
 import { createSocket } from "node:dgram";
 import { isIP } from "node:net";
@@ -87,6 +87,24 @@ export interface UdpExchangeResult {
   readonly port: number;
 }
 
+/** Inputs for a request whose response may span multiple datagrams. */
+export interface UdpCollectionOptions extends UdpExchangeOptions {
+  /** Maximum accepted datagrams, including exact duplicates. */
+  readonly maxDatagrams: number;
+  /** Maximum combined bytes accepted across all matching datagrams. */
+  readonly maxTotalResponseBytes: number;
+  /** Protocol-owned completion check; transports do not interpret response contents. */
+  readonly isComplete: (datagrams: readonly Uint8Array[]) => boolean;
+}
+
+/** Bounded datagrams and transport measurements returned to a protocol implementation. */
+export interface UdpCollectionResult {
+  readonly datagrams: readonly Uint8Array[];
+  readonly rttMs: number;
+  readonly address: PinnedAddress;
+  readonly port: number;
+}
+
 function createNodeSocketAdapter(family: IpFamily): UdpSocketAdapter {
   const socket = createSocket(family === 4 ? "udp4" : "udp6");
 
@@ -157,6 +175,19 @@ function validateOptions(options: UdpExchangeOptions): void {
   }
 }
 
+function validateCollectionOptions(options: UdpCollectionOptions): void {
+  validateOptions(options);
+  if (
+    !Number.isSafeInteger(options.maxDatagrams) ||
+    options.maxDatagrams < 1 ||
+    !Number.isSafeInteger(options.maxTotalResponseBytes) ||
+    options.maxTotalResponseBytes < options.maxResponseBytes ||
+    options.maxTotalResponseBytes > MAX_UDP_DATAGRAM_BYTES
+  ) {
+    fail("INVALID_INPUT");
+  }
+}
+
 function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: number): boolean {
   const normalizedPeer = normalizeIpAddress(peer.address);
   const normalizedTarget = normalizeIpAddress(address.address);
@@ -173,12 +204,38 @@ function terminationCode(scope: ExecutionScope): UdpTransportErrorCode {
  * Unrelated datagrams are ignored. A fresh socket prevents duplicate or late packets from a prior
  * request from being accepted by a later exchange. The caller retains ownership of the scope.
  */
-export function udpExchange(
+export async function udpExchange(
   options: UdpExchangeOptions,
   dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
 ): Promise<UdpExchangeResult> {
+  const result = await udpCollect(
+    {
+      ...options,
+      maxDatagrams: 1,
+      maxTotalResponseBytes: options.maxResponseBytes,
+      isComplete: (): boolean => true,
+    },
+    dependencies,
+  );
+  const data = result.datagrams[0];
+  if (data === undefined) {
+    return fail("MALFORMED_RESPONSE");
+  }
+  return { data, rttMs: result.rttMs, address: result.address, port: result.port };
+}
+
+/**
+ * Sends one datagram and collects bounded responses until the protocol reports completion.
+ *
+ * The callback sees immutable packet copies from only the selected pinned peer. It must remain
+ * synchronous and should only inspect protocol framing; the transport owns all socket lifecycle.
+ */
+export function udpCollect(
+  options: UdpCollectionOptions,
+  dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
+): Promise<UdpCollectionResult> {
   return new Promise((resolve, reject): void => {
-    validateOptions(options);
+    validateCollectionOptions(options);
 
     if (options.scope.signal.aborted) {
       reject(new UdpTransportError(terminationCode(options.scope)));
@@ -209,7 +266,7 @@ export function udpExchange(
       }
     };
 
-    const finish = (result: UdpExchangeResult | UdpTransportError): void => {
+    const finish = (result: UdpCollectionResult | UdpTransportError): void => {
       if (settled) {
         return;
       }
@@ -234,6 +291,8 @@ export function udpExchange(
     });
 
     const startedMs = dependencies.now();
+    const datagrams: Uint8Array[] = [];
+    let totalResponseBytes = 0;
     socket.onMessage((message, peer): void => {
       // Validate the peer before interpreting its size so an unrelated sender cannot fail a query.
       if (!peerMatches(peer, options.address, options.target.port)) {
@@ -247,13 +306,39 @@ export function udpExchange(
         finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
         return;
       }
+      if (datagrams.length >= options.maxDatagrams) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
 
-      finish({
-        data: Uint8Array.from(message),
-        rttMs: Math.max(0, dependencies.now() - startedMs),
-        address: options.address,
-        port: options.target.port,
-      });
+      totalResponseBytes += message.byteLength;
+      if (totalResponseBytes > options.maxTotalResponseBytes) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
+
+      datagrams.push(Uint8Array.from(message));
+      let complete: boolean;
+      try {
+        complete = options.isComplete(datagrams);
+      } catch {
+        finish(new UdpTransportError("MALFORMED_RESPONSE"));
+        return;
+      }
+      if (complete) {
+        finish({
+          datagrams: Object.freeze([...datagrams]),
+          rttMs: Math.max(0, dependencies.now() - startedMs),
+          address: options.address,
+          port: options.target.port,
+        });
+      } else if (
+        datagrams.length === options.maxDatagrams ||
+        totalResponseBytes === options.maxTotalResponseBytes
+      ) {
+        // No additional non-empty datagram can fit, so waiting would only disguise a hard limit as a timeout.
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+      }
     });
 
     options.scope.signal.addEventListener("abort", handleAbort, { once: true });

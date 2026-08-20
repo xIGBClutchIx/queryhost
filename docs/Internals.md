@@ -30,7 +30,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `execution.ts` owns deadlines, cancellation propagation, cleanup, and internal-error redaction.
 - `ip.ts` owns canonical IP parsing and the public-routability policy.
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
-- `transports/udp.ts` owns one bounded request/response exchange with no protocol interpretation.
+- `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 
 ## Result invariants
@@ -66,17 +66,19 @@ IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` rem
 
 ## UDP transport invariants
 
-One UDP exchange selects an address already present in a pinned target and creates a fresh family-matched socket. It sends one non-empty datagram and accepts only the first non-empty, non-truncated response from the selected address and port.
+One UDP exchange selects an address already present in a pinned target and creates a fresh family-matched socket. It sends one non-empty datagram and accepts only non-empty, non-truncated responses from the selected address and port. A single-response exchange stops after the first accepted datagram. A collection exchange additionally requires protocol-supplied datagram-count, per-datagram, aggregate-byte, and completion bounds.
 
 Datagrams from every other peer are ignored before their contents or size are considered. Request and response sizes cannot exceed the UDP payload ceiling, and each protocol supplies a tighter response limit. The execution scope terminates the exchange on its deadline or caller cancellation; success, failure, timeout, and cancellation all close the socket exactly once.
 
-The transport returns copied bytes, round-trip duration, and destination facts. It does not parse headers, retry protocol exchanges, select another pinned address, or interpret game data.
+The transport returns copied bytes, round-trip duration, and destination facts. A collection completion callback may inspect framing, but the transport does not parse headers itself, retry protocol exchanges, select another pinned address, or interpret game data.
 
 ## A2S Info invariants
 
-The A2S Info parser accepts one packet no larger than 1,400 bytes. It distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
+The A2S Info parser accepts direct packets no larger than 1,400 bytes and reconstructed responses no larger than 65,536 bytes. It distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
 
-The protocol layer may perform one challenge retry under the same execution scope. A second challenge fails deterministically. Split-packet headers are identified explicitly but reconstruction remains owned by Slice 6. Parsed values remain protocol facts; Rust and other game-specific interpretation belongs in later profiles.
+The protocol layer may perform one challenge retry under the same execution scope. A second challenge fails deterministically. Split reconstruction accepts at most 15 unique fragments and 30 total datagrams, keys fragments by response ID, reorders them, ignores exact duplicates, and rejects conflicting duplicates or metadata. Both Source header variants and the packed GoldSource layout are supported.
+
+Compressed Source replies are retained only up to 16,384 compressed bytes. Their declared output size must fit the 65,536-byte response ceiling before bzip2 runs, and the decoded byte count and CRC32 must match the first fragment's metadata. These checks prevent fragment floods, oversized reconstruction, and decompression bombs from turning protocol input into unbounded work. Parsed values remain protocol facts; Rust and other game-specific interpretation belongs in later profiles.
 
 ## Adding implementation code
 

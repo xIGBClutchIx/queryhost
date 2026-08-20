@@ -3,12 +3,20 @@
 import type { ExecutionScope } from "../../execution.js";
 import type { PinnedAddress, PinnedTarget } from "../../target.js";
 import {
-  udpExchange,
-  type UdpExchangeOptions,
-  type UdpExchangeResult,
+  udpCollect,
+  type UdpCollectionOptions,
+  type UdpCollectionResult,
 } from "../../transports/udp.js";
 import { A2sBinaryReader } from "./binary.js";
 import { failA2s } from "./errors.js";
+import {
+  A2S_MAX_COLLECTION_BYTES,
+  A2S_MAX_DATAGRAM_BYTES,
+  A2S_MAX_DATAGRAMS,
+  A2S_MAX_RESPONSE_BYTES,
+  isA2sResponseComplete,
+  reconstructA2sResponse,
+} from "./split.js";
 
 const SINGLE_PACKET_HEADER = -1;
 const SPLIT_PACKET_HEADER = -2;
@@ -22,8 +30,8 @@ const EDF_KEYWORDS = 0x20;
 const EDF_GAME_ID = 0x01;
 const KNOWN_EDF_MASK = EDF_PORT | EDF_STEAM_ID | EDF_SOURCE_TV | EDF_KEYWORDS | EDF_GAME_ID;
 
-/** Maximum single-packet A2S response accepted before Slice 6 reconstruction. */
-export const A2S_SINGLE_PACKET_MAX_BYTES = 1_400;
+/** Maximum single-packet A2S response accepted by the direct parser. */
+export const A2S_SINGLE_PACKET_MAX_BYTES: number = A2S_MAX_DATAGRAM_BYTES;
 
 const BASE_INFO_REQUEST = Uint8Array.of(
   0xff,
@@ -129,7 +137,7 @@ export type A2sInfoPacket =
 
 /** Dependencies required to perform A2S Info network exchanges. */
 export interface A2sInfoDependencies {
-  exchange(options: UdpExchangeOptions): Promise<UdpExchangeResult>;
+  collect(options: UdpCollectionOptions): Promise<UdpCollectionResult>;
 }
 
 /** Inputs for a direct A2S Info query against one selected pinned address. */
@@ -146,7 +154,7 @@ export interface A2sInfoQueryResult {
   readonly challenged: boolean;
 }
 
-const DEFAULT_DEPENDENCIES: A2sInfoDependencies = { exchange: udpExchange };
+const DEFAULT_DEPENDENCIES: A2sInfoDependencies = { collect: udpCollect };
 
 function readBoolean(reader: A2sBinaryReader): boolean {
   const value = reader.readUint8();
@@ -328,9 +336,8 @@ export function encodeA2sInfoRequest(challenge?: number): Uint8Array {
   return request;
 }
 
-/** Parses one bounded, unsplit A2S Info or challenge packet. */
-export function parseA2sInfoPacket(packet: Uint8Array): A2sInfoPacket {
-  if (packet.byteLength < 5 || packet.byteLength > A2S_SINGLE_PACKET_MAX_BYTES) {
+function parseA2sInfoResponse(packet: Uint8Array, maximumBytes: number): A2sInfoPacket {
+  if (packet.byteLength < 5 || packet.byteLength > maximumBytes) {
     return failA2s("MALFORMED_RESPONSE");
   }
 
@@ -358,18 +365,28 @@ export function parseA2sInfoPacket(packet: Uint8Array): A2sInfoPacket {
   return failA2s("MALFORMED_RESPONSE");
 }
 
+/** Parses one bounded, unsplit A2S Info or challenge packet. */
+export function parseA2sInfoPacket(packet: Uint8Array): A2sInfoPacket {
+  return parseA2sInfoResponse(packet, A2S_SINGLE_PACKET_MAX_BYTES);
+}
+
 async function exchange(
   options: A2sInfoQueryOptions,
   request: Uint8Array,
   dependencies: A2sInfoDependencies,
-): Promise<UdpExchangeResult> {
-  return dependencies.exchange({
+): Promise<{ readonly packet: A2sInfoPacket; readonly rttMs: number }> {
+  const result = await dependencies.collect({
     scope: options.scope,
     target: options.target,
     address: options.address,
     request,
-    maxResponseBytes: A2S_SINGLE_PACKET_MAX_BYTES,
+    maxResponseBytes: A2S_MAX_DATAGRAM_BYTES,
+    maxDatagrams: A2S_MAX_DATAGRAMS,
+    maxTotalResponseBytes: A2S_MAX_COLLECTION_BYTES,
+    isComplete: isA2sResponseComplete,
   });
+  const response = await reconstructA2sResponse(result.datagrams);
+  return { packet: parseA2sInfoResponse(response, A2S_MAX_RESPONSE_BYTES), rttMs: result.rttMs };
 }
 
 /** Performs a direct A2S Info query with at most one server-requested challenge retry. */
@@ -378,7 +395,7 @@ export async function queryA2sInfo(
   dependencies: A2sInfoDependencies = DEFAULT_DEPENDENCIES,
 ): Promise<A2sInfoQueryResult> {
   const firstResponse = await exchange(options, encodeA2sInfoRequest(), dependencies);
-  const firstPacket = parseA2sInfoPacket(firstResponse.data);
+  const firstPacket = firstResponse.packet;
   if (firstPacket.kind === "info") {
     return { info: firstPacket.info, rttMs: firstResponse.rttMs, challenged: false };
   }
@@ -388,7 +405,7 @@ export async function queryA2sInfo(
     encodeA2sInfoRequest(firstPacket.challenge),
     dependencies,
   );
-  const secondPacket = parseA2sInfoPacket(secondResponse.data);
+  const secondPacket = secondResponse.packet;
   if (secondPacket.kind === "challenge") {
     return failA2s("CHALLENGE_LIMIT");
   }

@@ -13,7 +13,7 @@ import {
   type A2sInfoDependencies,
 } from "../src/protocols/a2s/info.js";
 import type { PinnedAddress, PinnedTarget } from "../src/target.js";
-import type { UdpExchangeOptions, UdpExchangeResult } from "../src/transports/udp.js";
+import type { UdpCollectionOptions, UdpCollectionResult } from "../src/transports/udp.js";
 import { startFakeUdpServer, stopAllFakeUdpServers } from "./helpers/fake-udp-server.js";
 
 const LOOPBACK_ADDRESS: PinnedAddress = Object.freeze({ address: "127.0.0.1", family: 4 });
@@ -36,6 +36,46 @@ function createTarget(port: number): PinnedTarget {
 
 function send(server: Socket, data: Uint8Array, port: number, address: string): void {
   server.send(data, port, address);
+}
+
+function sourceFragment(
+  requestId: number,
+  count: number,
+  index: number,
+  payload: Uint8Array,
+): Uint8Array {
+  const result = new Uint8Array(12 + payload.byteLength);
+  result.set(Uint8Array.of(0xfe, 0xff, 0xff, 0xff));
+  const view = new DataView(result.buffer);
+  view.setUint32(4, requestId, true);
+  result[8] = count;
+  result[9] = index;
+  view.setUint16(10, 1_248, true);
+  result.set(payload, 12);
+  return result;
+}
+
+/** Wraps chunks from the bzip2-compressed redacted fixture using its fixed size and CRC32. */
+function compressedCapturedSourceFragment(
+  requestId: number,
+  count: number,
+  index: number,
+  payload: Uint8Array,
+): Uint8Array {
+  const metadataBytes = index === 0 ? 8 : 0;
+  const result = new Uint8Array(12 + metadataBytes + payload.byteLength);
+  result.set(Uint8Array.of(0xfe, 0xff, 0xff, 0xff));
+  const view = new DataView(result.buffer);
+  view.setUint32(4, requestId | 0x8000_0000, true);
+  result[8] = count;
+  result[9] = index;
+  view.setUint16(10, 1_248, true);
+  if (index === 0) {
+    view.setUint32(12, 103, true);
+    view.setUint32(16, 1_982_530_295, true);
+  }
+  result.set(payload, 12 + metadataBytes);
+  return result;
 }
 
 async function readHexFixture(name: string): Promise<Uint8Array> {
@@ -318,6 +358,59 @@ describe("A2S Info exchange", (): void => {
     expect(result.rttMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("reconstructs an out-of-order split response from one fake UDP exchange", async (): Promise<void> => {
+    const response = await readHexFixture("source-captured-redacted.hex");
+    const splitAt = Math.ceil(response.byteLength / 2);
+    const fragments = [
+      sourceFragment(0x1234_5678, 2, 0, response.subarray(0, splitAt)),
+      sourceFragment(0x1234_5678, 2, 1, response.subarray(splitAt)),
+    ] as const;
+    const server = await startFakeUdpServer((socket, request, remote): void => {
+      expect(request).toEqual(Buffer.from(BASE_REQUEST));
+      send(socket, fragments[1], remote.port, remote.address);
+      send(socket, fragments[0], remote.port, remote.address);
+    });
+    const scope = createExecutionContext({ timeoutMs: 1_000 });
+
+    const result = await queryA2sInfo({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+    });
+    scope.close();
+
+    expect(result.info).toMatchObject({ format: "source", name: "QueryHost Fixture" });
+    expect(result.challenged).toBe(false);
+  });
+
+  it("decompresses and parses a split response through a fake UDP exchange", async (): Promise<void> => {
+    const compressed = Uint8Array.from(
+      Buffer.from(
+        "QlpoMTFBWSZTWVlPH7cAADP/mP/AIABIhX6EBWAgEL9l3vAABCAAAACgAGQ1U/SgGEeoHqDaT9KaPUGh4KeoYAaaNBpiAAABkBhJZBxCM2uW1eWoqeujSnVrVc+gk87WcLQZsybjqOSGI/O7XydmwSD8Wy6HuEJZ33vpBxJAljnMUTaE1qUEVjlvEU4/xdyRThQkFlPH7cA=",
+        "base64",
+      ),
+    );
+    const splitAt = Math.ceil(compressed.byteLength / 2);
+    const fragments = [
+      compressedCapturedSourceFragment(0x2345_6789, 2, 0, compressed.subarray(0, splitAt)),
+      compressedCapturedSourceFragment(0x2345_6789, 2, 1, compressed.subarray(splitAt)),
+    ] as const;
+    const server = await startFakeUdpServer((socket, _request, remote): void => {
+      send(socket, fragments[1], remote.port, remote.address);
+      send(socket, fragments[0], remote.port, remote.address);
+    });
+    const scope = createExecutionContext({ timeoutMs: 1_000 });
+
+    const result = await queryA2sInfo({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+    });
+    scope.close();
+
+    expect(result.info).toMatchObject({ format: "source", name: "QueryHost Fixture" });
+  });
+
   it("retries once with the exact challenge returned by a fake server", async (): Promise<void> => {
     const challenge = await readHexFixture("challenge-captured.hex");
     const response = await readHexFixture("source-captured-redacted.hex");
@@ -409,14 +502,14 @@ describe("A2S Info exchange", (): void => {
     const replies = [challenge, response] as const;
     let exchangeIndex = 0;
     const dependencies: A2sInfoDependencies = {
-      exchange(options: UdpExchangeOptions): Promise<UdpExchangeResult> {
+      collect(options: UdpCollectionOptions): Promise<UdpCollectionResult> {
         const data = replies[exchangeIndex];
         exchangeIndex += 1;
         if (data === undefined) {
           throw new Error("No response remains.");
         }
         return Promise.resolve({
-          data,
+          datagrams: Object.freeze([data]),
           rttMs: exchangeIndex * 3,
           address: options.address,
           port: options.target.port,
