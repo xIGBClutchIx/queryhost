@@ -1,3 +1,5 @@
+/** Public QueryHost package surface. Internal transports and safety primitives are not re-exported. */
+
 export type { GameCapability, GameDefinition, GameRegistry, SupportLevel } from "./registry.js";
 export { GAME_IDS, GAME_REGISTRY, getGameDefinition, isGameId, listGames } from "./registry.js";
 export type {

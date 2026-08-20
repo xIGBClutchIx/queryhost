@@ -1,3 +1,5 @@
+/** Bounded lifecycle and error-normalization primitives shared by all future transports. */
+
 import type { QueryError, QuerySourceName } from "./shared.js";
 
 const ABORTED_MESSAGE = "The query was cancelled.";
@@ -8,24 +10,45 @@ type Cleanup = () => void;
 type ExecutionErrorCode = "ABORTED" | "INTERNAL_ERROR" | "TIMEOUT";
 type ExecutionState = "active" | "aborted" | "closed" | "timeout";
 
+/**
+ * One cancellable deadline scope.
+ *
+ * A root scope owns the query deadline. Child scopes may shorten that deadline for one source but
+ * can never outlive their parent.
+ */
 export interface ExecutionScope {
+  /** Aborts on caller cancellation, this scope's deadline, or parent termination. */
   readonly signal: AbortSignal;
+  /** Absolute monotonic deadline measured against `performance.now()`. */
   readonly deadlineMs: number;
+  /** Remaining active budget; zero after every form of termination. */
   readonly remainingMs: number;
+  /** Stable timeout/cancellation error, or `undefined` while active and after a normal close. */
   getError(): QueryError | undefined;
+  /**
+   * Registers resource cleanup and returns an unregister function.
+   * Cleanup runs once in reverse registration order on every termination path.
+   */
   addCleanup(cleanup: Cleanup): Cleanup;
+  /** Creates a child budget capped by this scope's deadline. */
   createOperation(timeoutMs: number, source?: QuerySourceName): ExecutionScope;
+  /** Completes the scope normally while still cancelling unfinished child work. */
   close(): void;
 }
 
+/** Inputs used to create a root execution scope. */
 export interface ExecutionOptions {
+  /** Positive global deadline duration in milliseconds. */
   readonly timeoutMs: number;
+  /** Optional caller-owned cancellation signal. */
   readonly signal?: AbortSignal;
 }
 
+/** Internal task outcome with exceptions reduced to stable public errors. */
 export type ExecutionOutcome<T> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: QueryError };
 
+/** Asynchronous work performed inside one root execution scope. */
 export type ExecutionTask<T> = (context: ExecutionScope) => Promise<T>;
 
 type TaskCompletion<T> =
@@ -92,6 +115,7 @@ class DefaultExecutionScope implements ExecutionScope {
     this.#startedMs = performance.now();
 
     const requestedDeadline = this.#startedMs + timeoutMs;
+    // An operation budget can only make a parent deadline stricter, never extend it.
     this.deadlineMs =
       parent === undefined ? requestedDeadline : Math.min(requestedDeadline, parent.deadlineMs);
 
@@ -116,6 +140,7 @@ class DefaultExecutionScope implements ExecutionScope {
       return;
     }
 
+    // A child sharing its parent's deadline needs no duplicate timer; parent abort propagation wins.
     if (parent === undefined || this.deadlineMs < parent.deadlineMs) {
       this.#timeout = setTimeout(() => {
         this.#finish("timeout");
@@ -178,6 +203,7 @@ class DefaultExecutionScope implements ExecutionScope {
     this.#detachParent = undefined;
     this.#controller.abort();
 
+    // LIFO mirrors nested resource acquisition and still runs every callback if one is faulty.
     const cleanups = [...this.#cleanups].reverse();
     this.#cleanups.clear();
     for (const cleanup of cleanups) {
@@ -186,6 +212,7 @@ class DefaultExecutionScope implements ExecutionScope {
   }
 }
 
+/** Creates the root scope for one query and composes an optional caller signal into it. */
 export function createExecutionContext(options: ExecutionOptions): ExecutionScope {
   const context = new DefaultExecutionScope(options.timeoutMs);
 
@@ -207,6 +234,12 @@ export function createExecutionContext(options: ExecutionOptions): ExecutionScop
   return context;
 }
 
+/**
+ * Executes a task within a hard deadline and converts all rejection details to stable errors.
+ *
+ * The termination race makes the wrapper settle even when faulty work ignores its abort signal.
+ * Registered cleanup always runs before the returned promise settles.
+ */
 export async function executeWithDeadline<T>(
   options: ExecutionOptions,
   task: ExecutionTask<T>,
@@ -219,6 +252,8 @@ export async function executeWithDeadline<T>(
       return { ok: false, error: initialError };
     }
 
+    // Attach both handlers immediately so a task that loses the deadline race cannot later produce
+    // an unhandled rejection or leak its implementation error.
     const taskCompletion: Promise<TaskCompletion<T>> = task(context).then(
       (value) => ({ kind: "success", value }),
       () => ({ kind: "failure" }),

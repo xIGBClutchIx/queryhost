@@ -1,3 +1,5 @@
+/** Verifies the actual npm tarball through a fresh JavaScript consumer installation. */
+
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,6 +16,8 @@ if (npmCli === undefined) {
 }
 
 try {
+  // Test the packed artifact rather than importing the working tree. This catches missing files,
+  // incorrect exports, and install-time differences that source-level tests cannot see.
   const { stdout } = await execFileAsync(
     process.execPath,
     [npmCli, "pack", "--json", "--pack-destination", temporaryRoot],
@@ -53,7 +57,9 @@ try {
     [npmCli, "install", "--ignore-scripts", "--no-audit", "--no-fund"],
     { cwd: consumerRoot },
   );
+  // The final process proves Node can resolve and execute the package from a clean consumer.
   await execFileAsync(process.execPath, ["index.mjs"], { cwd: consumerRoot });
 } finally {
+  // Package verification must not leave tarballs, installs, or caches in the repository.
   await rm(temporaryRoot, { force: true, recursive: true });
 }
