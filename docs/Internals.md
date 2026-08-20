@@ -31,6 +31,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `ip.ts` owns canonical IP parsing and the public-routability policy.
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns one bounded request/response exchange with no protocol interpretation.
+- `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 
 ## Result invariants
 
@@ -70,6 +71,12 @@ One UDP exchange selects an address already present in a pinned target and creat
 Datagrams from every other peer are ignored before their contents or size are considered. Request and response sizes cannot exceed the UDP payload ceiling, and each protocol supplies a tighter response limit. The execution scope terminates the exchange on its deadline or caller cancellation; success, failure, timeout, and cancellation all close the socket exactly once.
 
 The transport returns copied bytes, round-trip duration, and destination facts. It does not parse headers, retry protocol exchanges, select another pinned address, or interpret game data.
+
+## A2S Info invariants
+
+The A2S Info parser accepts one packet no larger than 1,400 bytes. It distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
+
+The protocol layer may perform one challenge retry under the same execution scope. A second challenge fails deterministically. Split-packet headers are identified explicitly but reconstruction remains owned by Slice 6. Parsed values remain protocol facts; Rust and other game-specific interpretation belongs in later profiles.
 
 ## Adding implementation code
 
