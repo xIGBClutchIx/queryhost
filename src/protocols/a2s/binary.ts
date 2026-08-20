@@ -52,6 +52,14 @@ export class A2sBinaryReader {
     return value;
   }
 
+  /** Reads one little-endian 32-bit IEEE 754 value. */
+  public readFloat32(): number {
+    this.#require(4);
+    const value = this.#view.getFloat32(this.#offset, true);
+    this.#offset += 4;
+    return value;
+  }
+
   /** Reads one unsigned little-endian 64-bit integer without losing precision. */
   public readUint64(): bigint {
     this.#require(8);
@@ -61,9 +69,15 @@ export class A2sBinaryReader {
   }
 
   /** Reads one valid UTF-8, null-terminated string. */
-  public readString(): string {
+  public readString(maximumBytes?: number): string {
     const terminator = this.#bytes.indexOf(0, this.#offset);
-    if (terminator === -1) {
+    if (
+      terminator === -1 ||
+      (maximumBytes !== undefined &&
+        (!Number.isSafeInteger(maximumBytes) ||
+          maximumBytes < 0 ||
+          terminator - this.#offset > maximumBytes))
+    ) {
       return failA2s("MALFORMED_RESPONSE");
     }
 

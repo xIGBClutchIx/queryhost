@@ -40,7 +40,7 @@ export type QuerySourceName =
 
 /** Outcome of an individual source, independent from the overall query result. */
 export type QuerySourceStatus =
-  "ok" | "timeout" | "blocked" | "malformed" | "unsupported" | "not-requested";
+  "ok" | "timeout" | "blocked" | "malformed" | "unsupported" | "not-requested" | "failed";
 
 /** Provenance report for one attempted, skipped, or unavailable source. */
 export interface QuerySource {

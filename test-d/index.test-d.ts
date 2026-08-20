@@ -1,4 +1,4 @@
-import { expectError, expectNotAssignable, expectType } from "tsd";
+import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
   GAME_IDS,
@@ -14,11 +14,13 @@ import {
   type QueryError,
   type QueryInput,
   type QueryResult,
+  type QuerySourceStatus,
   type RustData,
   type SevenDaysToDieData,
 } from "queryhost";
 
 expectType<"queryhost">(QUERYHOST_NAME);
+expectAssignable<QuerySourceStatus>("failed");
 expectType<
   readonly [
     "rust",

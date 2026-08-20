@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–6:
+The repository currently contains the strict package foundation and Slices 1–7:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -14,8 +14,10 @@ The repository currently contains the strict package foundation and Slices 1–6
 - bounded UDP exchanges with peer validation, packet limits, cancellation, and deterministic socket cleanup
 - A2S Info request encoding, bounded challenge handling, and strict Source and GoldSource parsing
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
+- strict A2S Player and Rules parsing with bounded one-retry challenge flows
+- concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
 
-The public `query()` function and game profiles are not implemented yet. Additional A2S sources and the TCP and fixed HTTP transports arrive in later slices. The examples below document the contract that those later slices will fulfill.
+The public `query()` function and game profiles are not implemented yet. The first A2S game profile and the TCP and fixed HTTP transports arrive in later slices. The examples below document the contract that those later slices will fulfill.
 
 ## Public contract
 

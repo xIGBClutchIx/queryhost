@@ -1,22 +1,9 @@
 /** A2S Info request encoding, strict response parsing, and bounded challenge orchestration. */
 
-import type { ExecutionScope } from "../../execution.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
-import {
-  udpCollect,
-  type UdpCollectionOptions,
-  type UdpCollectionResult,
-} from "../../transports/udp.js";
 import { A2sBinaryReader } from "./binary.js";
 import { failA2s } from "./errors.js";
-import {
-  A2S_MAX_COLLECTION_BYTES,
-  A2S_MAX_DATAGRAM_BYTES,
-  A2S_MAX_DATAGRAMS,
-  A2S_MAX_RESPONSE_BYTES,
-  isA2sResponseComplete,
-  reconstructA2sResponse,
-} from "./split.js";
+import { exchangeA2s, type A2sExchangeDependencies, type A2sQueryOptions } from "./network.js";
+import { A2S_MAX_DATAGRAM_BYTES, A2S_MAX_RESPONSE_BYTES } from "./split.js";
 
 const SINGLE_PACKET_HEADER = -1;
 const SPLIT_PACKET_HEADER = -2;
@@ -136,16 +123,10 @@ export type A2sInfoPacket =
   | { readonly kind: "info"; readonly info: A2sInfo };
 
 /** Dependencies required to perform A2S Info network exchanges. */
-export interface A2sInfoDependencies {
-  collect(options: UdpCollectionOptions): Promise<UdpCollectionResult>;
-}
+export type A2sInfoDependencies = A2sExchangeDependencies;
 
 /** Inputs for a direct A2S Info query against one selected pinned address. */
-export interface A2sInfoQueryOptions {
-  readonly scope: ExecutionScope;
-  readonly target: PinnedTarget;
-  readonly address: PinnedAddress;
-}
+export type A2sInfoQueryOptions = A2sQueryOptions;
 
 /** Parsed A2S information and the complete request/challenge round-trip duration. */
 export interface A2sInfoQueryResult {
@@ -153,8 +134,6 @@ export interface A2sInfoQueryResult {
   readonly rttMs: number;
   readonly challenged: boolean;
 }
-
-const DEFAULT_DEPENDENCIES: A2sInfoDependencies = { collect: udpCollect };
 
 function readBoolean(reader: A2sBinaryReader): boolean {
   const value = reader.readUint8();
@@ -373,26 +352,16 @@ export function parseA2sInfoPacket(packet: Uint8Array): A2sInfoPacket {
 async function exchange(
   options: A2sInfoQueryOptions,
   request: Uint8Array,
-  dependencies: A2sInfoDependencies,
+  dependencies?: A2sInfoDependencies,
 ): Promise<{ readonly packet: A2sInfoPacket; readonly rttMs: number }> {
-  const result = await dependencies.collect({
-    scope: options.scope,
-    target: options.target,
-    address: options.address,
-    request,
-    maxResponseBytes: A2S_MAX_DATAGRAM_BYTES,
-    maxDatagrams: A2S_MAX_DATAGRAMS,
-    maxTotalResponseBytes: A2S_MAX_COLLECTION_BYTES,
-    isComplete: isA2sResponseComplete,
-  });
-  const response = await reconstructA2sResponse(result.datagrams);
-  return { packet: parseA2sInfoResponse(response, A2S_MAX_RESPONSE_BYTES), rttMs: result.rttMs };
+  const result = await exchangeA2s(options, request, dependencies);
+  return { packet: parseA2sInfoResponse(result.data, A2S_MAX_RESPONSE_BYTES), rttMs: result.rttMs };
 }
 
 /** Performs a direct A2S Info query with at most one server-requested challenge retry. */
 export async function queryA2sInfo(
   options: A2sInfoQueryOptions,
-  dependencies: A2sInfoDependencies = DEFAULT_DEPENDENCIES,
+  dependencies?: A2sInfoDependencies,
 ): Promise<A2sInfoQueryResult> {
   const firstResponse = await exchange(options, encodeA2sInfoRequest(), dependencies);
   const firstPacket = firstResponse.packet;

@@ -72,13 +72,17 @@ Datagrams from every other peer are ignored before their contents or size are co
 
 The transport returns copied bytes, round-trip duration, and destination facts. A collection completion callback may inspect framing, but the transport does not parse headers itself, retry protocol exchanges, select another pinned address, or interpret game data.
 
-## A2S Info invariants
+## A2S protocol invariants
 
 The A2S Info parser accepts direct packets no larger than 1,400 bytes and reconstructed responses no larger than 65,536 bytes. It distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
 
 The protocol layer may perform one challenge retry under the same execution scope. A second challenge fails deterministically. Split reconstruction accepts at most 15 unique fragments and 30 total datagrams, keys fragments by response ID, reorders them, ignores exact duplicates, and rejects conflicting duplicates or metadata. Both Source header variants and the packed GoldSource layout are supported.
 
 Compressed Source replies are retained only up to 16,384 compressed bytes. Their declared output size must fit the 65,536-byte response ceiling before bzip2 runs, and the decoded byte count and CRC32 must match the first fragment's metadata. These checks prevent fragment floods, oversized reconstruction, and decompression bombs from turning protocol input into unbounded work. Parsed values remain protocol facts; Rust and other game-specific interpretation belongs in later profiles.
+
+A2S Player and Rules share the same bounded exchange and split reconstruction path. Each sends the protocol's initial challenge value, echoes at most one server-provided signed token, and rejects a second challenge. Player records require unique indexes, bounded valid UTF-8 names, finite non-negative durations, and exact packet consumption. Rules require bounded valid UTF-8 names and values, non-empty unique names, a fixed count ceiling, and exact packet consumption. Special JavaScript property names are installed as data properties so server-controlled rule keys cannot alter the rule map's prototype.
+
+After a required source succeeds, requested independent optional sources receive separate child operation scopes and start concurrently. Their reports remain in deterministic profile order regardless of completion order. Confirmed empty Player or Rules responses are preserved as empty values; failed values are omitted. Timeout, malformed data, policy blocking, unsupported capability, deliberate omission, and other transport failure remain distinct provenance states and do not reject optional enrichment. Root timeout or caller cancellation still terminates the whole operation rather than being reduced to an optional-source report.
 
 ## Adding implementation code
 
