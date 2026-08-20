@@ -1,0 +1,132 @@
+import type { GameId } from "./query.js";
+
+export type SupportLevel = "supported" | "conditional" | "unsupported";
+
+export type GameCapability =
+  "summary" | "players" | "rules" | "mods" | "plugins" | "resources" | "srv";
+
+export interface GameDefinition<G extends GameId = GameId> {
+  readonly id: G;
+  readonly name: string;
+  readonly defaultPort: number;
+  readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
+}
+
+export type GameRegistry = {
+  readonly [G in GameId]: GameDefinition<G>;
+};
+
+export const GAME_IDS: readonly [
+  "rust",
+  "project-zomboid",
+  "7-days-to-die",
+  "minecraft-java",
+  "minecraft-bedrock",
+  "fivem",
+] = [
+  "rust",
+  "project-zomboid",
+  "7-days-to-die",
+  "minecraft-java",
+  "minecraft-bedrock",
+  "fivem",
+] as const;
+
+export const GAME_REGISTRY: GameRegistry = {
+  rust: {
+    id: "rust",
+    name: "Rust",
+    defaultPort: 28015,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "project-zomboid": {
+    id: "project-zomboid",
+    name: "Project Zomboid",
+    defaultPort: 16261,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "7-days-to-die": {
+    id: "7-days-to-die",
+    name: "7 Days to Die",
+    defaultPort: 26900,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "minecraft-java": {
+    id: "minecraft-java",
+    name: "Minecraft: Java Edition",
+    defaultPort: 25565,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "conditional",
+      plugins: "conditional",
+      resources: "unsupported",
+      srv: "conditional",
+    },
+  },
+  "minecraft-bedrock": {
+    id: "minecraft-bedrock",
+    name: "Minecraft: Bedrock Edition",
+    defaultPort: 19132,
+    capabilities: {
+      summary: "supported",
+      players: "supported",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  fivem: {
+    id: "fivem",
+    name: "FiveM",
+    defaultPort: 30120,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+};
+
+export function isGameId(value: string): value is GameId {
+  return Object.hasOwn(GAME_REGISTRY, value);
+}
+
+export function getGameDefinition<G extends GameId>(game: G): GameDefinition<G> {
+  return GAME_REGISTRY[game];
+}
+
+export function listGames(): readonly GameDefinition[] {
+  return GAME_IDS.map((game) => GAME_REGISTRY[game]);
+}
