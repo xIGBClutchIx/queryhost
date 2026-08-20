@@ -21,6 +21,10 @@ export interface A2sOptionalSourcesOptions {
   readonly operationTimeoutMs: number;
   readonly player: A2sOptionalSourcePolicy;
   readonly rules: A2sOptionalSourcePolicy;
+  /** Internal lifecycle hook used to preserve accurate whole-query provenance. */
+  readonly onSourceStarted?: (source: QuerySourceName) => void;
+  /** Internal lifecycle hook used to retain reports completed before whole-query termination. */
+  readonly onSourceCompleted?: (report: QuerySource) => void;
 }
 
 /** Optional enrichment values and deterministic source reports. */
@@ -51,6 +55,16 @@ function policyReport(source: QuerySourceName, policy: A2sOptionalSourcePolicy):
   return report(source, policy === "query" ? "failed" : policy);
 }
 
+function complete(options: A2sOptionalSourcesOptions, outcome: PlayerOutcome): PlayerOutcome;
+function complete(options: A2sOptionalSourcesOptions, outcome: RulesOutcome): RulesOutcome;
+function complete(
+  options: A2sOptionalSourcesOptions,
+  outcome: PlayerOutcome | RulesOutcome,
+): PlayerOutcome | RulesOutcome {
+  options.onSourceCompleted?.(outcome.report);
+  return outcome;
+}
+
 function failureStatus(error: Error): QuerySourceStatus {
   if (error instanceof A2sProtocolError) {
     return "malformed";
@@ -76,22 +90,26 @@ async function runPlayer(
 ): Promise<PlayerOutcome> {
   const source = "a2s-player";
   if (options.player !== "query") {
-    return { report: policyReport(source, options.player) };
+    return complete(options, { report: policyReport(source, options.player) });
   }
+  options.onSourceStarted?.(source);
   const scope = options.scope.createOperation(options.operationTimeoutMs, source);
   try {
     const result = await queryA2sPlayer(
       { scope, target: options.target, address: options.address },
       dependencies,
     );
-    return { report: report(source, "ok", result.rttMs), players: result.players };
+    return complete(options, {
+      report: report(source, "ok", result.rttMs),
+      players: result.players,
+    });
   } catch (error) {
     if (options.scope.signal.aborted) {
       throw rootTermination(options.scope);
     }
-    return {
+    return complete(options, {
       report: report(source, error instanceof Error ? failureStatus(error) : "failed"),
-    };
+    });
   } finally {
     scope.close();
   }
@@ -103,22 +121,23 @@ async function runRules(
 ): Promise<RulesOutcome> {
   const source = "a2s-rules";
   if (options.rules !== "query") {
-    return { report: policyReport(source, options.rules) };
+    return complete(options, { report: policyReport(source, options.rules) });
   }
+  options.onSourceStarted?.(source);
   const scope = options.scope.createOperation(options.operationTimeoutMs, source);
   try {
     const result = await queryA2sRules(
       { scope, target: options.target, address: options.address },
       dependencies,
     );
-    return { report: report(source, "ok", result.rttMs), rules: result.rules };
+    return complete(options, { report: report(source, "ok", result.rttMs), rules: result.rules });
   } catch (error) {
     if (options.scope.signal.aborted) {
       throw rootTermination(options.scope);
     }
-    return {
+    return complete(options, {
       report: report(source, error instanceof Error ? failureStatus(error) : "failed"),
-    };
+    });
   } finally {
     scope.close();
   }

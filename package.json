@@ -13,6 +13,9 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "queryhost": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -28,6 +31,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --ext .ts",
+    "query": "npm run build --silent && node dist/cli.js",
     "test": "vitest run",
     "test:types": "npm run build && tsd",
     "test:package": "npm run build && node scripts/verify-package.ts && publint && attw --pack . --profile esm-only",

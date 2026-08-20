@@ -6,9 +6,7 @@ This document explains how the current QueryHost library is divided and which in
 
 ```text
 index.ts
-  -> public query, game, registry, and shared contracts
-
-future query implementation
+  -> client.ts public orchestration
   -> game profiles
   -> protocol implementations
   -> transports/udp.ts + future TCP and fixed HTTP adapters
@@ -23,6 +21,8 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 ## Module ownership
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
+- `client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches implemented profiles, and produces stable success or failure envelopes.
+- `cli-options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
 - `query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
 - `games.ts` contains stable game-specific fields. It does not contain transport or parser state.
 - `shared.ts` contains only concepts that are genuinely common across games, including provenance and stable errors.
@@ -83,6 +83,18 @@ Compressed Source replies are retained only up to 16,384 compressed bytes. Their
 A2S Player and Rules share the same bounded exchange and split reconstruction path. Each sends the protocol's initial challenge value, echoes at most one server-provided signed token, and rejects a second challenge. Player records require unique indexes, bounded valid UTF-8 names, finite non-negative durations, and exact packet consumption. Rules require bounded valid UTF-8 names and values, non-empty unique names, a fixed count ceiling, and exact packet consumption. Special JavaScript property names are installed as data properties so server-controlled rule keys cannot alter the rule map's prototype.
 
 After a required source succeeds, requested independent optional sources receive separate child operation scopes and start concurrently. Their reports remain in deterministic profile order regardless of completion order. Confirmed empty Player or Rules responses are preserved as empty values; failed values are omitted. Timeout, malformed data, policy blocking, unsupported capability, deliberate omission, and other transport failure remain distinct provenance states and do not reject optional enrichment. Root timeout or caller cancellation still terminates the whole operation rather than being reduced to an optional-source report.
+
+## Rust profile invariants
+
+Rust uses A2S Info as its required source. The profile tries only addresses from the validated target in their resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+
+Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Rust keywords become an ordered, trimmed tag list; Player records become stable `RustPlayer` values; and generic A2S rule names remain unchanged under `data.rules`. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections.
+
+The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline. The registry records Rust's conventional 28015 game port and 28017 query port. QueryHost preserves that two-port offset when callers supply a custom game port, while an explicit `queryPort` overrides the convention because Rust administrators can configure it independently.
+
+## Command-line invariants
+
+The packaged `queryhost` binary and repository `npm run query --` script share the same entry point. The command accepts only a registry game ID, host, optional port, and bounded library options; it does not expose protocol packets or bypass target validation. It prints the full public `QueryResult` as JSON, uses standard output for results and help, and reserves standard error for invalid invocation or an unexpected command-level failure. Ctrl+C aborts the active library query so the normal cleanup path closes network resources.
 
 ## Adding implementation code
 

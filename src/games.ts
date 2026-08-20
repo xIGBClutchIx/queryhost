@@ -3,10 +3,22 @@
 /** String-valued server rules keyed by their protocol-defined names. */
 export type GameRuleMap = Readonly<Record<string, string>>;
 
+/** One player reported by Rust's optional A2S Player source. */
+export interface RustPlayer {
+  /** Protocol list index supplied by the server. */
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  /** Seconds connected, as reported by the server. */
+  readonly durationSeconds: number;
+}
+
 /** Rust-specific data collected from A2S sources. */
 export interface RustData {
   /** Server-advertised tags, when the info response provides them. */
   readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
+  readonly players?: readonly RustPlayer[];
   /** Raw A2S rules that remain meaningful to Rust consumers. */
   readonly rules?: GameRuleMap;
 }

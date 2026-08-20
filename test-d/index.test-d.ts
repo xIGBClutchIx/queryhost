@@ -5,6 +5,7 @@ import {
   QUERYHOST_NAME,
   getGameDefinition,
   isGameId,
+  query,
   type FiveMData,
   type GameDataMap,
   type GameId,
@@ -16,6 +17,7 @@ import {
   type QueryResult,
   type QuerySourceStatus,
   type RustData,
+  type RustPlayer,
   type SevenDaysToDieData,
 } from "queryhost";
 
@@ -38,9 +40,14 @@ const rustInput: QueryInput<"rust"> = {
   mode: "full",
 };
 expectType<"rust">(rustInput.game);
+expectType<Promise<QueryResult<"rust">>>(query(rustInput));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
+declare const dynamicInput: QueryInput;
+expectType<Promise<QueryResult>>(query(dynamicInput));
+
 expectType<"rust">(getGameDefinition("rust").id);
+expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
 expectType<number>(getGameDefinition("minecraft-java").defaultPort);
 
 declare const candidate: string;
@@ -85,4 +92,9 @@ if (dynamicResult.ok) {
 
 declare const dataMap: GameDataMap;
 expectType<RustData>(dataMap.rust);
+expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
+
+declare const rustPlayer: RustPlayer;
+expectType<string>(rustPlayer.name);
+expectType<number>(rustPlayer.durationSeconds);

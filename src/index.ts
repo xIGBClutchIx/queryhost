@@ -10,6 +10,7 @@ export type {
   QueryResult,
   QuerySuccess,
 } from "./query.js";
+export { query } from "./client.js";
 export type {
   QueryError,
   QueryErrorCode,
@@ -34,6 +35,7 @@ export type {
   MinecraftSrvTarget,
   ProjectZomboidData,
   RustData,
+  RustPlayer,
   SevenDaysToDieData,
 } from "./games.js";
 

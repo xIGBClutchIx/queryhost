@@ -13,8 +13,13 @@ export type GameCapability =
 export interface GameDefinition<G extends GameId = GameId> {
   readonly id: G;
   readonly name: string;
-  /** Default primary query port, not necessarily the gameplay port. */
+  /** Default game or service port supplied by users. */
   readonly defaultPort: number;
+  /**
+   * Conventional query port corresponding to `defaultPort` when the protocol uses a separate
+   * destination. QueryHost preserves this offset for custom game ports.
+   */
+  readonly defaultQueryPort?: number;
   readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
 }
 
@@ -48,6 +53,7 @@ export const GAME_REGISTRY: GameRegistry = {
     id: "rust",
     name: "Rust",
     defaultPort: 28015,
+    defaultQueryPort: 28017,
     capabilities: {
       summary: "supported",
       players: "conditional",

@@ -36,6 +36,11 @@ describe("game registry", () => {
       expect(Number.isInteger(definition.defaultPort)).toBe(true);
       expect(definition.defaultPort).toBeGreaterThan(0);
       expect(definition.defaultPort).toBeLessThanOrEqual(65_535);
+      if (definition.defaultQueryPort !== undefined) {
+        expect(Number.isInteger(definition.defaultQueryPort)).toBe(true);
+        expect(definition.defaultQueryPort).toBeGreaterThan(0);
+        expect(definition.defaultQueryPort).toBeLessThanOrEqual(65_535);
+      }
       expect(Object.keys(definition.capabilities).sort()).toEqual(CAPABILITIES);
       expect(
         Object.values(definition.capabilities).every((level) => SUPPORT_LEVELS.has(level)),
@@ -45,6 +50,7 @@ describe("game registry", () => {
 
   it("looks up definitions without losing their game identity", () => {
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
+    expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
     expect(getGameDefinition("minecraft-java").defaultPort).toBe(25_565);
   });
 

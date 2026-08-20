@@ -27,17 +27,17 @@ export interface GameDataMap {
 /** Every game identifier supported by the typed public contract. */
 export type GameId = keyof GameDataMap;
 
-/** Input accepted by the future `query()` entry point. */
+/** Input accepted by the public `query()` entry point. */
 export interface QueryInput<G extends GameId = GameId> {
   readonly game: G;
   /** DNS hostname or IP literal. URL syntax is intentionally not accepted. */
   readonly host: string;
-  /** Primary game/query port; the profile default is used when omitted. */
+  /** Primary game or service port; the profile default is used when omitted. */
   readonly port?: number;
-  /** Optional secondary query port for profiles that support one. */
+  /** Explicit protocol query port, overriding the profile convention derived from `port`. */
   readonly queryPort?: number;
   readonly mode?: QueryMode;
-  /** Global deadline shared by discovery and every protocol source. */
+  /** Global deadline from 1 through 30,000 ms; defaults to 5,000 ms. */
   readonly timeoutMs?: number;
   /** Caller cancellation propagated to every outstanding operation. */
   readonly signal?: AbortSignal;

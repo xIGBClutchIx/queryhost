@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–7:
+The repository currently contains the strict package foundation and Slices 1–8:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -16,24 +16,50 @@ The repository currently contains the strict package foundation and Slices 1–7
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
+- the public `query()` entry point and a complete Rust profile that merges A2S Info, Player, and Rules
 
-The public `query()` function and game profiles are not implemented yet. The first A2S game profile and the TCP and fixed HTTP transports arrive in later slices. The examples below document the contract that those later slices will fulfill.
+Rust is the first implemented game profile. Other registry entries already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land.
 
 ## Public contract
 
 Literal game IDs remain connected to their game-specific data types:
 
 ```ts
-import type { QueryResult } from "queryhost";
+import { query } from "queryhost";
 
-declare const result: QueryResult<"rust">;
+const result = await query({
+  game: "rust",
+  host: "play.example.com",
+  port: 28015,
+});
 
 if (result.ok) {
-  result.data; // RustData
+  console.log(result.server.name);
+  console.log(result.data.tags); // RustData
+  console.log(result.sources);
 }
 ```
 
 `QueryResult` is a discriminated union. Check `ok` before reading `data` or `error`. A dynamic `GameId` can be narrowed with an exhaustive switch on `result.game`.
+
+Rust queries default to `mode: "full"`: A2S Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`. `port` is the gameplay port. QueryHost follows Rust's conventional two-port offset, so game port 28015 queries A2S on 28017. An explicit `queryPort` always takes precedence for servers with custom port layouts.
+
+## Command-line queries
+
+For quick real-server testing from this repository:
+
+```bash
+npm run query -- rust play.example.com 28015
+```
+
+The installed package also provides the same command as `queryhost`. It writes the complete parsed `QueryResult` as formatted JSON and exits with 0 for success, 1 for a query failure, or 2 for invalid command arguments.
+
+```bash
+queryhost rust play.example.com 28015 --mode full --timeout 3000
+queryhost rust play.example.com --query-port 28017 --mode summary
+```
+
+Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.
 
 ### Data semantics
 
