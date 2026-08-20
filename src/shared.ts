@@ -73,6 +73,7 @@ export type QueryErrorCode =
   | "INTERNAL_ERROR"
   | "INVALID_INPUT"
   | "MALFORMED_RESPONSE"
+  | "RESPONSE_TOO_LARGE"
   | "TARGET_BLOCKED"
   | "TIMEOUT"
   | "UNSUPPORTED_GAME";

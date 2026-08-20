@@ -11,8 +11,8 @@ index.ts
 future query implementation
   -> game profiles
   -> protocol implementations
+  -> transports/udp.ts + future TCP and fixed HTTP adapters
   -> execution.ts + target.ts
-  -> UDP, TCP, DNS, and fixed HTTP adapters
 
 target.ts
   -> ip.ts
@@ -30,6 +30,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `execution.ts` owns deadlines, cancellation propagation, cleanup, and internal-error redaction.
 - `ip.ts` owns canonical IP parsing and the public-routability policy.
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
+- `transports/udp.ts` owns one bounded request/response exchange with no protocol interpretation.
 
 ## Result invariants
 
@@ -61,6 +62,14 @@ Target resolution is an SSRF and network-abuse boundary:
 - Apply the same validation to every SRV-derived hostname and port.
 
 IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` remain reserved. The tables in `ip.ts` record their human-readable prefixes and allocation purpose; update them only after reviewing IANA's [IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry), [IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry), and [IPv6 global-unicast allocations](https://www.iana.org/assignments/ipv6-unicast-address-assignments), then extend the policy tests.
+
+## UDP transport invariants
+
+One UDP exchange selects an address already present in a pinned target and creates a fresh family-matched socket. It sends one non-empty datagram and accepts only the first non-empty, non-truncated response from the selected address and port.
+
+Datagrams from every other peer are ignored before their contents or size are considered. Request and response sizes cannot exceed the UDP payload ceiling, and each protocol supplies a tighter response limit. The execution scope terminates the exchange on its deadline or caller cancellation; success, failure, timeout, and cancellation all close the socket exactly once.
+
+The transport returns copied bytes, round-trip duration, and destination facts. It does not parse headers, retry protocol exchanges, select another pinned address, or interpret game data.
 
 ## Adding implementation code
 
