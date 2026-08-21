@@ -102,6 +102,8 @@ export interface MinecraftJavaData {
   readonly software?: MinecraftSoftware;
   /** Omitted when the Query source is disabled, unavailable, or does not advertise plugins. */
   readonly plugins?: readonly MinecraftPlugin[];
+  /** Omitted when Query is skipped or unavailable; empty means Query confirmed no listed players. */
+  readonly players?: readonly string[];
   readonly srv?: MinecraftSrvTarget;
 }
 

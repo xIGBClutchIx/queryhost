@@ -1,12 +1,12 @@
-/** Stable failures produced while encoding or parsing Minecraft Java status traffic. */
+/** Stable failures produced while encoding or parsing Minecraft Java protocol traffic. */
 
 export type MinecraftJavaProtocolErrorCode =
   "INVALID_INPUT" | "MALFORMED_RESPONSE" | "RESPONSE_TOO_LARGE";
 
 const ERROR_MESSAGES: Readonly<Record<MinecraftJavaProtocolErrorCode, string>> = {
   INVALID_INPUT: "The Minecraft Java protocol input is invalid.",
-  MALFORMED_RESPONSE: "The Minecraft Java status response was malformed.",
-  RESPONSE_TOO_LARGE: "The Minecraft Java status response exceeded its size limit.",
+  MALFORMED_RESPONSE: "The Minecraft Java response was malformed.",
+  RESPONSE_TOO_LARGE: "The Minecraft Java response exceeded its size limit.",
 } as const;
 
 /** Protocol error with a stable code and no untrusted response content. */

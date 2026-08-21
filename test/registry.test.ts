@@ -75,7 +75,8 @@ describe("game registry", () => {
         summary: "supported",
         players: "supported",
         rules: "unsupported",
-        srv: "unsupported",
+        plugins: "conditional",
+        srv: "conditional",
       },
     });
   });

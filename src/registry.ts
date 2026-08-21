@@ -121,9 +121,9 @@ export const GAME_REGISTRY: GameRegistry = {
       players: "supported",
       rules: "unsupported",
       mods: "unsupported",
-      plugins: "unsupported",
+      plugins: "conditional",
       resources: "unsupported",
-      srv: "unsupported",
+      srv: "conditional",
     },
   },
   "minecraft-bedrock": {

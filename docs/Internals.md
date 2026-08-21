@@ -115,11 +115,19 @@ Connection failure, write failure, early EOF, malformed framing, byte-limit exha
 
 ## Minecraft Java SLP invariants
 
-The direct SLP profile sends a status handshake with the normalized original hostname and selected port, followed by the status request, against each validated pinned address in resolver order. It reports one required `minecraft-slp` source and does not perform SRV discovery or Minecraft Query work before Slice 11.
+With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. SRV records are bounded, fully validated and pinned, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
+
+SLP tries each ordered target and its validated addresses until the required source succeeds. The handshake uses the selected SRV hostname and port when discovery succeeds, and `data.srv` records the target that actually answered rather than the first DNS record.
 
 VarInts are canonical signed 32-bit encodings limited to five bytes. Framed responses, JSON bytes, JSON characters, chat-component depth, node count, and normalized MOTD output all have explicit limits. Status documents require a version name, numeric protocol, non-negative player counts, and a supported description component. Invalid UTF-8, trailing packet bytes, malformed JSON, and invalid field types fail deterministically.
 
 MOTD plain text strips legacy formatting. HTML is produced only from escaped text and fixed color/style declarations, so server text cannot inject markup or attributes. Favicon values must be bounded PNG data URLs with a 64-by-64 IHDR; malformed, incorrectly sized, or excessive icons are rejected. The normalized result exposes version and player counts under `server`, with MOTD, protocol version, and favicon under `data`.
+
+## Minecraft Query invariants
+
+Full mode attempts one optional UDP Query source after SLP. The challenge request and full-stat request share one bounded UDP socket because the challenge belongs to the client's endpoint. Session IDs, challenge tokens, packet types, full-stat markers, field counts, string sizes, plugin counts, player counts, response bytes, and exact packet endings are validated before merge. The parser also understands bounded basic-stat responses without fabricating full-stat player or plugin lists.
+
+SLP remains authoritative for the primary version, player counts, MOTD, and query RTT. Query can add the normalized map plus Minecraft-specific software, plugins, and player names. Missing Query fields remain omitted, while confirmed empty plugin or player lists remain empty arrays. Summary mode reports Query as `not-requested`; timeout, malformed data, or transport failure keeps `ok: true`, marks the result partial, and emits source-specific warnings.
 
 ## Command-line invariants
 

@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–10:
+The repository currently contains the strict package foundation and Slices 1–11:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -19,8 +19,9 @@ The repository currently contains the strict package foundation and Slices 1–1
 - the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
+- deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
 
-Minecraft Bedrock and FiveM already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land. Minecraft Java currently queries a direct host and port; SRV discovery and optional Minecraft Query enrichment arrive in Slice 11.
+Minecraft Bedrock and FiveM already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land.
 
 ## Public contract
 
@@ -46,9 +47,11 @@ if (result.ok) {
 
 Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 
-Minecraft Java currently performs one required Server List Ping over TCP. Its result includes the advertised version, protocol number, player counts, normalized MOTD, optional validated favicon, source RTT, and `minecraft-slp` provenance.
+Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+
+Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
 Game inputs accept documented aliases while results always use the canonical ID. `minecraft` and `mc` resolve to Java Edition; Bedrock remains explicit.
 

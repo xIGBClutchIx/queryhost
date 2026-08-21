@@ -35,6 +35,7 @@ import { A2sProtocolError } from "./protocols/a2s/errors.js";
 import type { A2sExchangeDependencies } from "./protocols/a2s/network.js";
 import type { A2sProfileObserver, A2sProfileOptions } from "./profiles/a2s.js";
 import { MinecraftJavaProtocolError } from "./protocols/minecraft-java/errors.js";
+import type { MinecraftQueryDependencies } from "./protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "./protocols/minecraft-java/status.js";
 import { queryMinecraftJavaProfile } from "./profiles/minecraft-java.js";
 import { queryProjectZomboidProfile } from "./profiles/project-zomboid.js";
@@ -57,6 +58,8 @@ export interface QueryDependencies {
   readonly resolver?: DnsResolver;
   readonly a2s?: A2sExchangeDependencies;
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
+  readonly minecraftQuery?: MinecraftQueryDependencies;
+  readonly random?: () => number;
   readonly now: () => number;
 }
 
@@ -67,8 +70,12 @@ interface SourceTrace {
 
 type ImplementedGame = "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java";
 
-interface ProfileRunOptions extends A2sProfileOptions {
-  readonly minecraftJava?: MinecraftJavaStatusDependencies;
+interface ProfileRunOptions {
+  readonly input: QueryInput<GameId>;
+  readonly scope: ExecutionScope;
+  readonly mode: QueryMode;
+  readonly observer: A2sProfileObserver;
+  readonly dependencies: QueryDependencies;
 }
 
 interface GameProfileResult<G extends ImplementedGame> {
@@ -136,21 +143,25 @@ function createProfileRunner<G extends ImplementedGame>(
 }
 
 const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
-  rust: createProfileRunner("rust", ["a2s-info", "a2s-player", "a2s-rules"], queryRustProfile),
+  rust: createProfileRunner(
+    "rust",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryRustProfile),
+  ),
   "project-zomboid": createProfileRunner(
     "project-zomboid",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    queryProjectZomboidProfile,
+    a2sProfileRunner(queryProjectZomboidProfile),
   ),
   "7-days-to-die": createProfileRunner(
     "7-days-to-die",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    querySevenDaysToDieProfile,
+    a2sProfileRunner(querySevenDaysToDieProfile),
   ),
   "minecraft-java": createProfileRunner(
     "minecraft-java",
-    ["minecraft-slp"],
-    queryMinecraftJavaProfile,
+    ["minecraft-srv", "minecraft-slp", "minecraft-query"],
+    minecraftJavaProfileRunner,
   ),
   "minecraft-bedrock": undefined,
   fivem: undefined,
@@ -229,6 +240,43 @@ async function pinnedTarget(
     : resolveTarget(targetInput, dependencies.resolver);
 }
 
+function a2sProfileRunner<G extends ImplementedGame>(
+  queryProfile: (options: A2sProfileOptions) => Promise<GameProfileResult<G>>,
+): (options: ProfileRunOptions) => Promise<GameProfileResult<G>> {
+  return async (options): Promise<GameProfileResult<G>> =>
+    queryProfile({
+      scope: options.scope,
+      target: await pinnedTarget(options.input, options.dependencies),
+      mode: options.mode,
+      observer: options.observer,
+      ...(options.dependencies.a2s === undefined ? {} : { a2s: options.dependencies.a2s }),
+    });
+}
+
+async function minecraftJavaProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"minecraft-java">> {
+  const input = options.input;
+  return queryMinecraftJavaProfile({
+    scope: options.scope,
+    host: input.host,
+    ...(input.port === undefined ? {} : { port: input.port }),
+    ...(input.queryPort === undefined ? {} : { queryPort: input.queryPort }),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.resolver === undefined
+      ? {}
+      : { resolver: options.dependencies.resolver }),
+    ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
+    ...(options.dependencies.minecraftJava === undefined
+      ? {}
+      : { status: options.dependencies.minecraftJava }),
+    ...(options.dependencies.minecraftQuery === undefined
+      ? {}
+      : { query: options.dependencies.minecraftQuery }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -259,12 +307,16 @@ function minecraftJavaProtocolError(error: MinecraftJavaProtocolError): QueryErr
   };
 }
 
-function mapQueryError(error: Error): QueryError | undefined {
+function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined {
   if (error instanceof TargetResolutionError) {
     return { code: error.code, message: error.message };
   }
   if (error instanceof UdpTransportError) {
-    return { code: error.code, message: error.message, source: "a2s-info" };
+    return {
+      code: error.code,
+      message: error.message,
+      source: trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info",
+    };
   }
   if (error instanceof TcpTransportError) {
     return { code: error.code, message: error.message, source: "minecraft-slp" };
@@ -333,23 +385,18 @@ async function runProfileTask(
   dependencies: QueryDependencies,
 ): Promise<ProfileTaskResult> {
   try {
-    const target = await pinnedTarget(input, dependencies);
-    const options = {
+    return await registration.runner({
+      input,
       scope,
-      target,
       mode,
       observer: observer(trace),
-      ...(dependencies.a2s === undefined ? {} : { a2s: dependencies.a2s }),
-      ...(dependencies.minecraftJava === undefined
-        ? {}
-        : { minecraftJava: dependencies.minecraftJava }),
-    };
-    return await registration.runner(options);
+      dependencies,
+    });
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error;
     }
-    const mapped = mapQueryError(error);
+    const mapped = mapQueryError(error, trace);
     if (mapped === undefined) {
       throw error;
     }

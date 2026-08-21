@@ -6,9 +6,11 @@ import {
   type DnsFunctions,
   type DnsResolver,
   type DnsSrvRecord,
+  type ResolvedSrvTarget,
   TargetResolutionError,
   createDnsResolver,
   normalizeHostname,
+  orderSrvTargets,
   resolveSrvTargets,
   resolveTarget,
   validatePort,
@@ -367,12 +369,23 @@ describe("SRV resolution primitives", () => {
     );
   });
 
-  it("rejects empty, mixed-dot, oversized, and invalid SRV responses", async () => {
+  it("treats no records as optional discovery absence", async () => {
+    const resolver = createResolver([{ address: "1.1.1.1", family: 4 }], []);
+    await expect(
+      resolveSrvTargets(
+        { service: "minecraft", protocol: "tcp", host: "play.example.com" },
+        resolver,
+      ),
+    ).resolves.toEqual([]);
+    expect(resolver.resolveAddresses).not.toHaveBeenCalled();
+  });
+
+  it("rejects mixed-dot, oversized, and invalid SRV responses", async () => {
     const address = { address: "1.1.1.1", family: 4 } as const;
     const valid = { name: "node.example.com", port: 25_565, priority: 0, weight: 0 };
     const oversized = Array.from<DnsSrvRecord>({ length: 17 }).fill(valid);
 
-    for (const records of [[], [valid, { name: ".", port: 0, priority: 0, weight: 0 }]]) {
+    for (const records of [[valid, { name: ".", port: 0, priority: 0, weight: 0 }]]) {
       await expectResolutionError(
         () =>
           resolveSrvTargets(
@@ -421,6 +434,55 @@ describe("SRV resolution primitives", () => {
           createResolver([address], [{ ...valid, port: 0 }]),
         ),
       "DNS_FAILED",
+    );
+  });
+
+  it("orders priority groups and weights under a deterministic random source", () => {
+    const target = (host: string, priority: number, weight: number): ResolvedSrvTarget => ({
+      priority,
+      weight,
+      target: {
+        hostname: host,
+        port: 25_565,
+        addresses: [{ address: "1.1.1.1", family: 4 }],
+      },
+    });
+    const records = [
+      target("backup.example.com", 20, 100),
+      target("zero.example.com", 10, 0),
+      target("light.example.com", 10, 1),
+      target("heavy.example.com", 10, 3),
+    ];
+    const values = [0.9, 0, 0, 0];
+    let index = 0;
+    const ordered = orderSrvTargets(records, (): number => {
+      const value = values[index];
+      index += 1;
+      return value ?? 0;
+    });
+
+    expect(ordered.map((record) => record.target.hostname)).toEqual([
+      "heavy.example.com",
+      "zero.example.com",
+      "light.example.com",
+      "backup.example.com",
+    ]);
+  });
+
+  it("rejects an invalid deterministic random value", () => {
+    const records: readonly ResolvedSrvTarget[] = [
+      {
+        priority: 0,
+        weight: 1,
+        target: {
+          hostname: "node.example.com",
+          port: 25_565,
+          addresses: [{ address: "1.1.1.1", family: 4 }],
+        },
+      },
+    ];
+    expect(() => orderSrvTargets(records, (): number => 1)).toThrow(
+      expect.objectContaining({ code: "DNS_FAILED" }),
     );
   });
 });

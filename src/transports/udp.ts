@@ -105,6 +105,27 @@ export interface UdpCollectionResult {
   readonly port: number;
 }
 
+/** Inputs for a bounded request/response conversation that must retain one UDP source port. */
+export interface UdpConversationOptions extends UdpExchangeOptions {
+  /** Maximum accepted responses across the complete conversation. */
+  readonly maxResponses: number;
+  /** Maximum combined response bytes across every step. */
+  readonly maxTotalResponseBytes: number;
+  /**
+   * Returns the next request after inspecting immutable response copies, or `undefined` to finish.
+   * Protocol parsing remains outside the transport while every step retains the same socket.
+   */
+  readonly nextRequest: (responses: readonly Uint8Array[]) => Uint8Array | undefined;
+}
+
+/** Bounded responses and complete conversation timing. */
+export interface UdpConversationResult {
+  readonly responses: readonly Uint8Array[];
+  readonly rttMs: number;
+  readonly address: PinnedAddress;
+  readonly port: number;
+}
+
 function createNodeSocketAdapter(family: IpFamily): UdpSocketAdapter {
   const socket = createSocket(family === 4 ? "udp4" : "udp6");
 
@@ -188,6 +209,26 @@ function validateCollectionOptions(options: UdpCollectionOptions): void {
   }
 }
 
+function validateConversationOptions(options: UdpConversationOptions): void {
+  validateOptions(options);
+  if (
+    !Number.isSafeInteger(options.maxResponses) ||
+    options.maxResponses < 1 ||
+    options.maxResponses > 16 ||
+    !Number.isSafeInteger(options.maxTotalResponseBytes) ||
+    options.maxTotalResponseBytes < options.maxResponseBytes ||
+    options.maxTotalResponseBytes > MAX_UDP_DATAGRAM_BYTES
+  ) {
+    fail("INVALID_INPUT");
+  }
+}
+
+function validateRequest(request: Uint8Array): void {
+  if (request.byteLength < 1 || request.byteLength > MAX_UDP_DATAGRAM_BYTES) {
+    fail("INVALID_INPUT");
+  }
+}
+
 function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: number): boolean {
   const normalizedPeer = normalizeIpAddress(peer.address);
   const normalizedTarget = normalizeIpAddress(address.address);
@@ -196,6 +237,10 @@ function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: number):
 
 function terminationCode(scope: ExecutionScope): UdpTransportErrorCode {
   return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
+}
+
+function isAborted(signal: AbortSignal): boolean {
+  return signal.aborted;
 }
 
 /**
@@ -222,6 +267,149 @@ export async function udpExchange(
     return fail("MALFORMED_RESPONSE");
   }
   return { data, rttMs: result.rttMs, address: result.address, port: result.port };
+}
+
+/**
+ * Runs a bounded sequential conversation against one pinned peer while retaining one UDP socket.
+ *
+ * This supports challenge protocols whose token is tied to the client's source endpoint. Unrelated
+ * datagrams are ignored and every matching response counts toward explicit byte and step limits.
+ */
+export function udpConversation(
+  options: UdpConversationOptions,
+  dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
+): Promise<UdpConversationResult> {
+  return new Promise((resolve, reject): void => {
+    validateConversationOptions(options);
+    if (options.scope.signal.aborted) {
+      reject(new UdpTransportError(terminationCode(options.scope)));
+      return;
+    }
+
+    let socket: UdpSocketAdapter;
+    try {
+      socket = dependencies.createSocket(options.address.family);
+    } catch {
+      reject(new UdpTransportError("CONNECTION_FAILED"));
+      return;
+    }
+
+    let closed = false;
+    let settled = false;
+    let unregisterCleanup = (): void => undefined;
+    let totalResponseBytes = 0;
+    const responses: Uint8Array[] = [];
+
+    const closeSocket = (): void => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      try {
+        socket.close();
+      } catch {
+        // Cleanup errors cannot replace the conversation outcome.
+      }
+    };
+
+    const finish = (result: UdpConversationResult | UdpTransportError): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      options.scope.signal.removeEventListener("abort", handleAbort);
+      unregisterCleanup();
+      closeSocket();
+      if (result instanceof UdpTransportError) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    };
+
+    const handleAbort = (): void => {
+      finish(new UdpTransportError(terminationCode(options.scope)));
+    };
+
+    const sendRequest = (request: Uint8Array): void => {
+      try {
+        validateRequest(request);
+        socket.send(request, options.target.port, options.address.address, (error): void => {
+          if (error !== undefined) {
+            finish(new UdpTransportError("CONNECTION_FAILED"));
+          }
+        });
+      } catch (error) {
+        finish(
+          error instanceof UdpTransportError ? error : new UdpTransportError("CONNECTION_FAILED"),
+        );
+      }
+    };
+
+    socket.onError((): void => {
+      finish(new UdpTransportError("CONNECTION_FAILED"));
+    });
+
+    const startedMs = dependencies.now();
+    socket.onMessage((message, peer): void => {
+      if (!peerMatches(peer, options.address, options.target.port)) {
+        return;
+      }
+      if (peer.size !== message.byteLength || message.byteLength === 0) {
+        finish(new UdpTransportError("MALFORMED_RESPONSE"));
+        return;
+      }
+      if (message.byteLength > options.maxResponseBytes) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
+      if (responses.length >= options.maxResponses) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
+      totalResponseBytes += message.byteLength;
+      if (totalResponseBytes > options.maxTotalResponseBytes) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
+
+      responses.push(Uint8Array.from(message));
+      let next: Uint8Array | undefined;
+      try {
+        next = options.nextRequest(
+          Object.freeze(responses.map((response) => Uint8Array.from(response))),
+        );
+      } catch {
+        finish(new UdpTransportError("MALFORMED_RESPONSE"));
+        return;
+      }
+      if (next === undefined) {
+        finish({
+          responses: Object.freeze([...responses]),
+          rttMs: Math.max(0, dependencies.now() - startedMs),
+          address: options.address,
+          port: options.target.port,
+        });
+        return;
+      }
+      if (
+        responses.length === options.maxResponses ||
+        totalResponseBytes === options.maxTotalResponseBytes
+      ) {
+        finish(new UdpTransportError("RESPONSE_TOO_LARGE"));
+        return;
+      }
+      sendRequest(next);
+    });
+
+    options.scope.signal.addEventListener("abort", handleAbort, { once: true });
+    unregisterCleanup = options.scope.addCleanup(closeSocket);
+    if (isAborted(options.scope.signal)) {
+      handleAbort();
+      return;
+    }
+    sendRequest(options.request);
+  });
 }
 
 /**

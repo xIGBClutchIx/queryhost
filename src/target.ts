@@ -95,6 +95,9 @@ export interface ResolvedSrvTarget {
   readonly target: PinnedTarget;
 }
 
+/** Random fraction source used to make weighted SRV ordering deterministic in tests. */
+export type SrvRandomSource = () => number;
+
 /** Error with a stable code and message safe to map into a public query failure. */
 export class TargetResolutionError extends Error {
   public override readonly name = "TargetResolutionError";
@@ -336,7 +339,10 @@ export async function resolveSrvTargets(
   if (records.length === 1 && records[0]?.name === ".") {
     return Object.freeze([]);
   }
-  if (records.length === 0 || records.some((record) => record.name === ".")) {
+  if (records.length === 0) {
+    return Object.freeze([]);
+  }
+  if (records.some((record) => record.name === ".")) {
     return fail("DNS_FAILED");
   }
 
@@ -369,4 +375,66 @@ export async function resolveSrvTargets(
     }),
   );
   return Object.freeze(resolved);
+}
+
+function randomSelection(maximumInclusive: number, random: SrvRandomSource): number {
+  const fraction = random();
+  if (!Number.isFinite(fraction) || fraction < 0 || fraction >= 1) {
+    return fail("DNS_FAILED");
+  }
+  return Math.floor(fraction * (maximumInclusive + 1));
+}
+
+function weightedSrvGroup(
+  group: readonly ResolvedSrvTarget[],
+  random: SrvRandomSource,
+): readonly ResolvedSrvTarget[] {
+  const remaining = [
+    ...group.filter((record) => record.weight === 0),
+    ...group.filter((record) => record.weight !== 0),
+  ];
+  const ordered: ResolvedSrvTarget[] = [];
+  while (remaining.length > 0) {
+    const totalWeight = remaining.reduce((total, record) => total + record.weight, 0);
+    const selectedWeight = randomSelection(totalWeight, random);
+    let runningWeight = 0;
+    let selectedIndex = 0;
+    for (let index = 0; index < remaining.length; index += 1) {
+      const record = remaining[index];
+      if (record === undefined) {
+        return fail("DNS_FAILED");
+      }
+      runningWeight += record.weight;
+      if (runningWeight >= selectedWeight) {
+        selectedIndex = index;
+        break;
+      }
+    }
+    const [selected] = remaining.splice(selectedIndex, 1);
+    if (selected === undefined) {
+      return fail("DNS_FAILED");
+    }
+    ordered.push(selected);
+  }
+  return Object.freeze(ordered);
+}
+
+/** Orders validated SRV targets by priority and RFC 2782 weighted selection. */
+export function orderSrvTargets(
+  targets: readonly ResolvedSrvTarget[],
+  random: SrvRandomSource = Math.random,
+): readonly ResolvedSrvTarget[] {
+  const priorities = [...new Set(targets.map((record) => record.priority))].sort(
+    (left, right) => left - right,
+  );
+  const ordered: ResolvedSrvTarget[] = [];
+  for (const priority of priorities) {
+    ordered.push(
+      ...weightedSrvGroup(
+        targets.filter((record) => record.priority === priority),
+        random,
+      ),
+    );
+  }
+  return Object.freeze(ordered);
 }

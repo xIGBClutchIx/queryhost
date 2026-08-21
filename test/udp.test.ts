@@ -7,6 +7,7 @@ import type { PinnedAddress, PinnedTarget } from "../src/target.js";
 import {
   UdpTransportError,
   udpCollect,
+  udpConversation,
   udpExchange,
   type UdpRemotePeer,
   type UdpSocketAdapter,
@@ -278,6 +279,90 @@ describe("udpExchange integration", (): void => {
 
     expect([...first.data]).toEqual([11]);
     expect([...second.data]).toEqual([12]);
+  });
+});
+
+describe("udpConversation integration", (): void => {
+  it("retains one client source port across challenge steps", async (): Promise<void> => {
+    const clientPorts = new Set<number>();
+    const server = await startFakeUdpServer((socket, message, remote): void => {
+      clientPorts.add(remote.port);
+      if (message[0] === 1) {
+        send(socket, Uint8Array.of(11), remote.port, remote.address);
+      } else if (message[0] === 2) {
+        send(socket, Uint8Array.of(22), remote.port, remote.address);
+      }
+    });
+    const scope = createScope();
+
+    const result = await udpConversation({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+      request: Uint8Array.of(1),
+      maxResponseBytes: 8,
+      maxResponses: 2,
+      maxTotalResponseBytes: 16,
+      nextRequest: (responses): Uint8Array | undefined =>
+        responses.length === 1 ? Uint8Array.of(2) : undefined,
+    });
+    scope.close();
+
+    expect(result.responses).toEqual([Uint8Array.of(11), Uint8Array.of(22)]);
+    expect(clientPorts.size).toBe(1);
+    expect(result.rttMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("propagates cancellation while waiting between conversation steps", async (): Promise<void> => {
+    const server = await startFakeUdpServer((socket, message, remote): void => {
+      if (message[0] === 1) {
+        send(socket, Uint8Array.of(11), remote.port, remote.address);
+      }
+    });
+    const controller = new AbortController();
+    const scope = createScope(1_000, controller.signal);
+    let secondRequestSent: (() => void) | undefined;
+    const sent = new Promise<void>((resolve): void => {
+      secondRequestSent = resolve;
+    });
+    const conversation = udpConversation({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+      request: Uint8Array.of(1),
+      maxResponseBytes: 8,
+      maxResponses: 2,
+      maxTotalResponseBytes: 16,
+      nextRequest: (): Uint8Array => {
+        secondRequestSent?.();
+        return Uint8Array.of(2);
+      },
+    });
+    await sent;
+    controller.abort();
+
+    await expect(conversation).rejects.toSatisfy(expectTransportCode("ABORTED"));
+  });
+
+  it("enforces the combined response limit across steps", async (): Promise<void> => {
+    const server = await startFakeUdpServer((socket, message, remote): void => {
+      send(socket, new Uint8Array(message[0] === 1 ? 5 : 4), remote.port, remote.address);
+    });
+    const scope = createScope();
+    await expect(
+      udpConversation({
+        scope,
+        target: createTarget(server.port),
+        address: LOOPBACK_ADDRESS,
+        request: Uint8Array.of(1),
+        maxResponseBytes: 8,
+        maxResponses: 2,
+        maxTotalResponseBytes: 8,
+        nextRequest: (responses): Uint8Array | undefined =>
+          responses.length === 1 ? Uint8Array.of(2) : undefined,
+      }),
+    ).rejects.toSatisfy(expectTransportCode("RESPONSE_TOO_LARGE"));
+    scope.close();
   });
 });
 

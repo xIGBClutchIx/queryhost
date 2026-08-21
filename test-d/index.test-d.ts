@@ -129,6 +129,10 @@ expectType<string | undefined>(dataMap["7-days-to-die"].currentServerTime);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
 expectType<string | undefined>(dataMap["minecraft-java"].motd?.plain);
 expectType<number | undefined>(dataMap["minecraft-java"].protocolVersion);
+expectType<readonly string[] | undefined>(dataMap["minecraft-java"].players);
+expectType<string | undefined>(dataMap["minecraft-java"].software?.name);
+expectType<string | undefined>(dataMap["minecraft-java"].plugins?.[0]?.name);
+expectType<string | undefined>(dataMap["minecraft-java"].srv?.host);
 
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);
