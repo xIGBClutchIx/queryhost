@@ -56,7 +56,7 @@ export interface MinecraftJavaProfileOptions {
   readonly queryPort?: number;
   readonly mode: QueryMode;
   readonly observer: MinecraftJavaProfileObserver;
-  readonly resolver?: DnsResolver;
+  readonly resolver: DnsResolver;
   readonly random?: SrvRandomSource;
   readonly status?: MinecraftJavaStatusDependencies;
   readonly query?: MinecraftQueryDependencies;
@@ -105,18 +105,20 @@ function rootUdpTermination(scope: ExecutionScope): UdpTransportError {
 async function directTarget(
   host: string,
   port: number,
-  resolver: DnsResolver | undefined,
+  scope: ExecutionScope,
+  resolver: DnsResolver,
 ): Promise<PinnedTarget> {
   const input = { host, port };
-  return resolver === undefined ? resolveTarget(input) : resolveTarget(input, resolver);
+  return resolveTarget(input, scope, resolver);
 }
 
 async function srvTargets(
   host: string,
-  resolver: DnsResolver | undefined,
+  scope: ExecutionScope,
+  resolver: DnsResolver,
 ): Promise<Awaited<ReturnType<typeof resolveSrvTargets>>> {
   const input = { service: "minecraft", protocol: "tcp", host } as const;
-  return resolver === undefined ? resolveSrvTargets(input) : resolveSrvTargets(input, resolver);
+  return resolveSrvTargets(input, scope, resolver);
 }
 
 async function discover(options: MinecraftJavaProfileOptions): Promise<DiscoveryResult> {
@@ -129,19 +131,21 @@ async function discover(options: MinecraftJavaProfileOptions): Promise<Discovery
     });
     options.observer.onSourceCompleted(report);
     return Object.freeze({
-      candidates: Object.freeze([{ target: await directTarget(hostname, port, options.resolver) }]),
+      candidates: Object.freeze([
+        { target: await directTarget(hostname, port, options.scope, options.resolver) },
+      ]),
       report,
     });
   }
 
   options.observer.onSourceStarted("minecraft-srv");
-  const records = await srvTargets(hostname, options.resolver);
+  const records = await srvTargets(hostname, options.scope, options.resolver);
   if (records.length === 0) {
     const report: QuerySource = Object.freeze({ source: "minecraft-srv", status: "unsupported" });
     options.observer.onSourceCompleted(report);
     return Object.freeze({
       candidates: Object.freeze([
-        { target: await directTarget(hostname, DEFAULT_PORT, options.resolver) },
+        { target: await directTarget(hostname, DEFAULT_PORT, options.scope, options.resolver) },
       ]),
       report,
     });

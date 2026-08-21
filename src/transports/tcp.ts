@@ -183,6 +183,7 @@ export function tcpExchange(
       reject(new TcpTransportError(terminationCode(options.scope)));
       return;
     }
+    options.scope.consumeOutboundAttempts();
 
     let socket: TcpSocketAdapter;
     try {

@@ -334,6 +334,40 @@ describe("Minecraft Java game profile", (): void => {
     expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
   });
 
+  it("caps the multiplied SRV and address fallback set per query", async (): Promise<void> => {
+    const publicAddresses = Array.from({ length: 4 }, (_, index): DnsAddressRecord => ({
+      address: `1.1.1.${String(index + 1)}`,
+      family: 4,
+    }));
+    const records = Array.from({ length: 4 }, (_, index): DnsSrvRecord => ({
+      name: "node.example.com",
+      port: 25_565 + index,
+      priority: index,
+      weight: 1,
+    }));
+    const attemptedAddresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: SUCCESS_RESPONSE,
+          failAddresses: new Set(publicAddresses.map((record) => record.address)),
+          addresses: attemptedAddresses,
+        }),
+        resolver(publicAddresses, records),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "CONNECTION_FAILED",
+        message: "The query exceeded its outbound attempt limit.",
+      },
+    });
+    expect(attemptedAddresses).toHaveLength(13);
+  });
+
   it("returns partial SLP data when optional Query times out", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "minecraft-java", host: "play.example.com" },

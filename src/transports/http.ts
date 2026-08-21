@@ -237,6 +237,7 @@ export function fixedHttpExchange(
       reject(new HttpTransportError(terminationCode(options.scope)));
       return;
     }
+    options.scope.consumeOutboundAttempts();
 
     let request: HttpRequestAdapter | undefined;
     let response: HttpResponseAdapter | undefined;

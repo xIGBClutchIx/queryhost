@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createExecutionContext, executeWithDeadline } from "../src/execution.js";
+import {
+  createExecutionContext,
+  executeWithDeadline,
+  OutboundAttemptLimitError,
+} from "../src/execution.js";
 
 async function rejectOnAbort(signal: AbortSignal): Promise<never> {
   await new Promise<void>((resolve) => {
@@ -197,9 +201,27 @@ describe("query execution context", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("shares one outbound-attempt budget with every child operation", () => {
+    const context = createExecutionContext({ timeoutMs: 1_000, maxOutboundAttempts: 3 });
+    const operation = context.createOperation(500, "minecraft-slp");
+
+    operation.consumeOutboundAttempts(2);
+    context.consumeOutboundAttempts();
+
+    expect(() => {
+      operation.consumeOutboundAttempts();
+    }).toThrow(OutboundAttemptLimitError);
+    operation.close();
+    context.close();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("rejects invalid budgets before allocating timers", () => {
     expect(() => createExecutionContext({ timeoutMs: 0 })).toThrow(RangeError);
     expect(() => createExecutionContext({ timeoutMs: Number.POSITIVE_INFINITY })).toThrow(
+      RangeError,
+    );
+    expect(() => createExecutionContext({ timeoutMs: 1_000, maxOutboundAttempts: 0 })).toThrow(
       RangeError,
     );
     expect(vi.getTimerCount()).toBe(0);

@@ -1,6 +1,10 @@
 /** Public query orchestration over validated targets and implemented game profiles. */
 
-import { executeWithDeadline, type ExecutionScope } from "./execution.js";
+import {
+  executeWithDeadline,
+  OutboundAttemptLimitError,
+  type ExecutionScope,
+} from "./execution.js";
 import type {
   CanonicalGameId,
   GameDataMap,
@@ -26,6 +30,7 @@ import {
   resolveTarget,
   validatePort,
   TargetResolutionError,
+  createNodeDnsResolver,
   type DnsResolver,
   type PinnedTarget,
 } from "./target.js";
@@ -80,6 +85,7 @@ interface ProfileRunOptions {
   readonly mode: QueryMode;
   readonly observer: A2sProfileObserver;
   readonly dependencies: QueryDependencies;
+  readonly resolver: DnsResolver;
 }
 
 interface GameProfileResult<G extends ImplementedGame> {
@@ -244,12 +250,11 @@ function queryPort(input: QueryInput<GameId>): number {
 
 async function pinnedTarget(
   input: QueryInput<GameId>,
-  dependencies: QueryDependencies,
+  scope: ExecutionScope,
+  resolver: DnsResolver,
 ): Promise<PinnedTarget> {
   const targetInput = { host: input.host, port: queryPort(input) };
-  return dependencies.resolver === undefined
-    ? resolveTarget(targetInput)
-    : resolveTarget(targetInput, dependencies.resolver);
+  return resolveTarget(targetInput, scope, resolver);
 }
 
 function a2sProfileRunner<G extends ImplementedGame>(
@@ -258,7 +263,7 @@ function a2sProfileRunner<G extends ImplementedGame>(
   return async (options): Promise<GameProfileResult<G>> =>
     queryProfile({
       scope: options.scope,
-      target: await pinnedTarget(options.input, options.dependencies),
+      target: await pinnedTarget(options.input, options.scope, options.resolver),
       mode: options.mode,
       observer: options.observer,
       ...(options.dependencies.a2s === undefined ? {} : { a2s: options.dependencies.a2s }),
@@ -276,9 +281,7 @@ async function minecraftJavaProfileRunner(
     ...(input.queryPort === undefined ? {} : { queryPort: input.queryPort }),
     mode: options.mode,
     observer: options.observer,
-    ...(options.dependencies.resolver === undefined
-      ? {}
-      : { resolver: options.dependencies.resolver }),
+    resolver: options.resolver,
     ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
     ...(options.dependencies.minecraftJava === undefined
       ? {}
@@ -294,7 +297,7 @@ async function minecraftBedrockProfileRunner(
 ): Promise<GameProfileResult<"minecraft-bedrock">> {
   return queryMinecraftBedrockProfile({
     scope: options.scope,
-    target: await pinnedTarget(options.input, options.dependencies),
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
     observer: options.observer,
     ...(options.dependencies.minecraftBedrock === undefined
       ? {}
@@ -306,7 +309,7 @@ async function minecraftBedrockProfileRunner(
 async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfileResult<"fivem">> {
   return queryFiveMProfile({
     scope: options.scope,
-    target: await pinnedTarget(options.input, options.dependencies),
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
     mode: options.mode,
     observer: options.observer,
     ...(options.dependencies.fivem === undefined ? {} : { query: options.dependencies.fivem }),
@@ -389,6 +392,12 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   if (error instanceof FiveMProfileError) {
     return error.queryError;
   }
+  if (error instanceof OutboundAttemptLimitError) {
+    return {
+      code: "CONNECTION_FAILED",
+      message: "The query exceeded its outbound attempt limit.",
+    };
+  }
   return undefined;
 }
 
@@ -445,6 +454,7 @@ async function runProfileTask(
   scope: ExecutionScope,
   trace: SourceTrace,
   dependencies: QueryDependencies,
+  resolver: DnsResolver,
 ): Promise<ProfileTaskResult> {
   try {
     return await registration.runner({
@@ -453,6 +463,7 @@ async function runProfileTask(
       mode,
       observer: observer(trace),
       dependencies,
+      resolver,
     });
   } catch (error) {
     if (!(error instanceof Error)) {
@@ -486,12 +497,14 @@ export async function queryWithDependencies(
   }
 
   const trace: SourceTrace = { started: new Set(), completed: new Map() };
+  const resolver = dependencies.resolver ?? createNodeDnsResolver();
   const execution = await executeWithDeadline(
     {
       timeoutMs,
       ...(normalizedInput.signal === undefined ? {} : { signal: normalizedInput.signal }),
     },
-    (scope) => runProfileTask(registration, normalizedInput, mode, scope, trace, dependencies),
+    (scope) =>
+      runProfileTask(registration, normalizedInput, mode, scope, trace, dependencies, resolver),
   );
   const durationMs = duration(startedAt, dependencies);
   if (!execution.ok) {

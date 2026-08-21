@@ -285,6 +285,7 @@ export function udpConversation(
       reject(new UdpTransportError(terminationCode(options.scope)));
       return;
     }
+    options.scope.consumeOutboundAttempts();
 
     let socket: UdpSocketAdapter;
     try {
@@ -429,6 +430,7 @@ export function udpCollect(
       reject(new UdpTransportError(terminationCode(options.scope)));
       return;
     }
+    options.scope.consumeOutboundAttempts();
 
     let socket: UdpSocketAdapter;
     try {

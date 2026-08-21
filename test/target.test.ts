@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  createExecutionContext,
+  OutboundAttemptLimitError,
+  type ExecutionScope,
+} from "../src/execution.js";
 import { isPublicAddress, normalizeIpAddress } from "../src/ip.js";
 import {
   type DnsAddressRecord,
@@ -11,10 +16,34 @@ import {
   createDnsResolver,
   normalizeHostname,
   orderSrvTargets,
-  resolveSrvTargets,
-  resolveTarget,
+  resolveSrvTargets as resolveSrvTargetsWithScope,
+  resolveTarget as resolveTargetWithScope,
   validatePort,
 } from "../src/target.js";
+
+let resolutionScope: ExecutionScope;
+
+beforeEach((): void => {
+  resolutionScope = createExecutionContext({ timeoutMs: 5_000 });
+});
+
+afterEach((): void => {
+  resolutionScope.close();
+});
+
+function resolveTarget(
+  input: Parameters<typeof resolveTargetWithScope>[0],
+  resolver: DnsResolver,
+): ReturnType<typeof resolveTargetWithScope> {
+  return resolveTargetWithScope(input, resolutionScope, resolver);
+}
+
+function resolveSrvTargets(
+  input: Parameters<typeof resolveSrvTargetsWithScope>[0],
+  resolver: DnsResolver,
+): ReturnType<typeof resolveSrvTargetsWithScope> {
+  return resolveSrvTargetsWithScope(input, resolutionScope, resolver);
+}
 
 function createResolver(
   addresses: readonly DnsAddressRecord[],
@@ -145,16 +174,35 @@ describe("safe target resolution", () => {
       resolve4: vi.fn(() => Promise.resolve(["93.184.216.34"])),
       resolve6: vi.fn(() => Promise.reject(new Error("no IPv6 records"))),
       resolveSrv: vi.fn(() => Promise.resolve([])),
+      cancel: vi.fn(),
     };
     const resolver = createDnsResolver(dns);
 
-    await expect(resolver.resolveAddresses("play.example.com")).resolves.toEqual([
-      { address: "93.184.216.34", family: 4 },
-    ]);
+    await expect(
+      resolver.resolveAddresses("play.example.com", resolutionScope.signal),
+    ).resolves.toEqual([{ address: "93.184.216.34", family: 4 }]);
     expect(dns.resolve4).toHaveBeenCalledOnce();
     expect(dns.resolve6).toHaveBeenCalledOnce();
     expect(dns.resolve4).toHaveBeenCalledWith("play.example.com");
     expect(dns.resolve6).toHaveBeenCalledWith("play.example.com");
+  });
+
+  it("cancels and settles pending production-style DNS work on abort", async () => {
+    const pending = new Promise<readonly string[]>((): void => undefined);
+    const cancel = vi.fn();
+    const resolver = createDnsResolver({
+      resolve4: (): Promise<readonly string[]> => pending,
+      resolve6: (): Promise<readonly string[]> => pending,
+      resolveSrv: (): Promise<readonly DnsSrvRecord[]> => Promise.resolve([]),
+      cancel,
+    });
+    const caller = new AbortController();
+    const operation = resolver.resolveAddresses("slow.example.com", caller.signal);
+
+    caller.abort();
+
+    await expect(operation).rejects.toMatchObject({ name: "DnsAbortError" });
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it("normalizes, validates, deduplicates, and pins every DNS answer", async () => {
@@ -177,7 +225,10 @@ describe("safe target resolution", () => {
       ],
     });
     expect(resolver.resolveAddresses).toHaveBeenCalledOnce();
-    expect(resolver.resolveAddresses).toHaveBeenCalledWith("play.example.com");
+    expect(resolver.resolveAddresses).toHaveBeenCalledWith(
+      "play.example.com",
+      resolutionScope.signal,
+    );
     expect(Object.isFrozen(target)).toBe(true);
     expect(Object.isFrozen(target.addresses)).toBe(true);
   });
@@ -247,7 +298,7 @@ describe("safe target resolution", () => {
       resolveAddresses: vi.fn(() => Promise.reject(new Error("resolver detail"))),
       resolveSrv: vi.fn(() => Promise.resolve([])),
     };
-    const tooMany = Array.from<DnsAddressRecord>({ length: 17 }).fill({
+    const tooMany = Array.from<DnsAddressRecord>({ length: 5 }).fill({
       address: "1.1.1.1",
       family: 4,
     });
@@ -315,9 +366,15 @@ describe("SRV resolution primitives", () => {
       resolver,
     );
 
-    expect(resolver.resolveSrv).toHaveBeenCalledWith("_minecraft._tcp.play.example.com");
+    expect(resolver.resolveSrv).toHaveBeenCalledWith(
+      "_minecraft._tcp.play.example.com",
+      resolutionScope.signal,
+    );
     expect(resolver.resolveAddresses).toHaveBeenCalledOnce();
-    expect(resolver.resolveAddresses).toHaveBeenCalledWith("node.example.com");
+    expect(resolver.resolveAddresses).toHaveBeenCalledWith(
+      "node.example.com",
+      resolutionScope.signal,
+    );
     expect(targets).toEqual([
       {
         priority: 10,
@@ -353,6 +410,30 @@ describe("SRV resolution primitives", () => {
     expect(resolver.resolveAddresses).not.toHaveBeenCalled();
   });
 
+  it("stops derived DNS lookups at the shared outbound-attempt limit", async () => {
+    const records = Array.from({ length: 2 }, (_, index): DnsSrvRecord => ({
+      name: `node-${String(index)}.example.com`,
+      port: 25_565,
+      priority: 0,
+      weight: 1,
+    }));
+    const resolver = createResolver([{ address: "1.1.1.1", family: 4 }], records);
+    const limitedScope = createExecutionContext({ timeoutMs: 5_000, maxOutboundAttempts: 3 });
+
+    try {
+      await expect(
+        resolveSrvTargetsWithScope(
+          { service: "minecraft", protocol: "tcp", host: "play.example.com" },
+          limitedScope,
+          resolver,
+        ),
+      ).rejects.toBeInstanceOf(OutboundAttemptLimitError);
+      expect(resolver.resolveAddresses).toHaveBeenCalledOnce();
+    } finally {
+      limitedScope.close();
+    }
+  });
+
   it("reapplies address policy to SRV-derived targets", async () => {
     const resolver = createResolver(
       [{ address: "192.168.1.10", family: 4 }],
@@ -383,7 +464,7 @@ describe("SRV resolution primitives", () => {
   it("rejects mixed-dot, oversized, and invalid SRV responses", async () => {
     const address = { address: "1.1.1.1", family: 4 } as const;
     const valid = { name: "node.example.com", port: 25_565, priority: 0, weight: 0 };
-    const oversized = Array.from<DnsSrvRecord>({ length: 17 }).fill(valid);
+    const oversized = Array.from<DnsSrvRecord>({ length: 5 }).fill(valid);
 
     for (const records of [[valid, { name: ".", port: 0, priority: 0, weight: 0 }]]) {
       await expectResolutionError(

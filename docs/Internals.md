@@ -28,7 +28,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `games.ts` contains stable game-specific fields. It does not contain transport or parser state.
 - `shared.ts` contains only concepts that are genuinely common across games, including provenance and stable errors.
 - `registry.ts` is the exhaustive source of game metadata and capability support.
-- `execution.ts` owns deadlines, cancellation propagation, cleanup, and internal-error redaction.
+- `execution.ts` owns deadlines, cancellation propagation, the root outbound-attempt budget, cleanup, and internal-error redaction.
 - `ip.ts` owns canonical IP parsing and the public-routability policy.
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
@@ -51,7 +51,7 @@ Every attempted or skipped source produces provenance. Optional-source failure m
 
 ## Execution invariants
 
-One root execution scope owns the query deadline and caller signal. Child operation scopes inherit that termination and clamp their own deadline to the parent.
+One root execution scope owns the query deadline, caller signal, and a 16-attempt outbound-work budget. Child operation scopes inherit the same termination and attempt budget while clamping their own deadline to the parent. DNS lookups, transport exchanges, challenge retries, fallbacks, and optional sources all consume from that shared allowance before starting work.
 
 Every resource acquired during a query must register cleanup immediately. Cleanup is idempotent from the scope's perspective, runs in reverse registration order, and continues if another cleanup callback throws.
 
@@ -63,7 +63,8 @@ Target resolution is an SSRF and network-abuse boundary:
 
 - Accept a hostname or IP literal, never a caller-provided URL, path, packet, or redirect target.
 - Validate ports as integers from 1 through 65535.
-- Bound DNS and SRV answer counts before derived work grows.
+- Accept at most four combined address answers and four SRV records before derived work grows.
+- Use one Node resolver per public query. Pass the root signal into every lookup, cancel native resolver work on termination, and settle the lookup adapter immediately even if a platform promise is slow to reject.
 - Reject the entire answer set when any address is unsafe or malformed.
 - Treat IPv4-mapped IPv6, scoped IPv6, documentation, benchmark, multicast, private, link-local, loopback, and reserved space as blocked.
 - Use the returned pinned address set for connection; never resolve the hostname again inside a transport.
@@ -132,7 +133,7 @@ HTTP 404 is `unsupported`, transport and other HTTP failures retain their specif
 
 ## Minecraft Java SLP invariants
 
-With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. SRV records are bounded, fully validated and pinned, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
+With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. At most four SRV records and four addresses per derived hostname are accepted; all are validated and pinned, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. Their DNS work and every later connection share the root attempt budget, so the record and address caps cannot multiply into an unbounded fallback set. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
 
 SLP tries each ordered target and its validated addresses until the required source succeeds. The handshake uses the selected SRV hostname and port when discovery succeeds, and `data.srv` records the target that actually answered rather than the first DNS record.
 

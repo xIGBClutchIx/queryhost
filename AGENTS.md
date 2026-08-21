@@ -6,6 +6,7 @@ This repository contains the TypeScript query library. The hosted API and websit
 
 - Implement the current slice completely before expanding the product surface.
 - Do not add hosted-service concerns such as accounts, billing, persistent caching, or deployment code here.
+- Do not add Cloudflare or Railway dependencies. The library performs live queries and stays portable across Node.js hosts.
 - Do not preserve obsolete APIs, compatibility shims, or legacy libraries.
 - Keep package-root exports intentional. A module under `src/` is not public unless `src/index.ts` exports it.
 

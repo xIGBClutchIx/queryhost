@@ -9,8 +9,8 @@ QueryHost is being built as a modern game-server query engine with correct proto
 The repository currently contains the strict package foundation and Slices 1–14:
 
 - typed public result contracts and an exhaustive game registry
-- global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
-- hostname and port validation, bounded DNS/SRV resolution, public-address policy, and immutable address pinning
+- global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
+- hostname and port validation, cancellable bounded DNS/SRV resolution, public-address policy, and immutable address pinning
 - bounded UDP exchanges with peer validation, packet limits, cancellation, and deterministic socket cleanup
 - A2S Info request encoding, bounded challenge handling, and strict Source and GoldSource parsing
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
@@ -120,9 +120,13 @@ isGameId("rust"); // true
 
 The registry is exhaustive over `GameId`. Adding a game requires a typed data model and registry definition; consumers should not maintain a second game list.
 
+## Infrastructure boundary
+
+This package is a standalone Node.js library with no Cloudflare or Railway dependencies. Every `query()` call performs live network work unless the caller adds caching. The separate hosted API runs the package as a portable Node.js service on Railway behind Cloudflare.
+
 ## Safety model
 
-Queries use one global deadline, propagated cancellation, bounded work, and deterministic cleanup. Untrusted targets pass through hostname and port validation, bounded DNS resolution, public-address policy, and immutable address pinning before a transport can connect. The same policy applies to SRV-derived targets.
+Queries use one global deadline, propagated cancellation, a shared 16-attempt outbound-work budget, and deterministic cleanup. Production DNS uses one resolver per query, cancels its native work with the query, and settles immediately when the caller aborts or the deadline expires. Untrusted targets pass through hostname and port validation, DNS/SRV answer caps, public-address policy, and immutable address pinning before a transport can connect. The same policy applies to SRV-derived targets.
 
 ## Requirements
 

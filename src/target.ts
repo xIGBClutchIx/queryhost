@@ -5,15 +5,16 @@
  * addresses so a later DNS response cannot redirect the connection.
  */
 
-import { resolve4, resolve6, resolveSrv } from "node:dns/promises";
+import { Resolver } from "node:dns/promises";
 import { isIP } from "node:net";
 import { domainToASCII } from "node:url";
 
+import type { ExecutionScope } from "./execution.js";
 import { isPublicAddress, normalizeIpAddress } from "./ip.js";
 import type { QueryErrorCode } from "./shared.js";
 
-const MAX_ADDRESS_RECORDS = 16; // Bounds validation work and the transport's fallback set.
-const MAX_SRV_RECORDS = 16; // Bounds derived lookups before an SRV target is contacted.
+const MAX_ADDRESS_RECORDS = 4; // Bounds validation work and the transport's fallback set.
+const MAX_SRV_RECORDS = 4; // Prevents SRV targets from multiplying the address fallback set.
 
 /** Target-validation failures that map directly to stable public query error codes. */
 export type TargetResolutionErrorCode = Extract<
@@ -48,8 +49,11 @@ export interface DnsSrvRecord {
 
 /** Injectable resolver boundary used by production DNS and deterministic tests. */
 export interface DnsResolver {
-  readonly resolveAddresses: (hostname: string) => Promise<readonly DnsAddressRecord[]>;
-  readonly resolveSrv: (name: string) => Promise<readonly DnsSrvRecord[]>;
+  readonly resolveAddresses: (
+    hostname: string,
+    signal: AbortSignal,
+  ) => Promise<readonly DnsAddressRecord[]>;
+  readonly resolveSrv: (name: string, signal: AbortSignal) => Promise<readonly DnsSrvRecord[]>;
 }
 
 /** Node DNS functions required to construct the default resolver adapter. */
@@ -57,6 +61,7 @@ export interface DnsFunctions {
   readonly resolve4: (hostname: string) => Promise<readonly string[]>;
   readonly resolve6: (hostname: string) => Promise<readonly string[]>;
   readonly resolveSrv: (name: string) => Promise<readonly DnsSrvRecord[]>;
+  readonly cancel: () => void;
 }
 
 /** Untrusted primary target before normalization and resolution. */
@@ -131,30 +136,113 @@ async function resolveIpv6(
   }
 }
 
+class DnsAbortError extends Error {
+  public override readonly name = "DnsAbortError";
+}
+
+function cancelDns(cancel: () => void): void {
+  try {
+    cancel();
+  } catch {
+    // Cancellation still settles the adapter even if the platform cleanup call fails.
+  }
+}
+
+function abortableDns<T>(
+  signal: AbortSignal,
+  cancel: () => void,
+  work: () => Promise<T>,
+): Promise<T> {
+  if (signal.aborted) {
+    cancelDns(cancel);
+    return Promise.reject(new DnsAbortError("The DNS operation was cancelled."));
+  }
+
+  return new Promise<T>((resolve, reject): void => {
+    let settled = false;
+    const cleanup = (): void => {
+      signal.removeEventListener("abort", handleAbort);
+    };
+    const handleAbort = (): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      cancelDns(cancel);
+      reject(new DnsAbortError("The DNS operation was cancelled."));
+    };
+    signal.addEventListener("abort", handleAbort, { once: true });
+
+    let task: Promise<T>;
+    try {
+      task = work();
+    } catch {
+      settled = true;
+      cleanup();
+      reject(new Error("The DNS operation could not be started."));
+      return;
+    }
+    task.then(
+      (value): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(value);
+      },
+      (): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error("The DNS operation failed."));
+      },
+    );
+  });
+}
+
 /**
  * Adapts Node-style A, AAAA, and SRV functions to the QueryHost resolver boundary.
  * A missing address family does not discard successful answers from the other family.
  */
 export function createDnsResolver(dns: DnsFunctions): DnsResolver {
   return {
-    async resolveAddresses(hostname: string): Promise<readonly DnsAddressRecord[]> {
-      const [ipv4, ipv6] = await Promise.all([
-        resolveIpv4(hostname, dns),
-        resolveIpv6(hostname, dns),
-      ]);
-      return [...ipv4, ...ipv6];
+    resolveAddresses(hostname: string, signal: AbortSignal): Promise<readonly DnsAddressRecord[]> {
+      return abortableDns(signal, dns.cancel, async (): Promise<readonly DnsAddressRecord[]> => {
+        const [ipv4, ipv6] = await Promise.all([
+          resolveIpv4(hostname, dns),
+          resolveIpv6(hostname, dns),
+        ]);
+        return [...ipv4, ...ipv6];
+      });
     },
-    async resolveSrv(name: string): Promise<readonly DnsSrvRecord[]> {
-      try {
-        return await dns.resolveSrv(name);
-      } catch {
-        return [];
-      }
+    resolveSrv(name: string, signal: AbortSignal): Promise<readonly DnsSrvRecord[]> {
+      return abortableDns(signal, dns.cancel, async (): Promise<readonly DnsSrvRecord[]> => {
+        try {
+          return await dns.resolveSrv(name);
+        } catch {
+          return [];
+        }
+      });
     },
   };
 }
 
-const NODE_DNS_RESOLVER = createDnsResolver({ resolve4, resolve6, resolveSrv });
+/** Creates one cancellable Node resolver isolated to a single public query. */
+export function createNodeDnsResolver(): DnsResolver {
+  const resolver = new Resolver();
+  return createDnsResolver({
+    resolve4: (hostname): Promise<readonly string[]> => resolver.resolve4(hostname),
+    resolve6: (hostname): Promise<readonly string[]> => resolver.resolve6(hostname),
+    resolveSrv: (name): Promise<readonly DnsSrvRecord[]> => resolver.resolveSrv(name),
+    cancel: (): void => {
+      resolver.cancel();
+    },
+  });
+}
 
 function fail(code: TargetResolutionErrorCode): never {
   throw new TargetResolutionError(code);
@@ -202,6 +290,7 @@ function validateSrvPort(port: number): number {
 
 async function resolvePinnedAddresses(
   hostname: string,
+  scope: ExecutionScope,
   resolver: DnsResolver,
 ): Promise<readonly PinnedAddress[]> {
   const literal = normalizeIpAddress(hostname);
@@ -217,8 +306,10 @@ async function resolvePinnedAddresses(
   }
 
   let records: readonly DnsAddressRecord[];
+  // The production adapter performs one A and one AAAA lookup for a hostname.
+  scope.consumeOutboundAttempts(2);
   try {
-    records = await resolver.resolveAddresses(hostname);
+    records = await resolver.resolveAddresses(hostname, scope.signal);
   } catch {
     return fail("DNS_FAILED");
   }
@@ -302,11 +393,12 @@ export function validatePort(port: number): number {
 /** Resolves, validates, deduplicates, freezes, and returns one primary target. */
 export async function resolveTarget(
   input: TargetInput,
-  resolver: DnsResolver = NODE_DNS_RESOLVER,
+  scope: ExecutionScope,
+  resolver: DnsResolver = createNodeDnsResolver(),
 ): Promise<PinnedTarget> {
   const hostname = normalizeHostname(input.host);
   const port = validatePort(input.port);
-  const addresses = await resolvePinnedAddresses(hostname, resolver);
+  const addresses = await resolvePinnedAddresses(hostname, scope, resolver);
   return freezeTarget(hostname, port, addresses);
 }
 
@@ -318,7 +410,8 @@ export async function resolveTarget(
  */
 export async function resolveSrvTargets(
   input: SrvInput,
-  resolver: DnsResolver = NODE_DNS_RESOLVER,
+  scope: ExecutionScope,
+  resolver: DnsResolver = createNodeDnsResolver(),
 ): Promise<readonly ResolvedSrvTarget[]> {
   const hostname = normalizeHostname(input.host);
   const service = input.service.toLowerCase();
@@ -327,8 +420,9 @@ export async function resolveSrvTargets(
   }
 
   let records: readonly DnsSrvRecord[];
+  scope.consumeOutboundAttempts();
   try {
-    records = await resolver.resolveSrv(`_${service}._${input.protocol}.${hostname}`);
+    records = await resolver.resolveSrv(`_${service}._${input.protocol}.${hostname}`, scope.signal);
   } catch {
     return fail("DNS_FAILED");
   }
@@ -357,7 +451,7 @@ export async function resolveSrvTargets(
   const addressLookups = new Map<string, Promise<readonly PinnedAddress[]>>();
   for (const record of normalizedRecords) {
     if (!addressLookups.has(record.hostname)) {
-      addressLookups.set(record.hostname, resolvePinnedAddresses(record.hostname, resolver));
+      addressLookups.set(record.hostname, resolvePinnedAddresses(record.hostname, scope, resolver));
     }
   }
 

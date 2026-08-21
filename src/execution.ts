@@ -5,10 +5,20 @@ import type { QueryError, QuerySourceName } from "./shared.js";
 const ABORTED_MESSAGE = "The query was cancelled.";
 const INTERNAL_ERROR_MESSAGE = "The query could not be completed.";
 const TIMEOUT_MESSAGE = "The query timed out.";
+const DEFAULT_MAX_OUTBOUND_ATTEMPTS = 16;
 
 type Cleanup = () => void;
 type ExecutionErrorCode = "ABORTED" | "INTERNAL_ERROR" | "TIMEOUT";
 type ExecutionState = "active" | "aborted" | "closed" | "timeout";
+
+interface OutboundAttemptBudget {
+  remaining: number;
+}
+
+/** Raised internally when one query exhausts its shared outbound-work allowance. */
+export class OutboundAttemptLimitError extends Error {
+  public override readonly name = "OutboundAttemptLimitError";
+}
 
 /**
  * One cancellable deadline scope.
@@ -32,6 +42,8 @@ export interface ExecutionScope {
   addCleanup(cleanup: Cleanup): Cleanup;
   /** Creates a child budget capped by this scope's deadline. */
   createOperation(timeoutMs: number, source?: QuerySourceName): ExecutionScope;
+  /** Consumes shared per-query capacity before starting one or more outbound operations. */
+  consumeOutboundAttempts(count?: number): void;
   /** Completes the scope normally while still cancelling unfinished child work. */
   close(): void;
 }
@@ -42,6 +54,8 @@ export interface ExecutionOptions {
   readonly timeoutMs: number;
   /** Optional caller-owned cancellation signal. */
   readonly signal?: AbortSignal;
+  /** Internal root-wide cap shared by DNS, sockets, retries, and optional sources. */
+  readonly maxOutboundAttempts?: number;
 }
 
 /** Internal task outcome with exceptions reduced to stable public errors. */
@@ -59,6 +73,12 @@ type TaskCompletion<T> =
 function assertTimeout(timeoutMs: number): void {
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
     throw new RangeError("The timeout must be a positive safe integer.");
+  }
+}
+
+function assertOutboundAttempts(maxOutboundAttempts: number): void {
+  if (!Number.isSafeInteger(maxOutboundAttempts) || maxOutboundAttempts <= 0) {
+    throw new RangeError("The outbound attempt limit must be a positive safe integer.");
   }
 }
 
@@ -103,16 +123,23 @@ class DefaultExecutionScope implements ExecutionScope {
   readonly #source: QuerySourceName | undefined;
   readonly #startedMs: number;
   readonly #timeout: ReturnType<typeof setTimeout> | undefined;
+  readonly #outboundAttempts: OutboundAttemptBudget;
   #detachParent: Cleanup | undefined;
   #state: ExecutionState = "active";
 
   public readonly deadlineMs: number;
 
-  public constructor(timeoutMs: number, parent?: ExecutionScope, source?: QuerySourceName) {
+  public constructor(
+    timeoutMs: number,
+    outboundAttempts: OutboundAttemptBudget,
+    parent?: ExecutionScope,
+    source?: QuerySourceName,
+  ) {
     assertTimeout(timeoutMs);
 
     this.#source = source;
     this.#startedMs = performance.now();
+    this.#outboundAttempts = outboundAttempts;
 
     const requestedDeadline = this.#startedMs + timeoutMs;
     // An operation budget can only make a parent deadline stricter, never extend it.
@@ -179,7 +206,17 @@ class DefaultExecutionScope implements ExecutionScope {
   }
 
   public createOperation(timeoutMs: number, source?: QuerySourceName): ExecutionScope {
-    return new DefaultExecutionScope(timeoutMs, this, source);
+    return new DefaultExecutionScope(timeoutMs, this.#outboundAttempts, this, source);
+  }
+
+  public consumeOutboundAttempts(count = 1): void {
+    if (!Number.isSafeInteger(count) || count <= 0) {
+      throw new RangeError("The outbound attempt count must be a positive safe integer.");
+    }
+    if (count > this.#outboundAttempts.remaining) {
+      throw new OutboundAttemptLimitError("The query exceeded its outbound attempt limit.");
+    }
+    this.#outboundAttempts.remaining -= count;
   }
 
   public abort(): void {
@@ -214,7 +251,9 @@ class DefaultExecutionScope implements ExecutionScope {
 
 /** Creates the root scope for one query and composes an optional caller signal into it. */
 export function createExecutionContext(options: ExecutionOptions): ExecutionScope {
-  const context = new DefaultExecutionScope(options.timeoutMs);
+  const maxOutboundAttempts = options.maxOutboundAttempts ?? DEFAULT_MAX_OUTBOUND_ATTEMPTS;
+  assertOutboundAttempts(maxOutboundAttempts);
+  const context = new DefaultExecutionScope(options.timeoutMs, { remaining: maxOutboundAttempts });
 
   if (options.signal?.aborted === true) {
     context.abort();
