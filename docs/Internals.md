@@ -35,6 +35,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 - `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
+- `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -128,6 +129,14 @@ MOTD plain text strips legacy formatting. HTML is produced only from escaped tex
 Full mode attempts one optional UDP Query source after SLP. The challenge request and full-stat request share one bounded UDP socket because the challenge belongs to the client's endpoint. Session IDs, challenge tokens, packet types, full-stat markers, field counts, string sizes, plugin counts, player counts, response bytes, and exact packet endings are validated before merge. The parser also understands bounded basic-stat responses without fabricating full-stat player or plugin lists.
 
 SLP remains authoritative for the primary version, player counts, MOTD, and query RTT. Query can add the normalized map plus Minecraft-specific software, plugins, and player names. Missing Query fields remain omitted, while confirmed empty plugin or player lists remain empty arrays. Summary mode reports Query as `not-requested`; timeout, malformed data, or transport failure keeps `ok: true`, marks the result partial, and emits source-specific warnings.
+
+## Minecraft Bedrock RakNet invariants
+
+The Bedrock profile sends one 33-byte unconnected ping to UDP 19132 by default, or the caller's validated `port`/`queryPort`. Each address attempt uses a fresh bounded UDP exchange. Only a pong from the selected pinned address and destination port can be accepted; advertised ports never redirect the active query or bypass target validation.
+
+The pong must echo the request timestamp and contain the exact RakNet offline-message magic, an unsigned server GUID, and an exact 16-bit payload length. Responses are limited to 2,048 bytes. Advertisement text must be valid UTF-8 and is split into at most 32 semicolon fields of at most 1,024 bytes each. `MCPE` and `MCEE` are the only accepted edition headers. Missing later fields remain omitted, bounded extra fields are ignored, and every present numeric field must use a canonical non-negative decimal representation within its field-specific range.
+
+The primary MOTD becomes `server.name` and `data.motd`; version and player counts are normalized under `server`. Edition, numeric protocol, game mode, decimal server ID, and advertised IPv4/IPv6 ports remain under `MinecraftBedrockData`. Advertised ports are informational because following untrusted response-directed destinations would cross the validated target boundary. RakNet is the profile's single required source, so timeout, malformed data, or transport failure returns a failed query rather than partial success.
 
 ## Command-line invariants
 

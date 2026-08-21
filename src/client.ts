@@ -35,9 +35,12 @@ import { A2sProtocolError } from "./protocols/a2s/errors.js";
 import type { A2sExchangeDependencies } from "./protocols/a2s/network.js";
 import type { A2sProfileObserver, A2sProfileOptions } from "./profiles/a2s.js";
 import { MinecraftJavaProtocolError } from "./protocols/minecraft-java/errors.js";
+import { MinecraftBedrockProtocolError } from "./protocols/minecraft-bedrock/errors.js";
+import type { MinecraftBedrockPingDependencies } from "./protocols/minecraft-bedrock/ping.js";
 import type { MinecraftQueryDependencies } from "./protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "./protocols/minecraft-java/status.js";
 import { queryMinecraftJavaProfile } from "./profiles/minecraft-java.js";
+import { queryMinecraftBedrockProfile } from "./profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "./profiles/project-zomboid.js";
 import { queryRustProfile } from "./profiles/rust.js";
 import { querySevenDaysToDieProfile } from "./profiles/seven-days-to-die.js";
@@ -59,6 +62,7 @@ export interface QueryDependencies {
   readonly a2s?: A2sExchangeDependencies;
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
   readonly minecraftQuery?: MinecraftQueryDependencies;
+  readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -68,7 +72,8 @@ interface SourceTrace {
   readonly completed: Map<QuerySourceName, QuerySource>;
 }
 
-type ImplementedGame = "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java";
+type ImplementedGame =
+  "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java" | "minecraft-bedrock";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -163,7 +168,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     ["minecraft-srv", "minecraft-slp", "minecraft-query"],
     minecraftJavaProfileRunner,
   ),
-  "minecraft-bedrock": undefined,
+  "minecraft-bedrock": createProfileRunner(
+    "minecraft-bedrock",
+    ["minecraft-bedrock-raknet"],
+    minecraftBedrockProfileRunner,
+  ),
   fivem: undefined,
 });
 
@@ -277,6 +286,20 @@ async function minecraftJavaProfileRunner(
   });
 }
 
+async function minecraftBedrockProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"minecraft-bedrock">> {
+  return queryMinecraftBedrockProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.dependencies),
+    observer: options.observer,
+    ...(options.dependencies.minecraftBedrock === undefined
+      ? {}
+      : { ping: options.dependencies.minecraftBedrock }),
+    ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -307,6 +330,26 @@ function minecraftJavaProtocolError(error: MinecraftJavaProtocolError): QueryErr
   };
 }
 
+function minecraftBedrockProtocolError(error: MinecraftBedrockProtocolError): QueryError {
+  return {
+    code: error.code,
+    message:
+      error.code === "RESPONSE_TOO_LARGE"
+        ? "The Minecraft Bedrock response exceeded its size limit."
+        : error.code === "INVALID_INPUT"
+          ? "The Minecraft Bedrock query input is invalid."
+          : "The Minecraft Bedrock response was malformed.",
+    source: "minecraft-bedrock-raknet",
+  };
+}
+
+function udpErrorSource(trace: SourceTrace): QuerySourceName {
+  if (trace.started.has("minecraft-bedrock-raknet")) {
+    return "minecraft-bedrock-raknet";
+  }
+  return trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info";
+}
+
 function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined {
   if (error instanceof TargetResolutionError) {
     return { code: error.code, message: error.message };
@@ -315,7 +358,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     return {
       code: error.code,
       message: error.message,
-      source: trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info",
+      source: udpErrorSource(trace),
     };
   }
   if (error instanceof TcpTransportError) {
@@ -326,6 +369,9 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof MinecraftJavaProtocolError) {
     return minecraftJavaProtocolError(error);
+  }
+  if (error instanceof MinecraftBedrockProtocolError) {
+    return minecraftBedrockProtocolError(error);
   }
   return undefined;
 }

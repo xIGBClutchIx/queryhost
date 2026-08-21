@@ -79,6 +79,16 @@ describe("game registry", () => {
         srv: "conditional",
       },
     });
+    expect(getGameDefinition("minecraft-bedrock")).toMatchObject({
+      defaultPort: 19_132,
+      capabilities: {
+        summary: "supported",
+        players: "supported",
+        rules: "unsupported",
+        plugins: "unsupported",
+        srv: "unsupported",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {

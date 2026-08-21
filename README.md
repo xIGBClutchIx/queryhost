@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–11:
+The repository currently contains the strict package foundation and Slices 1–12:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -20,8 +20,9 @@ The repository currently contains the strict package foundation and Slices 1–1
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
+- Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
 
-Minecraft Bedrock and FiveM already have stable public data contracts but return `UNSUPPORTED_GAME` until their implementation slices land.
+FiveM already has a stable public data contract but returns `UNSUPPORTED_GAME` until its implementation slice lands.
 
 ## Public contract
 
@@ -48,6 +49,8 @@ if (result.ok) {
 Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
+
+Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
@@ -83,6 +86,7 @@ queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
 queryhost 7dtd play.example.com 26900
 queryhost mc play.example.com 25565
+queryhost mcbe play.example.com 19132
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

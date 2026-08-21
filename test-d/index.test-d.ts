@@ -133,6 +133,14 @@ expectType<readonly string[] | undefined>(dataMap["minecraft-java"].players);
 expectType<string | undefined>(dataMap["minecraft-java"].software?.name);
 expectType<string | undefined>(dataMap["minecraft-java"].plugins?.[0]?.name);
 expectType<string | undefined>(dataMap["minecraft-java"].srv?.host);
+expectType<MinecraftBedrockData>(dataMap["minecraft-bedrock"]);
+expectType<string | undefined>(dataMap["minecraft-bedrock"].edition);
+expectType<string | undefined>(dataMap["minecraft-bedrock"].motd);
+expectType<number | undefined>(dataMap["minecraft-bedrock"].protocolVersion);
+expectType<string | undefined>(dataMap["minecraft-bedrock"].gameMode);
+expectType<string | undefined>(dataMap["minecraft-bedrock"].serverId);
+expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv4Port);
+expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv6Port);
 
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);
