@@ -347,7 +347,7 @@ describe("Rust game profile", (): void => {
     const collect = vi.fn((options: UdpCollectionOptions) => base.collect(options));
 
     const result = await queryWithDependencies(
-      { game: "minecraft-java", host: "play.example.com" },
+      { game: "minecraft-bedrock", host: "play.example.com" },
       dependencies({ collect }, dns),
     );
 
@@ -355,7 +355,7 @@ describe("Rust game profile", (): void => {
     expect(collect).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ok: false,
-      game: "minecraft-java",
+      game: "minecraft-bedrock",
       error: { code: "UNSUPPORTED_GAME" },
     });
   });

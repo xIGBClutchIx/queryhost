@@ -127,6 +127,8 @@ expectType<readonly string[] | undefined>(dataMap["project-zomboid"].mods);
 expectType<readonly SevenDaysToDiePlayer[] | undefined>(dataMap["7-days-to-die"].players);
 expectType<string | undefined>(dataMap["7-days-to-die"].currentServerTime);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
+expectType<string | undefined>(dataMap["minecraft-java"].motd?.plain);
+expectType<number | undefined>(dataMap["minecraft-java"].protocolVersion);
 
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);

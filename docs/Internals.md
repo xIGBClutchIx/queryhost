@@ -9,7 +9,7 @@ index.ts
   -> client.ts public orchestration
   -> game profiles
   -> protocol implementations
-  -> transports/udp.ts + future TCP and fixed HTTP adapters
+  -> transports/udp.ts + transports/tcp.ts + future fixed HTTP adapter
   -> execution.ts + target.ts
 
 target.ts
@@ -32,7 +32,9 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `ip.ts` owns canonical IP parsing and the public-routability policy.
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
+- `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
+- `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -105,9 +107,23 @@ Each game owns independent successful-source fixtures and tests for its merge se
 
 Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
 
+## TCP transport invariants
+
+One TCP exchange connects directly to an address already present in a pinned target and never resolves the hostname again. It sends one bounded request, retains at most 1 MiB, and gives immutable accumulated bytes to a synchronous protocol framing callback. The callback can report incomplete, complete, malformed, or too large without asking the transport to interpret the protocol.
+
+Connection failure, write failure, early EOF, malformed framing, byte-limit exhaustion, timeout, and caller cancellation settle once and destroy the socket once. Successful completion measures the entire connect/request/response round trip. Protocol-specific operation scopes remain capped by the root query deadline.
+
+## Minecraft Java SLP invariants
+
+The direct SLP profile sends a status handshake with the normalized original hostname and selected port, followed by the status request, against each validated pinned address in resolver order. It reports one required `minecraft-slp` source and does not perform SRV discovery or Minecraft Query work before Slice 11.
+
+VarInts are canonical signed 32-bit encodings limited to five bytes. Framed responses, JSON bytes, JSON characters, chat-component depth, node count, and normalized MOTD output all have explicit limits. Status documents require a version name, numeric protocol, non-negative player counts, and a supported description component. Invalid UTF-8, trailing packet bytes, malformed JSON, and invalid field types fail deterministically.
+
+MOTD plain text strips legacy formatting. HTML is produced only from escaped text and fixed color/style declarations, so server text cannot inject markup or attributes. Favicon values must be bounded PNG data URLs with a 64-by-64 IHDR; malformed, incorrectly sized, or excessive icons are rejected. The normalized result exposes version and player counts under `server`, with MOTD, protocol version, and favicon under `data`.
+
 ## Command-line invariants
 
-The packaged `queryhost` binary and repository `npm run query --` script share the same entry point. The command accepts only a registry game ID, host, optional port, and bounded library options; it does not expose protocol packets or bypass target validation. It prints the full public `QueryResult` as JSON, uses standard output for results and help, and reserves standard error for invalid invocation or an unexpected command-level failure. Ctrl+C aborts the active library query so the normal cleanup path closes network resources.
+The packaged `queryhost` binary and repository `npm run query --` script share the same entry point. The command accepts only a canonical or documented aliased game ID, host, optional port, and bounded library options; it does not expose protocol packets or bypass target validation. It prints the full public `QueryResult` as JSON, uses standard output for results and help, and reserves standard error for invalid invocation or an unexpected command-level failure. Ctrl+C aborts the active library query so the normal cleanup path closes network resources.
 
 ## Adding implementation code
 

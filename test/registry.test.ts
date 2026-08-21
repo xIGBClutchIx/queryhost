@@ -69,7 +69,15 @@ describe("game registry", () => {
       defaultPort: 26_900,
       capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
     });
-    expect(getGameDefinition("minecraft-java").defaultPort).toBe(25_565);
+    expect(getGameDefinition("minecraft-java")).toMatchObject({
+      defaultPort: 25_565,
+      capabilities: {
+        summary: "supported",
+        players: "supported",
+        rules: "unsupported",
+        srv: "unsupported",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {

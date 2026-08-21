@@ -118,12 +118,12 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 25565,
     capabilities: {
       summary: "supported",
-      players: "conditional",
-      rules: "conditional",
-      mods: "conditional",
-      plugins: "conditional",
+      players: "supported",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
       resources: "unsupported",
-      srv: "conditional",
+      srv: "unsupported",
     },
   },
   "minecraft-bedrock": {
