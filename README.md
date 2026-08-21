@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–12:
+The repository currently contains the strict package foundation and Slices 1–13:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -21,8 +21,8 @@ The repository currently contains the strict package foundation and Slices 1–1
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
 - Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
-
-FiveM already has a stable public data contract but returns `UNSUPPORTED_GAME` until its implementation slice lands.
+- fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
+- concurrent FiveM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 
 ## Public contract
 
@@ -51,6 +51,8 @@ Implemented A2S profiles default to `mode: "full"`: Info is required, then Playe
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
+
+FiveM uses HTTP port 30120 by default. In `full` mode, its fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
@@ -87,6 +89,7 @@ queryhost 7-days-to-die play.example.com 26900
 queryhost 7dtd play.example.com 26900
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
+queryhost fivem play.example.com 30120
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

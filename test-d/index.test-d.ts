@@ -7,6 +7,7 @@ import {
   isGameId,
   query,
   type FiveMData,
+  type FiveMPlayer,
   type GameAlias,
   type GameDataMap,
   type GameRawDataMap,
@@ -141,6 +142,17 @@ expectType<string | undefined>(dataMap["minecraft-bedrock"].gameMode);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].serverId);
 expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv4Port);
 expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv6Port);
+expectType<FiveMData>(dataMap.fivem);
+expectType<readonly string[] | undefined>(dataMap.fivem.resources);
+expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables);
+expectType<readonly FiveMPlayer[] | undefined>(dataMap.fivem.players);
+expectType<string | undefined>(dataMap.fivem.gameType);
+expectType<boolean | undefined>(dataMap.fivem.oneSyncEnabled);
+
+declare const fivemPlayer: FiveMPlayer;
+expectType<number>(fivemPlayer.id);
+expectType<string>(fivemPlayer.name);
+expectType<number | undefined>(fivemPlayer.ping);
 
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);

@@ -9,7 +9,7 @@ index.ts
   -> client.ts public orchestration
   -> game profiles
   -> protocol implementations
-  -> transports/udp.ts + transports/tcp.ts + future fixed HTTP adapter
+  -> transports/udp.ts + transports/tcp.ts + transports/http.ts
   -> execution.ts + target.ts
 
 target.ts
@@ -33,9 +33,11 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
+- `transports/http.ts` owns bounded, non-redirecting GET requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 - `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
+- `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -113,6 +115,20 @@ Successful A2S profiles keep normalized values in `server` and `data`. The untou
 One TCP exchange connects directly to an address already present in a pinned target and never resolves the hostname again. It sends one bounded request, retains at most 1 MiB, and gives immutable accumulated bytes to a synchronous protocol framing callback. The callback can report incomplete, complete, malformed, or too large without asking the transport to interpret the protocol.
 
 Connection failure, write failure, early EOF, malformed framing, byte-limit exhaustion, timeout, and caller cancellation settle once and destroy the socket once. Successful completion measures the entire connect/request/response round trip. Protocol-specific operation scopes remain capped by the root query deadline.
+
+## Fixed HTTP transport invariants
+
+One fixed HTTP exchange connects directly to an address already present in a pinned target. The original normalized hostname is retained only for the HTTP `Host` header and, for HTTPS DNS names, TLS SNI. Protocols provide a fixed path consisting of one safe path segment; caller URLs, authorities, query strings, fragments, and redirect destinations are not accepted.
+
+The transport uses a non-redirecting platform request and returns every valid HTTP status to the protocol. It asks for identity encoding, caps both declared and streamed response size at the protocol's limit, rejects mismatched content lengths, and destroys the response and request exactly once on success, failure, timeout, or cancellation. A protocol receives copied bytes, status, RTT, and pinned destination facts; it remains responsible for status and body interpretation.
+
+## FiveM HTTP profile invariants
+
+FiveM resolves and pins the caller's host on TCP port 30120 by default. Full mode starts `info.json`, `dynamic.json`, and `players.json` concurrently with separate child budgets against the same selected address. If none succeeds, the complete three-source set may be retried on the next pinned address; once any endpoint succeeds, failed endpoints are not retried elsewhere, preventing one result from merging different server instances. Summary mode requests only `dynamic.json` and records the other sources as `not-requested`.
+
+JSON bodies have endpoint byte limits plus depth, node, collection, key, and string limits. `info.json` supplies the server software identity, resources, server-info variables, OneSync state, and enhanced-host flag. `dynamic.json` supplies the normalized name, map, game type, and player counts. `players.json` supplies bounded public player IDs, names, and pings. Unknown fields are ignored only after the complete document satisfies the shared structural budget.
+
+HTTP 404 is `unsupported`, transport and other HTTP failures retain their specific source status, and both `Nope` and the server's current `Nope.` body are explicit `blocked` outcomes. A confirmed empty resources, variables, or players collection remains empty; a failed or blocked endpoint omits its fields. Any usable endpoint produces a successful result, with warnings and `partial: true` when another requested endpoint failed. If every requested endpoint fails, the query fails after all source reports are preserved.
 
 ## Minecraft Java SLP invariants
 

@@ -105,7 +105,7 @@ export interface QuerySuccess<G extends GameId> extends QueryResultBase<G> {
   readonly data: GameDataMap[G];
   /** Untouched protocol fields, kept separate from normalized data. */
   readonly rawData?: GameRawDataMap[G];
-  /** True when the required source succeeded but optional enrichment did not. */
+  /** True when the profile produced a usable result but requested enrichment remained incomplete. */
   readonly partial: boolean;
 }
 

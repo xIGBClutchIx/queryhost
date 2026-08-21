@@ -134,6 +134,7 @@ export interface FiveMData {
   readonly variables?: Readonly<Record<string, string>>;
   /** Omitted when the players endpoint is unavailable; an empty array means confirmed empty. */
   readonly players?: readonly FiveMPlayer[];
+  readonly gameType?: string;
   readonly oneSyncEnabled?: boolean;
   readonly enhancedHostSupport?: boolean;
 }

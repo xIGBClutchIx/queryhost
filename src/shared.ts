@@ -76,8 +76,7 @@ export type QueryErrorCode =
   | "MALFORMED_RESPONSE"
   | "RESPONSE_TOO_LARGE"
   | "TARGET_BLOCKED"
-  | "TIMEOUT"
-  | "UNSUPPORTED_GAME";
+  | "TIMEOUT";
 
 /** Stable public failure information; implementation exceptions are never exposed here. */
 export interface QueryError {

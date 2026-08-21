@@ -89,6 +89,15 @@ describe("game registry", () => {
         srv: "unsupported",
       },
     });
+    expect(getGameDefinition("fivem")).toMatchObject({
+      defaultPort: 30_120,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        resources: "conditional",
+        rules: "conditional",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {

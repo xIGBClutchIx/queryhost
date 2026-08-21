@@ -341,25 +341,6 @@ describe("Rust game profile", (): void => {
     expect(addresses).toEqual(["1.1.1.1", "8.8.8.8", "8.8.8.8", "8.8.8.8"]);
   });
 
-  it("returns unsupported profiles without DNS or network work", async (): Promise<void> => {
-    const dns = resolver();
-    const base = await successfulA2s();
-    const collect = vi.fn((options: UdpCollectionOptions) => base.collect(options));
-
-    const result = await queryWithDependencies(
-      { game: "fivem", host: "play.example.com" },
-      dependencies({ collect }, dns),
-    );
-
-    expect(dns.resolveAddresses).not.toHaveBeenCalled();
-    expect(collect).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ok: false,
-      game: "fivem",
-      error: { code: "UNSUPPORTED_GAME" },
-    });
-  });
-
   it("maps pre-cancelled queries without resolving the target", async (): Promise<void> => {
     const controller = new AbortController();
     controller.abort();

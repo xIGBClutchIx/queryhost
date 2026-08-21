@@ -39,21 +39,19 @@ import { MinecraftBedrockProtocolError } from "./protocols/minecraft-bedrock/err
 import type { MinecraftBedrockPingDependencies } from "./protocols/minecraft-bedrock/ping.js";
 import type { MinecraftQueryDependencies } from "./protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "./protocols/minecraft-java/status.js";
+import type { FiveMQueryDependencies } from "./protocols/fivem/query.js";
 import { queryMinecraftJavaProfile } from "./profiles/minecraft-java.js";
 import { queryMinecraftBedrockProfile } from "./profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "./profiles/project-zomboid.js";
 import { queryRustProfile } from "./profiles/rust.js";
 import { querySevenDaysToDieProfile } from "./profiles/seven-days-to-die.js";
+import { FiveMProfileError, queryFiveMProfile } from "./profiles/fivem.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
 const INPUT_ERROR: QueryError = Object.freeze({
   code: "INVALID_INPUT",
   message: "The query input is invalid.",
-});
-const UNSUPPORTED_ERROR: QueryError = Object.freeze({
-  code: "UNSUPPORTED_GAME",
-  message: "The requested game profile is not implemented.",
 });
 
 /** Injectable boundaries used by deterministic end-to-end profile tests. */
@@ -63,6 +61,7 @@ export interface QueryDependencies {
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
+  readonly fivem?: FiveMQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -73,7 +72,7 @@ interface SourceTrace {
 }
 
 type ImplementedGame =
-  "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java" | "minecraft-bedrock";
+  "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java" | "minecraft-bedrock" | "fivem";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -173,7 +172,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     ["minecraft-bedrock-raknet"],
     minecraftBedrockProfileRunner,
   ),
-  fivem: undefined,
+  fivem: createProfileRunner(
+    "fivem",
+    ["fivem-info", "fivem-dynamic", "fivem-players"],
+    fivemProfileRunner,
+  ),
 });
 
 const DEFAULT_DEPENDENCIES: QueryDependencies = {
@@ -300,6 +303,16 @@ async function minecraftBedrockProfileRunner(
   });
 }
 
+async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfileResult<"fivem">> {
+  return queryFiveMProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.dependencies),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.fivem === undefined ? {} : { query: options.dependencies.fivem }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -372,6 +385,9 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof MinecraftBedrockProtocolError) {
     return minecraftBedrockProtocolError(error);
+  }
+  if (error instanceof FiveMProfileError) {
+    return error.queryError;
   }
   return undefined;
 }
@@ -458,9 +474,6 @@ export async function queryWithDependencies(
   const normalizedInput: QueryInput<GameId> = { ...input, game: canonicalGameId(input.game) };
   const startedAt = dependencies.now();
   const registration = PROFILE_RUNNERS[normalizedInput.game];
-  if (registration === undefined) {
-    return failure(normalizedInput.game, UNSUPPORTED_ERROR, duration(startedAt, dependencies));
-  }
 
   let timeoutMs: number;
   let mode: QueryMode;
