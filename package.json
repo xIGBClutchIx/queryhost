@@ -1,6 +1,7 @@
 {
   "name": "queryhost",
   "version": "0.0.0",
+  "private": true,
   "description": "Fast, typed game server queries for TypeScript.",
   "license": "Apache-2.0",
   "type": "module",
@@ -8,6 +9,8 @@
   "files": [
     "dist",
     "docs",
+    "examples",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md"
   ],
@@ -28,24 +31,28 @@
   "packageManager": "npm@12.0.2",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "docs:api": "typedoc --options typedoc.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --ext .ts",
     "query": "npm run build --silent && node dist/cli.js",
     "test": "vitest run",
     "test:types": "npm run build && tsd",
-    "test:package": "npm run build && publint && attw --pack . --profile esm-only",
+    "test:package": "npm run build && publint && attw --pack . --profile esm-only && node scripts/package-smoke.mjs",
     "typecheck": "tsc --project tsconfig.check.json",
-    "verify": "npm run format:check && npm run build && npm run typecheck && npm run lint && npm run test && tsd && publint && attw --pack . --profile esm-only"
+    "verify": "npm run format:check && npm run build && npm run docs:api && npm run typecheck && npm run lint && npm run test && tsd && publint && attw --pack . --profile esm-only && node scripts/package-smoke.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.0",
     "eslint": "^10.8.1",
+    "fast-check": "4.9.0",
     "prettier": "^3.9.6",
     "publint": "^0.3.24",
     "tsd": "^0.33.0",
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.12.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.11"

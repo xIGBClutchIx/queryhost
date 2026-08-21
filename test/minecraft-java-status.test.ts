@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { crc32 } from "node:zlib";
 
@@ -13,6 +14,11 @@ import {
 } from "../src/protocols/minecraft-java/status.js";
 import { encodeVarInt, readVarInt } from "../src/protocols/minecraft-java/varint.js";
 import type { PinnedTarget } from "../src/target.js";
+
+const STATUS_FIXTURE = readFileSync(
+  new URL("./fixtures/minecraft-java/status.json", import.meta.url),
+  "utf8",
+).trim();
 
 function concat(parts: readonly Uint8Array[]): Uint8Array {
   const output = new Uint8Array(parts.reduce((total, part) => total + part.byteLength, 0));
@@ -31,6 +37,9 @@ function statusPacket(text: string): Uint8Array {
 }
 
 function statusDocument(overrides = ""): string {
+  if (overrides === "") {
+    return STATUS_FIXTURE;
+  }
   return `{"version":{"name":"1.21.8","protocol":772},"players":{"max":20,"online":3},"description":{"text":"QueryHost","color":"green","bold":true}${overrides}}`;
 }
 

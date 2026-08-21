@@ -1,0 +1,5 @@
+{
+  "version": { "name": "1.21.8", "protocol": 772 },
+  "players": { "max": 20, "online": 3 },
+  "description": { "text": "QueryHost", "color": "green", "bold": true }
+}

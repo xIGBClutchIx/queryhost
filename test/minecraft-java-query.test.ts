@@ -1,4 +1,5 @@
 import type { Socket } from "node:dgram";
+import { readFileSync } from "node:fs";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -18,6 +19,15 @@ import { startFakeUdpServer, stopAllFakeUdpServers } from "./helpers/fake-udp-se
 const SESSION_ID = 0x0102_0304;
 const FULL_HEADER = Uint8Array.of(0x73, 0x70, 0x6c, 0x69, 0x74, 0x6e, 0x75, 0x6d, 0x00, 0x80, 0x00);
 const PLAYER_SECTION = Uint8Array.of(0x01, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x00, 0x00);
+const FULL_STAT_FIXTURE = Uint8Array.from(
+  Buffer.from(
+    readFileSync(
+      new URL("./fixtures/minecraft-java/query-full-stat.hex", import.meta.url),
+      "utf8",
+    ).trim(),
+    "hex",
+  ),
+);
 
 function concat(parts: readonly Uint8Array[]): Uint8Array {
   const result = new Uint8Array(parts.reduce((total, part) => total + part.byteLength, 0));
@@ -140,23 +150,7 @@ describe("Minecraft Query packet primitives", (): void => {
 
 describe("Minecraft Query stat parsing", (): void => {
   it("parses bounded full-stat fields, software, plugins, and player names", (): void => {
-    const response = fullStat(
-      [
-        ["hostname", "QueryHost Server"],
-        ["gametype", "SMP"],
-        ["game_id", "MINECRAFT"],
-        ["version", "1.21.4"],
-        ["map", "world"],
-        ["numplayers", "2"],
-        ["maxplayers", "20"],
-        ["hostport", "25565"],
-        ["hostip", "203.0.113.10"],
-        ["plugins", "Paper on Bukkit 1.21.4: EssentialsX 2.20.1; World Edit 7.3.0; LuckPerms"],
-      ],
-      ["Alex", "Steve"],
-    );
-
-    expect(parseMinecraftQueryStat(response, SESSION_ID)).toEqual({
+    expect(parseMinecraftQueryStat(FULL_STAT_FIXTURE, SESSION_ID)).toEqual({
       format: "full",
       motd: "QueryHost Server",
       gameType: "SMP",

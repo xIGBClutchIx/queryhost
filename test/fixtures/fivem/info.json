@@ -1,0 +1,9 @@
+{
+  "server": "FXServer-master v1.0.0",
+  "enhancedHostSupport": true,
+  "resources": ["hardcap", "chat"],
+  "vars": {
+    "onesync_enabled": "true",
+    "sv_projectName": "QueryHost RP"
+  }
+}

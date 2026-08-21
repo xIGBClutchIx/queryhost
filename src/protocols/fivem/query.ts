@@ -246,7 +246,8 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function parseInfo(data: Uint8Array): FiveMInfo {
+/** Parses one bounded `info.json` body without retaining unknown fields. */
+export function parseFiveMInfo(data: Uint8Array): FiveMInfo {
   const source = "fivem-info";
   const value = parseJson(data, source);
   if (!isObject(value)) {
@@ -284,7 +285,8 @@ function optionalInteger(
   return numeric;
 }
 
-function parseDynamic(data: Uint8Array): FiveMDynamic {
+/** Parses one bounded `dynamic.json` body without retaining unknown fields. */
+export function parseFiveMDynamic(data: Uint8Array): FiveMDynamic {
   const source = "fivem-dynamic";
   const value = parseJson(data, source);
   if (!isObject(value)) {
@@ -304,7 +306,8 @@ function parseDynamic(data: Uint8Array): FiveMDynamic {
   });
 }
 
-function parsePlayers(data: Uint8Array): readonly FiveMPlayer[] {
+/** Parses one bounded `players.json` body into the stable public player contract. */
+export function parseFiveMPlayers(data: Uint8Array): readonly FiveMPlayer[] {
   const source = "fivem-players";
   const value = parseJson(data, source);
   if (!Array.isArray(value) || value.length > MAX_COLLECTION_ITEMS) {
@@ -403,7 +406,14 @@ export function queryFiveMInfo(
   options: EndpointOptions,
   dependencies: FiveMQueryDependencies = {},
 ): Promise<FiveMEndpointResult<FiveMInfo>> {
-  return queryEndpoint(options, "fivem-info", INFO_PATH, INFO_MAX_BYTES, parseInfo, dependencies);
+  return queryEndpoint(
+    options,
+    "fivem-info",
+    INFO_PATH,
+    INFO_MAX_BYTES,
+    parseFiveMInfo,
+    dependencies,
+  );
 }
 
 /** Requests and parses FiveM's fixed `dynamic.json` endpoint. */
@@ -416,7 +426,7 @@ export function queryFiveMDynamic(
     "fivem-dynamic",
     DYNAMIC_PATH,
     DYNAMIC_MAX_BYTES,
-    parseDynamic,
+    parseFiveMDynamic,
     dependencies,
   );
 }
@@ -431,7 +441,7 @@ export function queryFiveMPlayers(
     "fivem-players",
     PLAYERS_PATH,
     PLAYERS_MAX_BYTES,
-    parsePlayers,
+    parseFiveMPlayers,
     dependencies,
   );
 }

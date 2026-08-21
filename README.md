@@ -6,7 +6,7 @@ QueryHost is being built as a modern game-server query engine with correct proto
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–13:
+The repository currently contains the strict package foundation and Slices 1–14:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, operation budgets, cancellation, cleanup, and stable internal errors
@@ -23,8 +23,13 @@ The repository currently contains the strict package foundation and Slices 1–1
 - Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
 - concurrent FiveM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
+- bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
+
+The package is deliberately private at version `0.0.0`. Slice 14 hardens the package for a future release; it does not publish, tag, deploy, or make QueryHost publicly available.
 
 ## Public contract
+
+The generated [API reference](docs/api/README.md), packaged [examples](examples), [changelog](CHANGELOG.md), and [release-readiness review](docs/ReleaseReadiness.md) document the intended package boundary.
 
 Literal game IDs remain connected to their game-specific data types:
 
@@ -131,7 +136,7 @@ npm install
 npm run verify
 ```
 
-`npm run verify` checks formatting, linting, runtime tests, type tests, the production build, package contents, exports, and published type compatibility.
+`npm run verify` checks formatting, linting, runtime and property tests, generated API docs, type tests, the production build, dependency licenses, package size and contents, public exports, and packed JavaScript and TypeScript consumers.
 
 The codebase uses strict TypeScript across library code, runtime tests, and type tests. Explicit `any` and `unknown` types are forbidden by ESLint; boundary data must be validated into a concrete type before it enters the library.
 

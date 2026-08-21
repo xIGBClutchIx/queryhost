@@ -1,4 +1,5 @@
 import type { Socket } from "node:dgram";
+import { readFileSync } from "node:fs";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -53,6 +54,12 @@ const VALID_FIELDS = [
   "19132",
   "19133",
 ] as const;
+const PONG_FIXTURE = Uint8Array.from(
+  Buffer.from(
+    readFileSync(new URL("./fixtures/minecraft-bedrock/pong.hex", import.meta.url), "utf8").trim(),
+    "hex",
+  ),
+);
 
 function concat(parts: readonly Uint8Array[]): Uint8Array {
   const output = new Uint8Array(parts.reduce((total, part) => total + part.byteLength, 0));
@@ -154,6 +161,19 @@ describe("Minecraft Bedrock RakNet primitives", (): void => {
       pingTimestamp: TIMESTAMP,
       serverGuid: SERVER_GUID,
       edition: "MCPE",
+    });
+  });
+
+  it("parses the complete named pong fixture", (): void => {
+    expect(parseMinecraftBedrockPong(PONG_FIXTURE, TIMESTAMP)).toMatchObject({
+      edition: "MCPE",
+      motd: "QueryHøst 世界",
+      protocolVersion: 900,
+      version: "1.21.100",
+      playersOnline: 12,
+      playersMax: 50,
+      advertisedIpv4Port: 19_132,
+      advertisedIpv6Port: 19_133,
     });
   });
 

@@ -174,4 +174,4 @@ Run the complete gate before committing:
 npm run verify
 ```
 
-The gate checks formatting, production declarations, strict type safety, lint rules, runtime tests, published type tests, packed-package metadata, and ESM compatibility.
+The gate checks formatting, generated API documentation, production declarations, strict type safety, lint rules, runtime and bounded property tests, published type tests, reviewed runtime dependency licenses, packed-package size and contents, the public export boundary, and clean JavaScript and TypeScript consumers.

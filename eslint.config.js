@@ -3,7 +3,16 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "node_modules/**", ".npm-cache/**", "eslint.config.js"],
+    ignores: [
+      "dist/**",
+      "docs/api/**",
+      "examples/**",
+      "node_modules/**",
+      ".npm-cache/**",
+      "scripts/**",
+      "test/package-smoke/**",
+      "eslint.config.js",
+    ],
   },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,

@@ -1,0 +1,7 @@
+{
+  "hostname": "QueryHost FiveM",
+  "gametype": "Freeroam",
+  "mapname": "fivem-map-skater",
+  "clients": 1,
+  "sv_maxclients": "48"
+}

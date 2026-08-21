@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { queryWithDependencies, type QueryDependencies } from "../src/client.js";
@@ -11,21 +13,14 @@ import {
 } from "../src/transports/http.js";
 
 const PUBLIC_ADDRESS: DnsAddressRecord = Object.freeze({ address: "93.184.216.34", family: 4 });
+function fixture(name: string): string {
+  return readFileSync(new URL(`./fixtures/fivem/${name}`, import.meta.url), "utf8");
+}
+
 const SUCCESS_BODIES: Readonly<Record<string, string>> = Object.freeze({
-  "/info.json": JSON.stringify({
-    server: "FXServer-master v1.0.0",
-    enhancedHostSupport: true,
-    resources: ["hardcap", "chat"],
-    vars: { onesync_enabled: "true", sv_projectName: "QueryHost RP" },
-  }),
-  "/dynamic.json": JSON.stringify({
-    hostname: "QueryHost FiveM",
-    gametype: "Freeroam",
-    mapname: "fivem-map-skater",
-    clients: 1,
-    sv_maxclients: "48",
-  }),
-  "/players.json": JSON.stringify([{ id: 7, name: "Ada", ping: 42 }]),
+  "/info.json": fixture("info.json"),
+  "/dynamic.json": fixture("dynamic.json"),
+  "/players.json": fixture("players.json"),
 });
 
 function resolver(addresses: readonly DnsAddressRecord[] = [PUBLIC_ADDRESS]): DnsResolver {

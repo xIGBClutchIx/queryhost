@@ -1,0 +1,5 @@
+{
+  "name": "queryhost-package-smoke",
+  "private": true,
+  "type": "module"
+}
