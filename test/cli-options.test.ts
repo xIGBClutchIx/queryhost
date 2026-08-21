@@ -47,6 +47,19 @@ describe("query command arguments", (): void => {
     });
   });
 
+  it.each([
+    ["zomboid", "project-zomboid"],
+    ["7dtd", "7-days-to-die"],
+    ["minecraft", "minecraft-java"],
+    ["mcbe", "minecraft-bedrock"],
+    ["five-m", "fivem"],
+  ] as const)("normalizes the %s alias", (alias, game): void => {
+    expect(parseQueryArguments([alias, "play.example.com"])).toEqual({
+      kind: "query",
+      options: { game, host: "play.example.com" },
+    });
+  });
+
   it.each([["--help"], ["-h"], ["rust", "play.example.com", "--help"]])(
     "recognizes help without querying",
     (...args): void => {

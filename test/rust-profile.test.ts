@@ -117,6 +117,8 @@ describe("Rust game profile", (): void => {
           { index: 0, name: "Alice", score: 10, durationSeconds: 123.5 },
           { index: 1, name: "Bob", score: -2, durationSeconds: 2.25 },
         ],
+      },
+      rawData: {
         rules: {
           hostname: "QueryHost Rust Fixture",
           "world.seed": "123456",
@@ -136,7 +138,7 @@ describe("Rust game profile", (): void => {
     expect(Object.isFrozen(result)).toBe(true);
     if (result.ok && result.game === "rust") {
       expect(Object.isFrozen(result.data.players)).toBe(true);
-      expect(Object.isFrozen(result.data.rules)).toBe(true);
+      expect(Object.isFrozen(result.rawData?.rules)).toBe(true);
     }
   });
 
@@ -174,7 +176,7 @@ describe("Rust game profile", (): void => {
       throw new Error("Expected a successful Rust result.");
     }
     expect(result.data.players).toBeUndefined();
-    expect(result.data.rules?.["world.seed"]).toBe("123456");
+    expect(result.rawData?.rules["world.seed"]).toBe("123456");
   });
 
   it("preserves confirmed-empty optional values", async (): Promise<void> => {
@@ -206,7 +208,7 @@ describe("Rust game profile", (): void => {
     }
     expect(result.partial).toBe(false);
     expect(result.data.players).toEqual([]);
-    expect(result.data.rules).toEqual({});
+    expect(result.rawData?.rules).toEqual({});
   });
 
   it("skips optional network work in summary mode without marking the result partial", async (): Promise<void> => {
@@ -234,7 +236,7 @@ describe("Rust game profile", (): void => {
     }
     expect(result.data.tags).toEqual(["mp100", "cp0", "weekly", "vanilla"]);
     expect(result.data.players).toBeUndefined();
-    expect(result.data.rules).toBeUndefined();
+    expect(result.rawData).toBeUndefined();
   });
 
   it("returns a required-source failure with stable provenance", async (): Promise<void> => {

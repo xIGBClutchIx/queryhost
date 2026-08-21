@@ -1,6 +1,6 @@
 /** 7 Days to Die-specific interpretation over reusable A2S profile sources. */
 
-import type { SevenDaysToDieData, SevenDaysToDiePlayer } from "../games.js";
+import type { GameRuleMap, SevenDaysToDieData, SevenDaysToDiePlayer } from "../games.js";
 import type { QuerySource, QueryWarning, ServerInfo } from "../shared.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
 import type { A2sRules } from "../protocols/a2s/rules.js";
@@ -18,6 +18,7 @@ export type SevenDaysToDieProfileOptions = A2sProfileOptions;
 export interface SevenDaysToDieProfileResult {
   readonly server: ServerInfo;
   readonly data: SevenDaysToDieData;
+  readonly rawData?: { readonly rules: GameRuleMap };
   readonly sources: readonly [QuerySource, QuerySource, QuerySource];
   readonly warnings: readonly QueryWarning[];
   readonly partial: boolean;
@@ -42,7 +43,7 @@ function sevenDaysToDieData(
 ): SevenDaysToDieData {
   const description = rules?.["ServerDescription"];
   const gameName = rules?.["GameName"];
-  const gameWorld = rules?.["GameWorld"];
+  const gameWorld = rules?.["LevelName"];
   const gameMode = rules?.["GameMode"];
   const currentServerTime = rules?.["CurrentServerTime"];
   const websiteUrl = rules?.["ServerWebsiteURL"];
@@ -54,7 +55,6 @@ function sevenDaysToDieData(
     ...(currentServerTime === undefined ? {} : { currentServerTime }),
     ...(websiteUrl === undefined ? {} : { websiteUrl }),
     ...(optionalPlayers === undefined ? {} : { players: players(optionalPlayers) }),
-    ...(rules === undefined ? {} : { rules }),
   });
 }
 
@@ -67,6 +67,9 @@ export async function querySevenDaysToDieProfile(
   return Object.freeze({
     server: a2sServerInfo(result.info),
     data: sevenDaysToDieData(result.optional.players, result.optional.rules),
+    ...(result.optional.rules === undefined
+      ? {}
+      : { rawData: Object.freeze({ rules: result.optional.rules }) }),
     sources: result.sources,
     warnings: optionalWarnings,
     partial: optionalWarnings.length > 0,

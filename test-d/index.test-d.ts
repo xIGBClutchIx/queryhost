@@ -1,12 +1,15 @@
-import { expectError, expectNotAssignable, expectType } from "tsd";
+import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
+  canonicalGameId,
   GAME_IDS,
   getGameDefinition,
   isGameId,
   query,
   type FiveMData,
+  type GameAlias,
   type GameDataMap,
+  type GameRawDataMap,
   type GameId,
   type MinecraftBedrockData,
   type MinecraftJavaData,
@@ -45,12 +48,30 @@ expectType<Promise<QueryResult<"project-zomboid">>>(
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7-days-to-die", host: "play.example.com" }),
 );
+expectType<Promise<QueryResult<"7-days-to-die">>>(
+  query({ game: "7d2d", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"7-days-to-die">>>(
+  query({ game: "seven-days-to-die", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"project-zomboid">>>(
+  query({ game: "zomboid", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"minecraft-java">>>(query({ game: "mc", host: "play.example.com" }));
+expectType<Promise<QueryResult<"minecraft-bedrock">>>(
+  query({ game: "mcbe", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
 expectType<Promise<QueryResult>>(query(dynamicInput));
 
 expectType<"rust">(getGameDefinition("rust").id);
+expectType<"project-zomboid">(getGameDefinition("pz").id);
+expectType<"minecraft-java">(getGameDefinition("minecraft").id);
+expectType<"7-days-to-die">(canonicalGameId("7d2d"));
+expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
 expectType<number>(getGameDefinition("minecraft-java").defaultPort);
 
@@ -62,9 +83,11 @@ if (isGameId(candidate)) {
 declare const rustResult: QueryResult<"rust">;
 if (rustResult.ok) {
   expectType<RustData>(rustResult.data);
+  expectType<GameRawDataMap["rust"] | undefined>(rustResult.rawData);
 } else {
   expectType<QueryError>(rustResult.error);
   expectError(rustResult.data);
+  expectError(rustResult.rawData);
 }
 
 declare const dynamicResult: QueryResult;
@@ -95,6 +118,8 @@ if (dynamicResult.ok) {
 }
 
 declare const dataMap: GameDataMap;
+declare const rawDataMap: GameRawDataMap;
+expectType<Readonly<Record<string, string>>>(rawDataMap["project-zomboid"].rules);
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
 expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);

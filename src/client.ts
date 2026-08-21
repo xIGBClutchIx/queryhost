@@ -2,14 +2,17 @@
 
 import { executeWithDeadline, type ExecutionScope } from "./execution.js";
 import type {
+  CanonicalGameId,
   GameDataMap,
   GameId,
+  GameRawDataMap,
+  GameInputId,
   QueryFailure,
   QueryInput,
   QueryResult,
   QuerySuccess,
 } from "./query.js";
-import { GAME_REGISTRY } from "./registry.js";
+import { canonicalGameId, GAME_REGISTRY } from "./registry.js";
 import type {
   QueryError,
   QueryMode,
@@ -62,6 +65,7 @@ type ImplementedGame = "rust" | "project-zomboid" | "7-days-to-die";
 interface GameProfileResult<G extends ImplementedGame> {
   readonly server: ServerInfo;
   readonly data: GameDataMap[G];
+  readonly rawData?: GameRawDataMap[G];
   readonly sources: readonly QuerySource[];
   readonly warnings: readonly QueryWarning[];
   readonly partial: boolean;
@@ -104,6 +108,7 @@ function createProfileRunner<G extends ImplementedGame>(
           game,
           server: profile.server,
           data: profile.data,
+          ...(profile.rawData === undefined ? {} : { rawData: profile.rawData }),
           sources: profile.sources,
           partial: profile.partial,
           warnings: profile.warnings,
@@ -175,7 +180,7 @@ function validateInput(input: QueryInput): void {
   }
 }
 
-function queryPort(input: QueryInput): number {
+function queryPort(input: QueryInput<GameId>): number {
   if (input.queryPort !== undefined) {
     return input.queryPort;
   }
@@ -187,7 +192,7 @@ function queryPort(input: QueryInput): number {
 }
 
 async function pinnedTarget(
-  input: QueryInput,
+  input: QueryInput<GameId>,
   dependencies: QueryDependencies,
 ): Promise<PinnedTarget> {
   const targetInput = { host: input.host, port: queryPort(input) };
@@ -270,7 +275,7 @@ function observer(trace: SourceTrace): A2sProfileObserver {
 
 async function runProfileTask(
   runner: AnyProfileRunner,
-  input: QueryInput,
+  input: QueryInput<GameId>,
   mode: QueryMode,
   scope: ExecutionScope,
   trace: SourceTrace,
@@ -303,37 +308,43 @@ export async function queryWithDependencies(
   input: QueryInput,
   dependencies: QueryDependencies,
 ): Promise<QueryResult> {
+  const normalizedInput: QueryInput<GameId> = { ...input, game: canonicalGameId(input.game) };
   const startedAt = dependencies.now();
-  const runner = PROFILE_RUNNERS[input.game];
+  const runner = PROFILE_RUNNERS[normalizedInput.game];
   if (runner === undefined) {
-    return failure(input.game, UNSUPPORTED_ERROR, duration(startedAt, dependencies));
+    return failure(normalizedInput.game, UNSUPPORTED_ERROR, duration(startedAt, dependencies));
   }
 
   let timeoutMs: number;
   let mode: QueryMode;
   try {
-    timeoutMs = normalizeTimeout(input.timeoutMs);
-    mode = normalizeMode(input.mode);
-    validateInput(input);
+    timeoutMs = normalizeTimeout(normalizedInput.timeoutMs);
+    mode = normalizeMode(normalizedInput.mode);
+    validateInput(normalizedInput);
   } catch {
-    return failure(input.game, INPUT_ERROR, duration(startedAt, dependencies));
+    return failure(normalizedInput.game, INPUT_ERROR, duration(startedAt, dependencies));
   }
 
   const trace: SourceTrace = { started: new Set(), completed: new Map() };
   const execution = await executeWithDeadline(
     {
       timeoutMs,
-      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      ...(normalizedInput.signal === undefined ? {} : { signal: normalizedInput.signal }),
     },
-    (scope) => runProfileTask(runner, input, mode, scope, trace, dependencies),
+    (scope) => runProfileTask(runner, normalizedInput, mode, scope, trace, dependencies),
   );
   const durationMs = duration(startedAt, dependencies);
   if (!execution.ok) {
-    return failure(input.game, execution.error, durationMs, traceSources(trace, execution.error));
+    return failure(
+      normalizedInput.game,
+      execution.error,
+      durationMs,
+      traceSources(trace, execution.error),
+    );
   }
   if (!execution.value.ok) {
     return failure(
-      input.game,
+      normalizedInput.game,
       execution.value.error,
       durationMs,
       traceSources(trace, execution.value.error),
@@ -343,6 +354,10 @@ export async function queryWithDependencies(
 }
 
 /** Queries one game server through its typed QueryHost profile. */
-export function query<G extends GameId>(input: QueryInput<G>): Promise<QueryResult<G>> {
-  return queryWithDependencies(input, DEFAULT_DEPENDENCIES) as Promise<QueryResult<G>>;
+export function query<G extends GameInputId>(
+  input: QueryInput<G>,
+): Promise<QueryResult<CanonicalGameId<G>>> {
+  return queryWithDependencies(input, DEFAULT_DEPENDENCIES) as Promise<
+    QueryResult<CanonicalGameId<G>>
+  >;
 }

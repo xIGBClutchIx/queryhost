@@ -17,14 +17,16 @@ const BZIP2_MAGIC = Uint8Array.of(0x42, 0x5a, 0x68);
 export const A2S_MAX_FRAGMENTS = 15;
 /** Maximum number of datagrams accepted so duplicate floods remain bounded. */
 export const A2S_MAX_DATAGRAMS: number = A2S_MAX_FRAGMENTS * 2;
-/** Maximum size of one A2S response datagram. */
-export const A2S_MAX_DATAGRAM_BYTES = 1_400;
+/** Maximum size of one direct A2S response datagram. */
+export const A2S_MAX_DATAGRAM_BYTES = 4_096;
+/** Maximum size of one Source or GoldSource split fragment. */
+const A2S_MAX_SPLIT_DATAGRAM_BYTES = 1_400;
 /** Maximum compressed bytes retained before bzip2 decoding. */
 export const A2S_MAX_COMPRESSED_BYTES = 16_384;
 /** Maximum reconstructed response size, including its single-packet header. */
 export const A2S_MAX_RESPONSE_BYTES = 65_536;
 /** Maximum aggregate datagram bytes retained during reconstruction. */
-export const A2S_MAX_COLLECTION_BYTES: number = A2S_MAX_DATAGRAMS * A2S_MAX_DATAGRAM_BYTES;
+export const A2S_MAX_COLLECTION_BYTES: number = A2S_MAX_DATAGRAMS * A2S_MAX_SPLIT_DATAGRAM_BYTES;
 
 type A2sSplitFormat = "goldsource" | "source";
 
@@ -89,7 +91,11 @@ function parseEnvelope(packet: Uint8Array): A2sFragmentEnvelope | undefined {
   if (header === SINGLE_PACKET_HEADER) {
     return undefined;
   }
-  if (header !== SPLIT_PACKET_HEADER || packet.byteLength < GOLDSOURCE_HEADER_BYTES + 1) {
+  if (
+    header !== SPLIT_PACKET_HEADER ||
+    packet.byteLength < GOLDSOURCE_HEADER_BYTES + 1 ||
+    packet.byteLength > A2S_MAX_SPLIT_DATAGRAM_BYTES
+  ) {
     return failA2s("MALFORMED_RESPONSE");
   }
 
@@ -220,7 +226,7 @@ function validateSourceHeaders(
     }
     if (headerBytes === SOURCE_HEADER_BYTES) {
       const size = readUint16(envelope.packet, SOURCE_OLD_HEADER_BYTES);
-      if (size < 1 || size > A2S_MAX_DATAGRAM_BYTES) {
+      if (size < 1 || size > A2S_MAX_SPLIT_DATAGRAM_BYTES) {
         failA2s("MALFORMED_RESPONSE");
       }
       advertisedSize ??= size;

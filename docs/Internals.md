@@ -22,6 +22,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
 - `client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
+- Input aliases are resolved once at the client boundary. Definition lookup accepts aliases, while registry storage, profile dispatch, result types, and runtime `game` fields use the canonical ID. Aliases are explicit and unambiguous; QueryHost does not infer fuzzy names.
 - `cli-options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
 - `query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
 - `games.ts` contains stable game-specific fields. It does not contain transport or parser state.
@@ -76,7 +77,7 @@ The transport returns copied bytes, round-trip duration, and destination facts. 
 
 ## A2S protocol invariants
 
-The A2S Info parser accepts direct packets no larger than 1,400 bytes and reconstructed responses no larger than 65,536 bytes. It distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
+The A2S exchange accepts direct datagrams no larger than 4,096 bytes and split fragments no larger than 1,400 bytes; reconstructed responses remain capped at 65,536 bytes. The larger direct bound is required by real 7 Days to Die Rules responses while split packets retain their tighter Source-protocol limit. The Info parser distinguishes the modern Source and legacy GoldSource layouts, validates enumerated and boolean fields, requires valid null-terminated UTF-8 strings, and consumes every byte described by the response and its EDF flags.
 
 The protocol layer may perform one challenge retry under the same execution scope. A second challenge fails deterministically. Split reconstruction accepts at most 15 unique fragments and 30 total datagrams, keys fragments by response ID, reorders them, ignores exact duplicates, and rejects conflicting duplicates or metadata. Both Source header variants and the packed GoldSource layout are supported.
 
@@ -97,10 +98,12 @@ The public query deadline defaults to 5,000 ms and accepts values through 30,000
 ## Game-specific A2S merges
 
 - Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
-- Project Zomboid converts Player records and interprets `PublicDescription`, `PVP`, `PauseEmpty`, and semicolon-delimited `Mods`. Its default A2S destination is UDP 16261. Other rule names remain available unchanged.
-- 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `GameWorld`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
+- Project Zomboid converts Player records and interprets lowercase `description`, numeric `pvp`, `version`, and semicolon-delimited `mods`. The Rules version overrides A2S Info's generic version when available. Its default A2S destination is UDP 16261.
+- 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `LevelName`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
 
 Each game owns independent successful-source fixtures and tests for its merge semantics and port convention. Shared profile tests own common timeout, malformed-response, target-policy, summary-mode, and provenance behavior so those cases are not repeated for every game. A shared parser or orchestration module must never branch on one of these game IDs.
+
+Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
 
 ## Command-line invariants
 

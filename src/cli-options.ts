@@ -1,7 +1,7 @@
 /** Strict command-line parsing for the QueryHost real-server probe. */
 
 import type { GameId } from "./query.js";
-import { isGameId } from "./registry.js";
+import { canonicalGameId, isGameInputId } from "./registry.js";
 import type { QueryMode } from "./shared.js";
 
 const MAX_TIMEOUT_MS = 30_000;
@@ -111,7 +111,7 @@ export function parseQueryArguments(args: readonly string[]): QueryCommandParseR
   }
   const game = positional[0];
   const host = positional[1];
-  if (game === undefined || !isGameId(game)) {
+  if (game === undefined || !isGameInputId(game)) {
     return error(`Unsupported game: ${game ?? "(missing)"}`);
   }
   if (host === undefined || host.length === 0) {
@@ -126,7 +126,7 @@ export function parseQueryArguments(args: readonly string[]): QueryCommandParseR
   return {
     kind: "query",
     options: {
-      game,
+      game: canonicalGameId(game),
       host,
       ...(port === undefined ? {} : { port }),
       ...(flags.queryPort === undefined ? {} : { queryPort: flags.queryPort }),

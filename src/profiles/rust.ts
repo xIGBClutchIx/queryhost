@@ -1,6 +1,6 @@
 /** Rust-specific interpretation over reusable A2S profile sources. */
 
-import type { RustData, RustPlayer } from "../games.js";
+import type { GameRuleMap, RustData, RustPlayer } from "../games.js";
 import type { QuerySource, QueryWarning, ServerInfo } from "../shared.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
 import {
@@ -21,6 +21,7 @@ export type RustProfileOptions = A2sProfileOptions;
 export interface RustProfileResult {
   readonly server: ServerInfo;
   readonly data: RustData;
+  readonly rawData?: { readonly rules: GameRuleMap };
   readonly sources: readonly [QuerySource, QuerySource, QuerySource];
   readonly warnings: readonly QueryWarning[];
   readonly partial: boolean;
@@ -60,11 +61,13 @@ export async function queryRustProfile(options: RustProfileOptions): Promise<Rus
     ...(result.optional.players === undefined
       ? {}
       : { players: rustPlayers(result.optional.players) }),
-    ...(result.optional.rules === undefined ? {} : { rules: result.optional.rules }),
   });
   return Object.freeze({
     server: a2sServerInfo(result.info),
     data,
+    ...(result.optional.rules === undefined
+      ? {}
+      : { rawData: Object.freeze({ rules: result.optional.rules }) }),
     sources: result.sources,
     warnings: optionalWarnings,
     partial: optionalWarnings.length > 0,

@@ -80,11 +80,19 @@ function protocolCode(code: A2sProtocolError["code"]): (error: Error) => boolean
 }
 
 describe("A2S split-packet reconstruction", (): void => {
-  it("passes through exactly one single-packet response", async (): Promise<void> => {
-    const packet = Uint8Array.of(...SINGLE_HEADER, 0x41, 1, 2, 3, 4);
+  it("passes through a large direct response without relaxing split fragments", async (): Promise<void> => {
+    const packet = new Uint8Array(1_840);
+    packet.set(SINGLE_HEADER);
+    packet[4] = 0x45;
+    packet.fill(0x61, 5);
 
     expect(isA2sResponseComplete([packet])).toBe(true);
     await expect(reconstructA2sResponse([packet])).resolves.toEqual(packet);
+
+    const oversizedSplit = sourceFragment(123, 2, 0, new Uint8Array(1_389));
+    expect(() => isA2sResponseComplete([oversizedSplit])).toThrow(
+      expect.objectContaining({ code: "MALFORMED_RESPONSE" }),
+    );
   });
 
   it("reconstructs out-of-order Source fragments and ignores exact duplicates", async (): Promise<void> => {

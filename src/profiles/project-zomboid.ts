@@ -1,6 +1,6 @@
 /** Project Zomboid-specific interpretation over reusable A2S profile sources. */
 
-import type { ProjectZomboidData, ProjectZomboidPlayer } from "../games.js";
+import type { GameRuleMap, ProjectZomboidData, ProjectZomboidPlayer } from "../games.js";
 import type { QuerySource, QueryWarning, ServerInfo } from "../shared.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
 import type { A2sRules } from "../protocols/a2s/rules.js";
@@ -18,6 +18,7 @@ export type ProjectZomboidProfileOptions = A2sProfileOptions;
 export interface ProjectZomboidProfileResult {
   readonly server: ServerInfo;
   readonly data: ProjectZomboidData;
+  readonly rawData?: { readonly rules: GameRuleMap };
   readonly sources: readonly [QuerySource, QuerySource, QuerySource];
   readonly warnings: readonly QueryWarning[];
   readonly partial: boolean;
@@ -37,10 +38,10 @@ function players(values: readonly A2sPlayer[]): readonly ProjectZomboidPlayer[] 
 }
 
 function booleanRule(value: string | undefined): boolean | undefined {
-  if (value?.toLowerCase() === "true") {
+  if (value === "1") {
     return true;
   }
-  if (value?.toLowerCase() === "false") {
+  if (value === "0") {
     return false;
   }
   return undefined;
@@ -59,18 +60,21 @@ function projectZomboidData(
   optionalPlayers: readonly A2sPlayer[] | undefined,
   rules: A2sRules | undefined,
 ): ProjectZomboidData {
-  const description = rules?.["PublicDescription"];
-  const pvp = booleanRule(rules?.["PVP"]);
-  const pauseWhenEmpty = booleanRule(rules?.["PauseEmpty"]);
-  const mods = rules?.["Mods"];
+  const description = rules?.["description"];
+  const pvp = booleanRule(rules?.["pvp"]);
+  const mods = rules?.["mods"];
   return Object.freeze({
     ...(description === undefined ? {} : { description }),
     ...(pvp === undefined ? {} : { pvp }),
-    ...(pauseWhenEmpty === undefined ? {} : { pauseWhenEmpty }),
     ...(mods === undefined ? {} : { mods: modIds(mods) }),
     ...(optionalPlayers === undefined ? {} : { players: players(optionalPlayers) }),
-    ...(rules === undefined ? {} : { rules }),
   });
+}
+
+function projectZomboidServer(result: Awaited<ReturnType<typeof queryA2sProfile>>): ServerInfo {
+  const info = a2sServerInfo(result.info);
+  const version = result.optional.rules?.["version"];
+  return version === undefined ? info : Object.freeze({ ...info, version });
 }
 
 /** Queries shared A2S sources and applies only Project Zomboid-owned rule interpretation. */
@@ -80,8 +84,11 @@ export async function queryProjectZomboidProfile(
   const result = await queryA2sProfile(options);
   const optionalWarnings = a2sProfileWarnings("Project Zomboid", result.optional.sources);
   return Object.freeze({
-    server: a2sServerInfo(result.info),
+    server: projectZomboidServer(result),
     data: projectZomboidData(result.optional.players, result.optional.rules),
+    ...(result.optional.rules === undefined
+      ? {}
+      : { rawData: Object.freeze({ rules: result.optional.rules }) }),
     sources: result.sources,
     warnings: optionalWarnings,
     partial: optionalWarnings.length > 0,

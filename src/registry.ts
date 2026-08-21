@@ -1,6 +1,6 @@
 /** Exhaustive supported-game metadata shared by every QueryHost consumer. */
 
-import type { GameId } from "./query.js";
+import type { CanonicalGameId, GameAlias, GameAliasMap, GameId, GameInputId } from "./query.js";
 
 /** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
 export type SupportLevel = "supported" | "conditional" | "unsupported";
@@ -44,6 +44,26 @@ export const GAME_IDS: readonly [
   "minecraft-bedrock",
   "fivem",
 ] as const;
+
+/** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
+export const GAME_ALIASES: GameAliasMap = Object.freeze({
+  zomboid: "project-zomboid",
+  pz: "project-zomboid",
+  projectzomboid: "project-zomboid",
+  "seven-days-to-die": "7-days-to-die",
+  "7days-to-die": "7-days-to-die",
+  "7d2d": "7-days-to-die",
+  "7dtd": "7-days-to-die",
+  minecraft: "minecraft-java",
+  mc: "minecraft-java",
+  java: "minecraft-java",
+  "minecraft-java-edition": "minecraft-java",
+  bedrock: "minecraft-bedrock",
+  mcbe: "minecraft-bedrock",
+  "mc-bedrock": "minecraft-bedrock",
+  "minecraft-bedrock-edition": "minecraft-bedrock",
+  "five-m": "fivem",
+});
 
 /**
  * Single source of truth consumed by the library and, later, the API, documentation, and website.
@@ -141,9 +161,30 @@ export function isGameId(value: string): value is GameId {
   return Object.hasOwn(GAME_REGISTRY, value);
 }
 
-/** Looks up a definition without widening its literal game identifier. */
-export function getGameDefinition<G extends GameId>(game: G): GameDefinition<G> {
-  return GAME_REGISTRY[game];
+/** Returns whether a string is a registered alias. */
+export function isGameAlias(value: string): value is GameAlias {
+  return Object.hasOwn(GAME_ALIASES, value);
+}
+
+/** Returns whether a string is accepted as a canonical or aliased query identifier. */
+export function isGameInputId(value: string): value is GameInputId {
+  return isGameId(value) || isGameAlias(value);
+}
+
+/** Resolves an accepted input identifier to the single canonical result identifier. */
+export function canonicalGameId<G extends GameInputId>(game: G): CanonicalGameId<G> {
+  return (isGameId(game) ? game : aliasGameId(game)) as CanonicalGameId<G>;
+}
+
+function aliasGameId(alias: GameAlias): GameId {
+  return GAME_ALIASES[alias];
+}
+
+/** Looks up a canonical or aliased definition without widening its canonical identity. */
+export function getGameDefinition<G extends GameInputId>(
+  game: G,
+): GameDefinition<CanonicalGameId<G>> {
+  return GAME_REGISTRY[canonicalGameId(game)];
 }
 
 /** Lists game definitions in the stable order defined by {@link GAME_IDS}. */

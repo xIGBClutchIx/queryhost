@@ -6,6 +6,18 @@ import { UdpTransportError, type UdpCollectionResult } from "../src/transports/u
 import { dependencies, fixtureA2s, packetType } from "./helpers/a2s-profile.js";
 
 describe("7 Days to Die game profile", (): void => {
+  it.each(["7d2d", "seven-days-to-die"] as const)(
+    "accepts %s and returns the canonical game ID",
+    async (game): Promise<void> => {
+      const result = await queryWithDependencies(
+        { game, host: "play.example.com", mode: "summary" },
+        dependencies(await fixtureA2s("seven-days-to-die")),
+      );
+
+      expect(result).toMatchObject({ ok: true, game: "7-days-to-die", partial: false });
+    },
+  );
+
   it("merges independent Info, Player, and Rules fixtures", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "7-days-to-die", host: "play.example.com" },
@@ -27,16 +39,18 @@ describe("7 Days to Die game profile", (): void => {
         description: "Blood moon fixture",
         gameName: "QueryHost Test",
         gameWorld: "Navezgane",
-        gameMode: "GameModeSurvival",
-        currentServerTime: "Day 14, 22:30",
+        gameMode: "Survival",
+        currentServerTime: "7000",
         websiteUrl: "https://query.host",
         players: [{ index: 0, name: "Riley", score: 7, durationSeconds: 321.5 }],
+      },
+      rawData: {
         rules: {
           ServerDescription: "Blood moon fixture",
           GameName: "QueryHost Test",
-          GameWorld: "Navezgane",
-          GameMode: "GameModeSurvival",
-          CurrentServerTime: "Day 14, 22:30",
+          LevelName: "Navezgane",
+          GameMode: "Survival",
+          CurrentServerTime: "7000",
           ServerWebsiteURL: "https://query.host",
         },
       },
@@ -80,7 +94,7 @@ describe("7 Days to Die game profile", (): void => {
       throw new Error("Expected a successful 7 Days to Die result.");
     }
     expect(result.data.players).toBeUndefined();
-    expect(result.data.currentServerTime).toBe("Day 14, 22:30");
+    expect(result.data.currentServerTime).toBe("7000");
   });
 
   it("uses UDP 26900 by default and honors an explicit query port", async (): Promise<void> => {

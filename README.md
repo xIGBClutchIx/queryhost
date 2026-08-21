@@ -46,7 +46,18 @@ Implemented A2S profiles default to `mode: "full"`: Info is required, then Playe
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
-Project Zomboid interprets its description, PvP state, pause-when-empty state, and semicolon-delimited mod IDs from Rules. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both retain the complete raw Rules map, and all rule-derived values remain omitted when Rules is unavailable.
+Game inputs accept documented aliases while results always use the canonical ID. `minecraft` and `mc` resolve to Java Edition; Bedrock remains explicit.
+
+| Canonical ID        | Accepted aliases                                             |
+| ------------------- | ------------------------------------------------------------ |
+| `rust`              | —                                                            |
+| `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
+| `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
+| `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
+| `fivem`             | `five-m`                                                     |
+
+Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both expose the complete untouched Rules map under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
 
 ## Command-line queries
 
@@ -63,6 +74,7 @@ queryhost rust play.example.com 28015 --mode full --timeout 3000
 queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
+queryhost 7dtd play.example.com 26900
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

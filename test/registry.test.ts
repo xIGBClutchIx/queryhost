@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { GAME_IDS, GAME_REGISTRY, getGameDefinition, isGameId, listGames } from "../src/index.js";
+import {
+  canonicalGameId,
+  GAME_ALIASES,
+  GAME_IDS,
+  GAME_REGISTRY,
+  getGameDefinition,
+  isGameAlias,
+  isGameId,
+  isGameInputId,
+  listGames,
+} from "../src/index.js";
 
 const CAPABILITIES = [
   "mods",
@@ -65,6 +75,44 @@ describe("game registry", () => {
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
     expect(isGameId("counter-strike")).toBe(false);
+  });
+
+  it("resolves aliases without adding duplicate registry identities", () => {
+    expect(GAME_ALIASES).toEqual({
+      zomboid: "project-zomboid",
+      pz: "project-zomboid",
+      projectzomboid: "project-zomboid",
+      "seven-days-to-die": "7-days-to-die",
+      "7days-to-die": "7-days-to-die",
+      "7d2d": "7-days-to-die",
+      "7dtd": "7-days-to-die",
+      minecraft: "minecraft-java",
+      mc: "minecraft-java",
+      java: "minecraft-java",
+      "minecraft-java-edition": "minecraft-java",
+      bedrock: "minecraft-bedrock",
+      mcbe: "minecraft-bedrock",
+      "mc-bedrock": "minecraft-bedrock",
+      "minecraft-bedrock-edition": "minecraft-bedrock",
+      "five-m": "fivem",
+    });
+    expect(isGameAlias("7d2d")).toBe(true);
+    expect(isGameAlias("7-days-to-die")).toBe(false);
+    expect(isGameInputId("seven-days-to-die")).toBe(true);
+    expect(isGameInputId("counter-strike")).toBe(false);
+    expect(canonicalGameId("7d2d")).toBe("7-days-to-die");
+    expect(canonicalGameId("7-days-to-die")).toBe("7-days-to-die");
+    for (const alias of Object.keys(GAME_ALIASES)) {
+      expect(isGameId(alias)).toBe(false);
+      if (!isGameAlias(alias)) {
+        throw new Error("The alias registry exposed an unrecognized key.");
+      }
+      const canonical = GAME_ALIASES[alias];
+      expect(isGameId(canonical)).toBe(true);
+      expect(canonicalGameId(alias)).toBe(canonical);
+    }
+    expect(getGameDefinition("zomboid")).toBe(GAME_REGISTRY["project-zomboid"]);
+    expect(getGameDefinition("mcbe")).toBe(GAME_REGISTRY["minecraft-bedrock"]);
   });
 
   it("lists games in the documented registry order", () => {

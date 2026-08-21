@@ -3,6 +3,12 @@
 /** String-valued server rules keyed by their protocol-defined names. */
 export type GameRuleMap = Readonly<Record<string, string>>;
 
+/** Untouched protocol data retained separately from normalized game fields. */
+export interface A2sRawData {
+  /** Exact string-valued map returned by A2S Rules. */
+  readonly rules: GameRuleMap;
+}
+
 /** One player reported by Rust's optional A2S Player source. */
 export interface RustPlayer {
   /** Protocol list index supplied by the server. */
@@ -19,20 +25,16 @@ export interface RustData {
   readonly tags?: readonly string[];
   /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
   readonly players?: readonly RustPlayer[];
-  /** Raw A2S rules that remain meaningful to Rust consumers. */
-  readonly rules?: GameRuleMap;
 }
 
 /** Project Zomboid-specific data collected from A2S sources. */
 export interface ProjectZomboidData {
   readonly description?: string;
   readonly pvp?: boolean;
-  readonly pauseWhenEmpty?: boolean;
   /** Omitted when Rules is unavailable; empty means the server confirmed no mod IDs. */
   readonly mods?: readonly string[];
   /** Omitted when Player is unavailable; empty means the server confirmed no listed players. */
   readonly players?: readonly ProjectZomboidPlayer[];
-  readonly rules?: GameRuleMap;
 }
 
 /** One player reported by Project Zomboid's optional A2S Player source. */
@@ -54,7 +56,6 @@ export interface SevenDaysToDieData {
   readonly websiteUrl?: string;
   /** Omitted when Player is unavailable; empty means the server confirmed no listed players. */
   readonly players?: readonly SevenDaysToDiePlayer[];
-  readonly rules?: GameRuleMap;
 }
 
 /** One player reported by 7 Days to Die's optional A2S Player source. */

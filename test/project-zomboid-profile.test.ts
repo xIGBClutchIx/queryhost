@@ -18,7 +18,7 @@ describe("Project Zomboid game profile", (): void => {
       server: {
         name: "QueryHost Project Zomboid Fixture",
         map: "Muldraugh, KY",
-        version: "42.12.3",
+        version: "42.20",
         password: false,
         players: { online: 2, max: 32 },
         queryRttMs: 8,
@@ -26,18 +26,21 @@ describe("Project Zomboid game profile", (): void => {
       data: {
         description: "Cooperative survival fixture",
         pvp: true,
-        pauseWhenEmpty: false,
-        mods: ["vehicle-pack", "weather-core"],
+        mods: [],
         players: [
           { index: 0, name: "Avery", score: 4, durationSeconds: 87.5 },
           { index: 1, name: "Morgan", score: 0, durationSeconds: 12.25 },
         ],
+      },
+      rawData: {
         rules: {
-          PublicDescription: "Cooperative survival fixture",
-          PVP: "true",
-          PauseEmpty: "false",
-          Mods: "vehicle-pack;weather-core",
-          WorkshopItems: "100;200",
+          description: "Cooperative survival fixture",
+          modCount: "0",
+          mods: "",
+          open: "1",
+          public: "0",
+          pvp: "1",
+          version: "42.20",
         },
       },
       sources: [
@@ -77,8 +80,9 @@ describe("Project Zomboid game profile", (): void => {
       throw new Error("Expected a successful Project Zomboid result.");
     }
     expect(result.data.players).toHaveLength(2);
-    expect(result.data.rules).toBeUndefined();
+    expect(result.rawData).toBeUndefined();
     expect(result.data.mods).toBeUndefined();
+    expect(result.server.version).toBe("42.12.3");
   });
 
   it("uses UDP 16261 by default and honors an explicit query port", async (): Promise<void> => {

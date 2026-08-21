@@ -1,6 +1,7 @@
 /** Typed query inputs and discriminated game-specific result contracts. */
 
 import type {
+  A2sRawData,
   FiveMData,
   MinecraftBedrockData,
   MinecraftJavaData,
@@ -24,11 +25,54 @@ export interface GameDataMap {
   readonly fivem: FiveMData;
 }
 
+/** Associates implemented games with their untouched protocol payloads. */
+export interface GameRawDataMap {
+  readonly rust: A2sRawData;
+  readonly "project-zomboid": A2sRawData;
+  readonly "7-days-to-die": A2sRawData;
+  readonly "minecraft-java": never;
+  readonly "minecraft-bedrock": never;
+  readonly fivem: never;
+}
+
 /** Every game identifier supported by the typed public contract. */
 export type GameId = keyof GameDataMap;
 
+/** Alternate input spellings mapped to one stable game identity. */
+export interface GameAliasMap {
+  readonly zomboid: "project-zomboid";
+  readonly pz: "project-zomboid";
+  readonly projectzomboid: "project-zomboid";
+  readonly "seven-days-to-die": "7-days-to-die";
+  readonly "7days-to-die": "7-days-to-die";
+  readonly "7d2d": "7-days-to-die";
+  readonly "7dtd": "7-days-to-die";
+  readonly minecraft: "minecraft-java";
+  readonly mc: "minecraft-java";
+  readonly java: "minecraft-java";
+  readonly "minecraft-java-edition": "minecraft-java";
+  readonly bedrock: "minecraft-bedrock";
+  readonly mcbe: "minecraft-bedrock";
+  readonly "mc-bedrock": "minecraft-bedrock";
+  readonly "minecraft-bedrock-edition": "minecraft-bedrock";
+  readonly "five-m": "fivem";
+}
+
+/** Accepted non-canonical game identifier. */
+export type GameAlias = keyof GameAliasMap;
+
+/** Every canonical or aliased identifier accepted as query input. */
+export type GameInputId = GameId | GameAlias;
+
+/** Canonical result identifier selected by a query input identifier. */
+export type CanonicalGameId<G extends GameInputId> = G extends GameId
+  ? G
+  : G extends GameAlias
+    ? GameAliasMap[G]
+    : never;
+
 /** Input accepted by the public `query()` entry point. */
-export interface QueryInput<G extends GameId = GameId> {
+export interface QueryInput<G extends GameInputId = GameInputId> {
   readonly game: G;
   /** DNS hostname or IP literal. URL syntax is intentionally not accepted. */
   readonly host: string;
@@ -59,6 +103,8 @@ export interface QuerySuccess<G extends GameId> extends QueryResultBase<G> {
   readonly server: ServerInfo;
   /** Data whose type is selected by the literal `game` identifier. */
   readonly data: GameDataMap[G];
+  /** Untouched protocol fields, kept separate from normalized data. */
+  readonly rawData?: GameRawDataMap[G];
   /** True when the required source succeeded but optional enrichment did not. */
   readonly partial: boolean;
 }
