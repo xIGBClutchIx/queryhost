@@ -6,14 +6,14 @@ This document explains how the current QueryHost library is divided and which in
 
 ```text
 index.ts
-  -> client.ts public orchestration
+  -> runtime/client.ts public orchestration
   -> game profiles
   -> protocol implementations
   -> transports/udp.ts + transports/tcp.ts + transports/http.ts
-  -> execution.ts + target.ts
+  -> runtime/execution.ts + network/target.ts
 
-target.ts
-  -> ip.ts
+network/target.ts
+  -> network/ip.ts
 ```
 
 Dependencies point downward. Networking code must not interpret game-specific rules, and shared protocol parsers must not branch on a game ID.
@@ -21,16 +21,16 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 ## Module ownership
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
-- `client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
+- `runtime/client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
 - Input aliases are resolved once at the client boundary. Definition lookup accepts aliases, while registry storage, profile dispatch, result types, and runtime `game` fields use the canonical ID. Aliases are explicit and unambiguous; QueryHost does not infer fuzzy names.
-- `cli-options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
-- `query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
-- `games.ts` contains stable game-specific fields. It does not contain transport or parser state.
-- `shared.ts` contains only concepts that are genuinely common across games, including provenance and stable errors.
-- `registry.ts` is the exhaustive source of game metadata and capability support.
-- `execution.ts` owns deadlines, cancellation propagation, the root outbound-attempt budget, cleanup, and internal-error redaction.
-- `ip.ts` owns canonical IP parsing and the public-routability policy.
-- `target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
+- `cli/options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
+- `contracts/query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
+- `contracts/games.ts` contains stable game-specific fields. It does not contain transport or parser state.
+- `contracts/shared.ts` contains only concepts that are genuinely common across games, including provenance and stable errors.
+- `contracts/registry.ts` is the exhaustive source of game metadata and capability support.
+- `runtime/execution.ts` owns deadlines, cancellation propagation, the root outbound-attempt budget, cleanup, and internal-error redaction.
+- `network/ip.ts` owns canonical IP parsing and the public-routability policy.
+- `network/target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
 - `transports/http.ts` owns bounded, non-redirecting GET requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
@@ -40,6 +40,8 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
+
+Tests mirror these ownership folders under `test/`. Shared fixtures, fake servers, and package-consumer checks remain in `test/fixtures`, `test/helpers`, and `test/package-smoke` rather than being duplicated beside each test.
 
 ## Result invariants
 
@@ -71,7 +73,7 @@ Target resolution is an SSRF and network-abuse boundary:
 - Preserve the normalized hostname only for protocol identity such as Host headers or SNI.
 - Apply the same validation to every SRV-derived hostname and port.
 
-IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` remain reserved. The tables in `ip.ts` record their human-readable prefixes and allocation purpose; update them only after reviewing IANA's [IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry), [IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry), and [IPv6 global-unicast allocations](https://www.iana.org/assignments/ipv6-unicast-address-assignments), then extend the policy tests.
+IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` remain reserved. The tables in `network/ip.ts` record their human-readable prefixes and allocation purpose; update them only after reviewing IANA's [IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry), [IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry), and [IPv6 global-unicast allocations](https://www.iana.org/assignments/ipv6-unicast-address-assignments), then extend the policy tests.
 
 ## UDP transport invariants
 

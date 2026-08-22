@@ -1,7 +1,7 @@
 /** FiveM profile over its three fixed public JSON endpoints. */
 
-import type { ExecutionScope } from "../execution.js";
-import type { FiveMData, FiveMPlayer } from "../games.js";
+import type { FiveMData, FiveMPlayer } from "../contracts/games.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 import {
   FiveMEndpointError,
   queryFiveMDynamic,
@@ -19,8 +19,8 @@ import type {
   QuerySourceName,
   QueryWarning,
   ServerInfo,
-} from "../shared.js";
-import type { PinnedAddress, PinnedTarget } from "../target.js";
+} from "../contracts/shared.js";
+import type { PinnedAddress, PinnedTarget } from "../network/target.js";
 
 const ENDPOINT_OPERATION_TIMEOUT_MS = 2_000;
 

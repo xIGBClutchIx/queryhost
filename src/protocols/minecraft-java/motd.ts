@@ -1,6 +1,6 @@
 /** Bounded Minecraft chat-component and legacy-format MOTD normalization. */
 
-import type { MinecraftMotd } from "../../games.js";
+import type { MinecraftMotd } from "../../contracts/games.js";
 import { failMinecraftJava } from "./errors.js";
 import { isJsonArray, isJsonObject, type JsonObject, type JsonValue } from "./json.js";
 

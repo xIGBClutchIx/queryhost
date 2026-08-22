@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /** QueryHost command-line probe for fast real-server testing. */
 
-import { query } from "./client.js";
-import { parseQueryArguments } from "./cli-options.js";
-import type { QueryInput } from "./query.js";
+import { parseQueryArguments } from "./cli/options.js";
+import type { QueryInput } from "./contracts/query.js";
+import { query } from "./runtime/client.js";
 
 const HELP = `QueryHost game-server query probe
 

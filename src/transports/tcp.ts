@@ -2,10 +2,10 @@
 
 import { isIP, Socket } from "node:net";
 
-import type { ExecutionScope } from "../execution.js";
-import { normalizeIpAddress } from "../ip.js";
-import type { QueryErrorCode } from "../shared.js";
-import type { IpFamily, PinnedAddress, PinnedTarget } from "../target.js";
+import type { QueryErrorCode } from "../contracts/shared.js";
+import { normalizeIpAddress } from "../network/ip.js";
+import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 
 const MAX_TCP_EXCHANGE_BYTES = 1_048_576;
 

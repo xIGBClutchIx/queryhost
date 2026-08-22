@@ -1,6 +1,6 @@
 /** Shared A2S profile execution without game-specific rule interpretation. */
 
-import type { ExecutionScope } from "../execution.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 import type {
   QueryMode,
   QuerySource,
@@ -8,8 +8,8 @@ import type {
   QuerySourceStatus,
   QueryWarning,
   ServerInfo,
-} from "../shared.js";
-import type { PinnedAddress, PinnedTarget } from "../target.js";
+} from "../contracts/shared.js";
+import type { PinnedAddress, PinnedTarget } from "../network/target.js";
 import { UdpTransportError } from "../transports/udp.js";
 import { queryA2sInfo, type A2sInfoQueryResult } from "../protocols/a2s/info.js";
 import type { A2sExchangeDependencies } from "../protocols/a2s/network.js";

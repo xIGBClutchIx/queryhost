@@ -1,6 +1,11 @@
 /** Public QueryHost package surface. Internal transports and safety primitives are not re-exported. */
 
-export type { GameCapability, GameDefinition, GameRegistry, SupportLevel } from "./registry.js";
+export type {
+  GameCapability,
+  GameDefinition,
+  GameRegistry,
+  SupportLevel,
+} from "./contracts/registry.js";
 export {
   canonicalGameId,
   GAME_ALIASES,
@@ -11,7 +16,7 @@ export {
   isGameId,
   isGameInputId,
   listGames,
-} from "./registry.js";
+} from "./contracts/registry.js";
 export type {
   CanonicalGameId,
   GameAlias,
@@ -24,8 +29,8 @@ export type {
   QueryInput,
   QueryResult,
   QuerySuccess,
-} from "./query.js";
-export { query } from "./client.js";
+} from "./contracts/query.js";
+export { query } from "./runtime/client.js";
 export type {
   QueryError,
   QueryErrorCode,
@@ -37,7 +42,7 @@ export type {
   QueryWarningCode,
   ServerInfo,
   ServerPlayers,
-} from "./shared.js";
+} from "./contracts/shared.js";
 export type {
   A2sRawData,
   FiveMData,
@@ -55,4 +60,4 @@ export type {
   RustPlayer,
   SevenDaysToDieData,
   SevenDaysToDiePlayer,
-} from "./games.js";
+} from "./contracts/games.js";

@@ -2,9 +2,9 @@
 
 import { crc32 } from "node:zlib";
 
-import type { ExecutionScope } from "../../execution.js";
-import type { MinecraftMotd } from "../../games.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { MinecraftMotd } from "../../contracts/games.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import {
   tcpExchange,
   type TcpResponseState,

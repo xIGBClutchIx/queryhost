@@ -1,7 +1,7 @@
 /** Shared bounded network exchange used by every A2S request family. */
 
-import type { ExecutionScope } from "../../execution.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import {
   udpCollect,
   type UdpCollectionOptions,

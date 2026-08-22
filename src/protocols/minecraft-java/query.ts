@@ -1,8 +1,8 @@
 /** Minecraft Java UDP Query challenge, stat framing, parsing, and bounded network exchange. */
 
-import type { MinecraftPlugin, MinecraftSoftware } from "../../games.js";
-import type { ExecutionScope } from "../../execution.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { MinecraftPlugin, MinecraftSoftware } from "../../contracts/games.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import {
   udpConversation,
   type UdpConversationOptions,

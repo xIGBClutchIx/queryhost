@@ -1,8 +1,8 @@
 /** Concurrent optional A2S source execution with explicit provenance. */
 
-import type { ExecutionScope } from "../../execution.js";
-import type { QuerySource, QuerySourceName, QuerySourceStatus } from "../../shared.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { QuerySource, QuerySourceName, QuerySourceStatus } from "../../contracts/shared.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import { UdpTransportError } from "../../transports/udp.js";
 import { A2sProtocolError } from "./errors.js";
 import type { A2sExchangeDependencies } from "./network.js";

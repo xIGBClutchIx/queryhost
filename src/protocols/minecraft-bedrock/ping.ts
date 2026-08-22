@@ -1,7 +1,7 @@
 /** Minecraft Bedrock RakNet unconnected ping encoding, pong parsing, and bounded exchange. */
 
-import type { ExecutionScope } from "../../execution.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import {
   udpExchange,
   type UdpExchangeOptions,

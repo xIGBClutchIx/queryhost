@@ -1,9 +1,9 @@
 /** Strict parsers and fixed-path requests for FiveM's public JSON endpoints. */
 
-import type { ExecutionScope } from "../../execution.js";
-import type { FiveMPlayer } from "../../games.js";
-import type { QueryError, QuerySourceName, QuerySourceStatus } from "../../shared.js";
-import type { PinnedAddress, PinnedTarget } from "../../target.js";
+import type { FiveMPlayer } from "../../contracts/games.js";
+import type { QueryError, QuerySourceName, QuerySourceStatus } from "../../contracts/shared.js";
+import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
+import type { ExecutionScope } from "../../runtime/execution.js";
 import {
   fixedHttpExchange,
   HttpTransportError,

@@ -1,7 +1,7 @@
 /** Project Zomboid-specific interpretation over reusable A2S profile sources. */
 
-import type { GameRuleMap, ProjectZomboidData, ProjectZomboidPlayer } from "../games.js";
-import type { QuerySource, QueryWarning, ServerInfo } from "../shared.js";
+import type { GameRuleMap, ProjectZomboidData, ProjectZomboidPlayer } from "../contracts/games.js";
+import type { QuerySource, QueryWarning, ServerInfo } from "../contracts/shared.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
 import type { A2sRules } from "../protocols/a2s/rules.js";
 import {

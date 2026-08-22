@@ -4,10 +4,10 @@ import { request as requestHttp, type ClientRequest, type IncomingMessage } from
 import { request as requestHttps } from "node:https";
 import { isIP } from "node:net";
 
-import type { ExecutionScope } from "../execution.js";
-import { normalizeIpAddress } from "../ip.js";
-import type { QueryErrorCode } from "../shared.js";
-import type { IpFamily, PinnedAddress, PinnedTarget } from "../target.js";
+import type { QueryErrorCode } from "../contracts/shared.js";
+import { normalizeIpAddress } from "../network/ip.js";
+import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 
 const MAX_HTTP_RESPONSE_BYTES = 1_048_576;
 const FIXED_PATH = /^\/[A-Za-z0-9._~-]+$/u;

@@ -2,8 +2,8 @@
 
 import { isIP } from "node:net";
 
-import type { ExecutionScope } from "../execution.js";
-import type { MinecraftJavaData, MinecraftSrvTarget } from "../games.js";
+import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
 import {
   createMinecraftQuerySessionId,
@@ -23,7 +23,7 @@ import type {
   QuerySourceStatus,
   QueryWarning,
   ServerInfo,
-} from "../shared.js";
+} from "../contracts/shared.js";
 import {
   normalizeHostname,
   orderSrvTargets,
@@ -34,7 +34,7 @@ import {
   type PinnedAddress,
   type PinnedTarget,
   type SrvRandomSource,
-} from "../target.js";
+} from "../network/target.js";
 import { TcpTransportError } from "../transports/tcp.js";
 import { UdpTransportError } from "../transports/udp.js";
 

@@ -1,15 +1,20 @@
 /** Minecraft Bedrock profile over one required RakNet unconnected ping source. */
 
-import type { ExecutionScope } from "../execution.js";
-import type { MinecraftBedrockData } from "../games.js";
+import type { MinecraftBedrockData } from "../contracts/games.js";
+import type { ExecutionScope } from "../runtime/execution.js";
 import {
   createMinecraftBedrockClientGuid,
   queryMinecraftBedrockPing,
   type MinecraftBedrockPingDependencies,
   type MinecraftBedrockPingResult,
 } from "../protocols/minecraft-bedrock/ping.js";
-import type { QuerySource, QuerySourceName, QueryWarning, ServerInfo } from "../shared.js";
-import type { PinnedTarget } from "../target.js";
+import type {
+  QuerySource,
+  QuerySourceName,
+  QueryWarning,
+  ServerInfo,
+} from "../contracts/shared.js";
+import type { PinnedTarget } from "../network/target.js";
 import { UdpTransportError } from "../transports/udp.js";
 
 const PING_OPERATION_TIMEOUT_MS = 2_000;

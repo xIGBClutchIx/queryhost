@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 
 import { vi } from "vitest";
 
-import type { QueryDependencies } from "../../src/client.js";
+import type { DnsAddressRecord, DnsResolver } from "../../src/network/target.js";
 import type { A2sExchangeDependencies } from "../../src/protocols/a2s/network.js";
-import type { DnsAddressRecord, DnsResolver } from "../../src/target.js";
+import type { QueryDependencies } from "../../src/runtime/client.js";
 import type { UdpCollectionOptions, UdpCollectionResult } from "../../src/transports/udp.js";
 
 type A2sFixtureGame = "project-zomboid" | "seven-days-to-die";
