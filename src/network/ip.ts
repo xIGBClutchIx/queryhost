@@ -109,7 +109,7 @@ function parseIpv6(address: string): readonly number[] {
   const left = parseIpv6Part(address.slice(0, compressionIndex));
   const right = parseIpv6Part(address.slice(compressionIndex + 2));
   const missingGroups = 8 - left.length - right.length;
-  return [...left, ...new Array<number>(missingGroups).fill(0), ...right];
+  return [...left, ...Array.from({ length: missingGroups }, (): number => 0), ...right];
 }
 
 function ipv6Matches(

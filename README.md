@@ -142,7 +142,7 @@ npm run verify
 
 `npm run verify` checks formatting, linting, runtime and property tests, generated API docs, type tests, the production build, dependency licenses, package size and contents, public exports, and packed JavaScript and TypeScript consumers.
 
-The codebase uses strict TypeScript across library code, runtime tests, and type tests. Explicit `any` and `unknown` types are forbidden by ESLint; boundary data must be validated into a concrete type before it enters the library.
+The codebase uses the native TypeScript 7 compiler across library code, runtime tests, and type tests. Oxlint provides type-aware linting through its Go backend, while TypeDoc uses the TypeScript 6 compatibility package until the native compiler exposes a stable tooling API. Explicit `any` and `unknown` types are forbidden; boundary data must be validated into a concrete type before it enters the library.
 
 ## Package layout
 

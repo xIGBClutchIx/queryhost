@@ -140,7 +140,7 @@ describe("Minecraft Java status protocol", (): void => {
     const request = encodeMinecraftStatusRequest("play.example.com", 25_565);
     expect(request.byteLength).toBeGreaterThan(20);
     expect(new TextDecoder().decode(request)).toContain("play.example.com");
-    expect([...request.slice(-2)]).toEqual([0x01, 0x00]);
+    expect(request.slice(-2)).toEqual(new Uint8Array([0x01, 0x00]));
   });
 
   it("recognizes fragmented framing and parses a typed status", (): void => {
