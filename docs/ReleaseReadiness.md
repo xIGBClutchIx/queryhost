@@ -47,6 +47,6 @@ Review `npm pack --dry-run --json` before creating the release. The package must
 5. Verify `npm view queryhost@1.0.0`, install the registry package in a clean consumer, and run `npm audit signatures`.
 6. Replace the API and web repositories' vendored tarball dependencies with exact `queryhost` version `1.0.0` dependencies and run both finish gates.
 
-The first release workflow uses the repository's `NPM_TOKEN` secret. After npm creates the package, configure npm trusted publishing for `.github/workflows/publish.yml`, remove the token from the workflow and repository, and retain the OIDC provenance path.
+Publishing uses npm trusted publishing for `.github/workflows/publish.yml`. The trust relationship is limited to the `xIGBClutchIx/queryhost` repository and the `npm publish` action; the workflow uses GitHub OIDC and does not require a stored npm authentication token.
 
 npm does not permit reuse of a published name and version. If 1.0.0 contains a release defect, deprecate it when appropriate and publish a corrected patch version.
