@@ -1,6 +1,6 @@
-# Package hardening and release readiness
+# Package release
 
-Slice 14 prepares QueryHost to be packaged without making it public. The package remains version `0.0.0` with npm's `private` publish guard. Publishing, choosing a release version, creating a Git remote or tag, and deploying any service are intentionally out of scope.
+Slice 14 created the package-hardening gate. Slice 20 uses that gate to publish QueryHost 1.0.0 from the public GitHub repository. The release establishes the reviewed package-root contract and uses semantic versioning for later changes.
 
 ## Public package boundary
 
@@ -27,12 +27,26 @@ QueryHost has one direct runtime dependency: `@foxglove/wasm-bz2` for bounded de
 
 Each advertised profile has typed public data, explicit registry capabilities and ports, deterministic merge tests, source provenance, bounded parser and transport behavior, target-safety coverage, successful source fixtures, and failure coverage for its applicable malformed, timeout, blocked, unsupported, skipped, and partial-result paths. Fixture READMEs identify synthetic or redacted provenance. Repository tests run profiles against fake transports and servers; the separately packed consumers verify the public package without adding a target-safety bypass.
 
-## Local verification
+## Release verification
 
-Run the full non-public readiness gate:
+Run the full gate and confirm the tag matches the package version:
 
 ```bash
 npm run verify
+npm run release:check -- v1.0.0
 ```
 
-Useful focused commands are `npm run docs:api` for the generated Markdown API reference and `npm run test:package` for packing plus clean-consumer verification. These commands create only local build, documentation, and temporary package artifacts; they do not publish or deploy anything.
+Review `npm pack --dry-run --json` before creating the release. The package must stay within the documented size, file-count, dependency, and license limits.
+
+## Publication
+
+1. Create a code-signed commit containing the 1.0.0 metadata and generated API reference.
+2. Create and verify the signed `v1.0.0` tag from that commit.
+3. Push the commit and tag, then publish a GitHub release from `v1.0.0`.
+4. Let `.github/workflows/publish.yml` run the full gate and publish to npm with provenance.
+5. Verify `npm view queryhost@1.0.0`, install the registry package in a clean consumer, and run `npm audit signatures`.
+6. Replace the API and web repositories' vendored tarball dependencies with exact `queryhost` version `1.0.0` dependencies and run both finish gates.
+
+The first release workflow uses the repository's `NPM_TOKEN` secret. After npm creates the package, configure npm trusted publishing for `.github/workflows/publish.yml`, remove the token from the workflow and repository, and retain the OIDC provenance path.
+
+npm does not permit reuse of a published name and version. If 1.0.0 contains a release defect, deprecate it when appropriate and publish a corrected patch version.

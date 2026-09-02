@@ -1,8 +1,21 @@
 {
   "name": "queryhost",
-  "version": "0.0.0",
-  "private": true,
+  "version": "1.0.0",
   "description": "Fast, typed game server queries for TypeScript.",
+  "keywords": [
+    "game-server",
+    "minecraft",
+    "source-query",
+    "typescript"
+  ],
+  "homepage": "https://query.host/",
+  "bugs": {
+    "url": "https://github.com/xIGBClutchIx/queryhost/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xIGBClutchIx/queryhost.git"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -17,7 +30,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "queryhost": "./dist/cli.js"
+    "queryhost": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -29,6 +42,10 @@
     "node": ">=24"
   },
   "packageManager": "npm@12.0.2",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "node scripts/clean-dist.mjs && node node_modules/@typescript/native/bin/tsc --project tsconfig.build.json",
     "docs:api": "typedoc --options typedoc.json",
@@ -36,11 +53,13 @@
     "format:check": "prettier --check .",
     "lint": "oxlint --type-aware --report-unused-disable-directives src test test-d",
     "query": "npm run build --silent && node dist/cli.js",
+    "release:check": "node scripts/release-check.mjs",
     "test": "vitest run",
     "test:types": "npm run build && tsd",
     "test:package": "npm run build && publint && attw --pack . --profile esm-only && node scripts/package-smoke.mjs",
     "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.check.json",
-    "verify": "npm run format:check && npm run build && npm run docs:api && npm run typecheck && npm run lint && npm run test && tsd && publint && attw --pack . --profile esm-only && node scripts/package-smoke.mjs"
+    "verify": "npm run format:check && npm run release:check && npm run build && npm run docs:api && npm run typecheck && npm run lint && npm run test && tsd && publint && attw --pack . --profile esm-only && node scripts/package-smoke.mjs",
+    "prepublishOnly": "npm run verify"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

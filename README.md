@@ -2,11 +2,11 @@
 
 Fast, typed game server queries for TypeScript.
 
-QueryHost is being built as a modern game-server query engine with correct protocols, explicit source provenance, bounded network behavior, and game-specific TypeScript results.
+QueryHost is a game-server query engine with correct protocols, explicit source provenance, bounded network behavior, and game-specific TypeScript results.
 
 ## Status
 
-The repository currently contains the strict package foundation and Slices 1–14:
+Version 1.0.0 contains the package foundation and Slices 1–14:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
@@ -25,7 +25,13 @@ The repository currently contains the strict package foundation and Slices 1–1
 - concurrent FiveM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
-The package is deliberately private at version `0.0.0`. Slice 14 hardens the package for a future release; it does not publish, tag, deploy, or make QueryHost publicly available.
+The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
+
+## Installation
+
+```bash
+npm install queryhost
+```
 
 ## Public contract
 

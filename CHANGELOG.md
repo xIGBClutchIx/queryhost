@@ -1,8 +1,10 @@
 # Changelog
 
-Notable QueryHost changes will be recorded here. The project has not published a public release.
+QueryHost records user-visible package changes in this file.
 
 ## Unreleased
+
+## [1.0.0] - 2026-09-02
 
 ### Added
 
@@ -15,4 +17,4 @@ Notable QueryHost changes will be recorded here. The project has not published a
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
-The package remains version `0.0.0` and private. Removing the publish guard, choosing a release version, tagging, and publishing are separate future decisions.
+[1.0.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.0.0

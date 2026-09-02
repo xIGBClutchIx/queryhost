@@ -52,7 +52,15 @@ function packLocalPackage(path) {
 
 try {
   const sourceManifest = JSON.parse(readFileSync(join(repository, "package.json"), "utf8"));
-  assert(sourceManifest.private === true, "The source manifest must retain the publish guard.");
+  assert(
+    sourceManifest.private === undefined,
+    "The public package must not contain a publish guard.",
+  );
+  assert(
+    sourceManifest.publishConfig?.access === "public" &&
+      sourceManifest.publishConfig?.registry === "https://registry.npmjs.org/",
+    "The source manifest must pin public npm registry publication.",
+  );
   assert(
     JSON.stringify(Object.keys(sourceManifest.dependencies ?? {}).sort()) ===
       JSON.stringify(["@foxglove/wasm-bz2"]),
@@ -123,11 +131,28 @@ try {
   );
   run(nodeCommand, [join(temporary, "consumer.mjs")], temporary);
   run(nodeCommand, [tsc, "--project", join(temporary, "tsconfig.json")], temporary);
+  const commandHelp = run(
+    npmCommand,
+    ["exec", "--offline", "--", "queryhost", "--help"],
+    temporary,
+  );
+  assert(
+    commandHelp.includes("QueryHost game-server query probe"),
+    "The installed queryhost command did not run.",
+  );
 
   const installedManifest = JSON.parse(
     readFileSync(join(temporary, "node_modules", "queryhost", "package.json"), "utf8"),
   );
-  assert(installedManifest.private === true, "The packed manifest lost the publish guard.");
+  assert(installedManifest.private === undefined, "The packed manifest contains a publish guard.");
+  assert(
+    installedManifest.version === sourceManifest.version,
+    "The installed package version differs from the source manifest.",
+  );
+  assert(
+    installedManifest.bin?.queryhost === "dist/cli.js",
+    "The packed manifest lost the queryhost command.",
+  );
   process.stdout.write(
     `Package smoke passed (${String(packed.size)} bytes packed, ${String(packed.entryCount)} files).\n`,
   );
