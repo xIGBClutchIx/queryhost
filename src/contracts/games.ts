@@ -9,6 +9,31 @@ export interface A2sRawData {
   readonly rules: GameRuleMap;
 }
 
+/** One player returned by the generic A2S Player source. */
+export interface A2sPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Protocol facts exposed by the generic Source or GoldSource A2S profile. */
+export interface A2sData {
+  readonly protocol: number;
+  readonly game: string;
+  readonly folder: string;
+  readonly bots: number;
+  readonly serverType: "dedicated" | "listen" | "proxy";
+  readonly environment: "linux" | "macos" | "windows";
+  readonly vac: boolean;
+  /** Present only for modern Source-style Info responses. */
+  readonly appId?: number;
+  /** Server-advertised tags, when a Source-style Info response provides them. */
+  readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
+  readonly players?: readonly A2sPlayer[];
+}
+
 /** One player reported by Rust's optional A2S Player source. */
 export interface RustPlayer {
   /** Protocol list index supplied by the server. */

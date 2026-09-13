@@ -50,6 +50,7 @@ import { queryMinecraftBedrockProfile } from "../profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
+import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
 import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -77,7 +78,13 @@ interface SourceTrace {
 }
 
 type ImplementedGame =
-  "rust" | "project-zomboid" | "7-days-to-die" | "minecraft-java" | "minecraft-bedrock" | "fivem";
+  | "a2s"
+  | "rust"
+  | "project-zomboid"
+  | "7-days-to-die"
+  | "minecraft-java"
+  | "minecraft-bedrock"
+  | "fivem";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -153,6 +160,11 @@ function createProfileRunner<G extends ImplementedGame>(
 }
 
 const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
+  a2s: createProfileRunner(
+    "a2s",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryGenericA2sProfile),
+  ),
   rust: createProfileRunner(
     "rust",
     ["a2s-info", "a2s-player", "a2s-rules"],
@@ -229,6 +241,9 @@ function normalizeMode(mode: string | undefined): QueryMode {
 }
 
 function validateInput(input: QueryInput): void {
+  if (canonicalGameId(input.game) === "a2s" && input.port === undefined) {
+    throw new RangeError("Generic A2S requires a query port.");
+  }
   if (input.port !== undefined) {
     validatePort(input.port);
   }
@@ -243,6 +258,12 @@ function queryPort(input: QueryInput<GameId>): number {
   }
   const definition = GAME_REGISTRY[input.game];
   const gamePort = input.port ?? definition.defaultPort;
+  if (gamePort === undefined) {
+    throw new RangeError("The selected profile has no default port.");
+  }
+  if (definition.defaultPort === undefined) {
+    return validatePort(gamePort);
+  }
   const queryPortOffset =
     (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort;
   return validatePort(gamePort + queryPortOffset);

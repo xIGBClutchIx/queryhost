@@ -26,6 +26,7 @@ const SUPPORT_LEVELS = new Set(["conditional", "supported", "unsupported"]);
 describe("game registry", () => {
   it("contains every initial game exactly once", () => {
     expect(GAME_IDS).toEqual([
+      "a2s",
       "rust",
       "project-zomboid",
       "7-days-to-die",
@@ -43,9 +44,11 @@ describe("game registry", () => {
 
       expect(definition.id).toBe(game);
       expect(definition.name.length).toBeGreaterThan(0);
-      expect(Number.isInteger(definition.defaultPort)).toBe(true);
-      expect(definition.defaultPort).toBeGreaterThan(0);
-      expect(definition.defaultPort).toBeLessThanOrEqual(65_535);
+      if (definition.defaultPort !== undefined) {
+        expect(Number.isInteger(definition.defaultPort)).toBe(true);
+        expect(definition.defaultPort).toBeGreaterThan(0);
+        expect(definition.defaultPort).toBeLessThanOrEqual(65_535);
+      }
       if (definition.defaultQueryPort !== undefined) {
         expect(Number.isInteger(definition.defaultQueryPort)).toBe(true);
         expect(definition.defaultQueryPort).toBeGreaterThan(0);
@@ -59,6 +62,11 @@ describe("game registry", () => {
   });
 
   it("looks up definitions without losing their game identity", () => {
+    expect(getGameDefinition("a2s")).toMatchObject({
+      name: "Generic A2S",
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
+    expect(getGameDefinition("a2s").defaultPort).toBeUndefined();
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
     expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
     expect(getGameDefinition("project-zomboid")).toMatchObject({

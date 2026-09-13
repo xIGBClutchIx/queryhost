@@ -10,5 +10,5 @@ declare const fivemData: FiveMData;
 
 rustData.tags satisfies readonly string[] | undefined;
 fivemData.players?.[0]?.name satisfies string | undefined;
-GAME_REGISTRY.fivem.defaultPort satisfies number;
+GAME_REGISTRY.fivem.defaultPort satisfies number | undefined;
 void rustQuery;

@@ -4,6 +4,12 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+## [1.1.0] - 2026-09-12
+
+### Added
+
+- Generic Source and GoldSource A2S queries with explicit query-port input, typed Info and Player data, and unchanged Rules output.
+
 ## [1.0.0] - 2026-09-02
 
 ### Added
@@ -17,4 +23,5 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.1.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.1.0
 [1.0.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.0.0

@@ -97,7 +97,7 @@ After a required source succeeds, requested independent optional sources receive
 
 ## Shared A2S profile invariants
 
-Rust, Project Zomboid, and 7 Days to Die use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+Generic A2S, Rust, Project Zomboid, and 7 Days to Die use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
 
 Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
 
@@ -105,6 +105,7 @@ The public query deadline defaults to 5,000 ms and accepts values through 30,000
 
 ## Game-specific A2S merges
 
+- Generic A2S exposes portable Info facts, Player records, and untouched Rules without guessing at game-specific rule names. It requires `port` as the actual A2S query destination because there is no reliable universal default.
 - Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
 - Project Zomboid converts Player records and interprets lowercase `description`, numeric `pvp`, `version`, and semicolon-delimited `mods`. The Rules version overrides A2S Info's generic version when available. Its default A2S destination is UDP 16261.
 - 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `LevelName`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.

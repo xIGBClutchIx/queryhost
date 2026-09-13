@@ -13,8 +13,8 @@ export type GameCapability =
 export interface GameDefinition<G extends GameId = GameId> {
   readonly id: G;
   readonly name: string;
-  /** Default game or service port supplied by users. */
-  readonly defaultPort: number;
+  /** Default game or service port; omitted when the profile cannot infer one. */
+  readonly defaultPort?: number;
   /**
    * Conventional query port corresponding to `defaultPort` when the protocol uses a separate
    * destination. QueryHost preserves this offset for custom game ports.
@@ -30,6 +30,7 @@ export type GameRegistry = {
 
 /** Stable presentation order for supported games. */
 export const GAME_IDS: readonly [
+  "a2s",
   "rust",
   "project-zomboid",
   "7-days-to-die",
@@ -37,6 +38,7 @@ export const GAME_IDS: readonly [
   "minecraft-bedrock",
   "fivem",
 ] = [
+  "a2s",
   "rust",
   "project-zomboid",
   "7-days-to-die",
@@ -69,6 +71,19 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
  * Single source of truth consumed by the library and, later, the API, documentation, and website.
  */
 export const GAME_REGISTRY: GameRegistry = {
+  a2s: {
+    id: "a2s",
+    name: "Generic A2S",
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
   rust: {
     id: "rust",
     name: "Rust",

@@ -22,11 +22,11 @@ Static metadata for one supported game profile.
 
 ***
 
-### defaultPort
+### defaultPort?
 
-> `readonly` **defaultPort**: `number`
+> `readonly` `optional` **defaultPort?**: `number`
 
-Default game or service port supplied by users.
+Default game or service port; omitted when the profile cannot infer one.
 
 ***
 

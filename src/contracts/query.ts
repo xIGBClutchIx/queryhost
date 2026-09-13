@@ -1,6 +1,7 @@
 /** Public query inputs and discriminated game-specific result contracts. */
 
 import type {
+  A2sData,
   A2sRawData,
   FiveMData,
   MinecraftBedrockData,
@@ -17,6 +18,7 @@ import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } fro
  * Adding a game here forces the registry and callers using exhaustive switches to handle it.
  */
 export interface GameDataMap {
+  readonly a2s: A2sData;
   readonly rust: RustData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
@@ -27,6 +29,7 @@ export interface GameDataMap {
 
 /** Associates implemented games with their untouched protocol payloads. */
 export interface GameRawDataMap {
+  readonly a2s: A2sRawData;
   readonly rust: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
@@ -71,21 +74,28 @@ export type CanonicalGameId<G extends GameInputId> = G extends GameId
     ? GameAliasMap[G]
     : never;
 
-/** Input accepted by the public `query()` entry point. */
-export interface QueryInput<G extends GameInputId = GameInputId> {
+/** Input accepted by the public `query()` entry point. Generic A2S requires its query port. */
+export type QueryInput<G extends GameInputId = GameInputId> = {
   readonly game: G;
   /** DNS hostname or IP literal. URL syntax is intentionally not accepted. */
   readonly host: string;
-  /** Primary game or service port; the profile default is used when omitted. */
-  readonly port?: number;
-  /** Explicit protocol query port, overriding the profile convention derived from `port`. */
-  readonly queryPort?: number;
   readonly mode?: QueryMode;
   /** Global deadline from 1 through 30,000 ms; defaults to 5,000 ms. */
   readonly timeoutMs?: number;
   /** Caller cancellation propagated to every outstanding operation. */
   readonly signal?: AbortSignal;
-}
+} & (CanonicalGameId<G> extends "a2s"
+  ? {
+      /** Actual A2S query destination; generic A2S has no inferred default. */
+      readonly port: number;
+      readonly queryPort?: never;
+    }
+  : {
+      /** Primary game or service port; the profile default is used when omitted. */
+      readonly port?: number;
+      /** Explicit protocol query port, overriding the profile convention derived from `port`. */
+      readonly queryPort?: number;
+    });
 
 /** Fields present on both successful and failed queries. */
 interface QueryResultBase<G extends GameId> {

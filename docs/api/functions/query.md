@@ -20,7 +20,7 @@ Queries one game server through its typed QueryHost profile.
 
 ### input
 
-[`QueryInput`](../interfaces/QueryInput.md)\<`G`\>
+[`QueryInput`](../type-aliases/QueryInput.md)\<`G`\>
 
 ## Returns
 

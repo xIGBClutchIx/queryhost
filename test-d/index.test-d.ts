@@ -1,6 +1,8 @@
 import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
+  type A2sData,
+  type A2sPlayer,
   canonicalGameId,
   GAME_IDS,
   getGameDefinition,
@@ -27,6 +29,7 @@ import {
 
 expectType<
   readonly [
+    "a2s",
     "rust",
     "project-zomboid",
     "7-days-to-die",
@@ -35,6 +38,12 @@ expectType<
     "fivem",
   ]
 >(GAME_IDS);
+
+expectType<Promise<QueryResult<"a2s">>>(
+  query({ game: "a2s", host: "play.example.com", port: 27_015 }),
+);
+expectError(query({ game: "a2s", host: "play.example.com" }));
+expectError(query({ game: "a2s", host: "play.example.com", port: 27_015, queryPort: 27_016 }));
 
 const rustInput: QueryInput<"rust"> = {
   game: "rust",
@@ -74,7 +83,8 @@ expectType<"minecraft-java">(getGameDefinition("minecraft").id);
 expectType<"7-days-to-die">(canonicalGameId("7d2d"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
-expectType<number>(getGameDefinition("minecraft-java").defaultPort);
+expectType<number | undefined>(getGameDefinition("minecraft-java").defaultPort);
+expectType<number | undefined>(getGameDefinition("a2s").defaultPort);
 
 declare const candidate: string;
 if (isGameId(candidate)) {
@@ -94,6 +104,9 @@ if (rustResult.ok) {
 declare const dynamicResult: QueryResult;
 if (dynamicResult.ok) {
   switch (dynamicResult.game) {
+    case "a2s":
+      expectType<A2sData>(dynamicResult.data);
+      break;
     case "rust":
       expectType<RustData>(dynamicResult.data);
       break;
@@ -121,6 +134,8 @@ if (dynamicResult.ok) {
 declare const dataMap: GameDataMap;
 declare const rawDataMap: GameRawDataMap;
 expectType<Readonly<Record<string, string>>>(rawDataMap["project-zomboid"].rules);
+expectType<A2sData>(dataMap.a2s);
+expectType<readonly A2sPlayer[] | undefined>(dataMap.a2s.players);
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
 expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);

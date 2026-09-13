@@ -6,6 +6,8 @@
 
 ## Interfaces
 
+- [A2sData](interfaces/A2sData.md)
+- [A2sPlayer](interfaces/A2sPlayer.md)
 - [A2sRawData](interfaces/A2sRawData.md)
 - [FiveMData](interfaces/FiveMData.md)
 - [FiveMPlayer](interfaces/FiveMPlayer.md)
@@ -23,7 +25,6 @@
 - [ProjectZomboidPlayer](interfaces/ProjectZomboidPlayer.md)
 - [QueryError](interfaces/QueryError.md)
 - [QueryFailure](interfaces/QueryFailure.md)
-- [QueryInput](interfaces/QueryInput.md)
 - [QuerySource](interfaces/QuerySource.md)
 - [QuerySuccess](interfaces/QuerySuccess.md)
 - [QueryWarning](interfaces/QueryWarning.md)
@@ -44,6 +45,7 @@
 - [GameRegistry](type-aliases/GameRegistry.md)
 - [GameRuleMap](type-aliases/GameRuleMap.md)
 - [QueryErrorCode](type-aliases/QueryErrorCode.md)
+- [QueryInput](type-aliases/QueryInput.md)
 - [QueryMode](type-aliases/QueryMode.md)
 - [QueryResult](type-aliases/QueryResult.md)
 - [QuerySourceName](type-aliases/QuerySourceName.md)

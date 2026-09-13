@@ -44,6 +44,8 @@ export type {
   ServerPlayers,
 } from "./contracts/shared.js";
 export type {
+  A2sData,
+  A2sPlayer,
   A2sRawData,
   FiveMData,
   FiveMPlayer,

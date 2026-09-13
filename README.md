@@ -6,7 +6,7 @@ QueryHost is a game-server query engine with correct protocols, explicit source 
 
 ## Status
 
-Version 1.0.0 contains the package foundation and Slices 1–14:
+Version 1.1.0 contains the package foundation and current supported profiles:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
@@ -17,6 +17,7 @@ Version 1.0.0 contains the package foundation and Slices 1–14:
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
 - the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
+- a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
@@ -59,6 +60,8 @@ if (result.ok) {
 
 Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 
+Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Generic A2S has no default port: `port` is required and means the server's actual A2S query port. It returns common Info facts and Player data under `data`, with unchanged Rules under `rawData.rules`.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -73,6 +76,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 
 | Canonical ID        | Accepted aliases                                             |
 | ------------------- | ------------------------------------------------------------ |
+| `a2s`               | —                                                            |
 | `rust`              | —                                                            |
 | `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
 | `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
@@ -93,6 +97,7 @@ npm run query -- rust play.example.com 28015
 The installed package also provides the same command as `queryhost`. It writes the complete parsed `QueryResult` as formatted JSON and exits with 0 for success, 1 for a query failure, or 2 for invalid command arguments.
 
 ```bash
+queryhost a2s play.example.com 27015
 queryhost rust play.example.com 28015 --mode full --timeout 3000
 queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261

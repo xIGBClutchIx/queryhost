@@ -16,6 +16,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### a2s
+
+> `readonly` **a2s**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: `never`

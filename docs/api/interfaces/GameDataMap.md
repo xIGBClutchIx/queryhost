@@ -18,6 +18,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### a2s
+
+> `readonly` **a2s**: [`A2sData`](A2sData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)
