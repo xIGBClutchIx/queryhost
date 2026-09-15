@@ -2,15 +2,15 @@
 
 ***
 
-[queryhost](../README.md) / FiveMData
+[queryhost](../README.md) / RedMData
 
-# Interface: FiveMData
+# Interface: RedMData
 
-FiveM-specific data merged from its fixed JSON endpoints.
+RedM-specific data merged from its fixed JSON endpoints.
 
 ## Extends
 
-- [`CfxData`](CfxData.md)\<[`FiveMPlayer`](FiveMPlayer.md)\>
+- [`CfxData`](CfxData.md)\<[`RedMPlayer`](RedMPlayer.md)\>
 
 ## Properties
 
@@ -46,7 +46,7 @@ FiveM-specific data merged from its fixed JSON endpoints.
 
 ### players?
 
-> `readonly` `optional` **players?**: readonly [`FiveMPlayer`](FiveMPlayer.md)[]
+> `readonly` `optional` **players?**: readonly [`RedMPlayer`](RedMPlayer.md)[]
 
 Omitted when the players endpoint is unavailable; an empty array means confirmed empty.
 

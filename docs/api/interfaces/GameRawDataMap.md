@@ -46,6 +46,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### redm
+
+> `readonly` **redm**: `never`
+
+***
+
 ### rust
 
 > `readonly` **rust**: [`A2sRawData`](A2sRawData.md)

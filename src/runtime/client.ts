@@ -44,14 +44,16 @@ import { MinecraftBedrockProtocolError } from "../protocols/minecraft-bedrock/er
 import type { MinecraftBedrockPingDependencies } from "../protocols/minecraft-bedrock/ping.js";
 import type { MinecraftQueryDependencies } from "../protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "../protocols/minecraft-java/status.js";
-import type { FiveMQueryDependencies } from "../protocols/fivem/query.js";
+import type { CfxQueryDependencies } from "../protocols/cfx/query.js";
 import { queryMinecraftJavaProfile } from "../profiles/minecraft-java.js";
 import { queryMinecraftBedrockProfile } from "../profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
-import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
+import { CfxProfileError } from "../profiles/cfx.js";
+import { queryFiveMProfile } from "../profiles/fivem.js";
+import { queryRedMProfile } from "../profiles/redm.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -67,7 +69,8 @@ export interface QueryDependencies {
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
-  readonly fivem?: FiveMQueryDependencies;
+  readonly fivem?: CfxQueryDependencies;
+  readonly redm?: CfxQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -84,7 +87,8 @@ type ImplementedGame =
   | "7-days-to-die"
   | "minecraft-java"
   | "minecraft-bedrock"
-  | "fivem";
+  | "fivem"
+  | "redm";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -194,6 +198,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "fivem",
     ["fivem-info", "fivem-dynamic", "fivem-players"],
     fivemProfileRunner,
+  ),
+  redm: createProfileRunner(
+    "redm",
+    ["redm-info", "redm-dynamic", "redm-players"],
+    redmProfileRunner,
   ),
 });
 
@@ -337,6 +346,16 @@ async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfi
   });
 }
 
+async function redmProfileRunner(options: ProfileRunOptions): Promise<GameProfileResult<"redm">> {
+  return queryRedMProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.redm === undefined ? {} : { query: options.dependencies.redm }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -410,7 +429,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   if (error instanceof MinecraftBedrockProtocolError) {
     return minecraftBedrockProtocolError(error);
   }
-  if (error instanceof FiveMProfileError) {
+  if (error instanceof CfxProfileError) {
     return error.queryError;
   }
   if (error instanceof OutboundAttemptLimitError) {

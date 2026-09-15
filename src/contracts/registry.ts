@@ -37,6 +37,7 @@ export const GAME_IDS: readonly [
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "redm",
 ] = [
   "a2s",
   "rust",
@@ -45,6 +46,7 @@ export const GAME_IDS: readonly [
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "redm",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -65,6 +67,8 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   "mc-bedrock": "minecraft-bedrock",
   "minecraft-bedrock-edition": "minecraft-bedrock",
   "five-m": "fivem",
+  "red-m": "redm",
+  rdr3: "redm",
 });
 
 /**
@@ -158,6 +162,20 @@ export const GAME_REGISTRY: GameRegistry = {
   fivem: {
     id: "fivem",
     name: "FiveM",
+    defaultPort: 30120,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+  redm: {
+    id: "redm",
+    name: "RedM",
     defaultPort: 30120,
     capabilities: {
       summary: "supported",

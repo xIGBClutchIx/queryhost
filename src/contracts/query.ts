@@ -7,6 +7,7 @@ import type {
   MinecraftBedrockData,
   MinecraftJavaData,
   ProjectZomboidData,
+  RedMData,
   RustData,
   SevenDaysToDieData,
 } from "./games.js";
@@ -25,6 +26,7 @@ export interface GameDataMap {
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
+  readonly redm: RedMData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -36,6 +38,7 @@ export interface GameRawDataMap {
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;
+  readonly redm: never;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -59,6 +62,8 @@ export interface GameAliasMap {
   readonly "mc-bedrock": "minecraft-bedrock";
   readonly "minecraft-bedrock-edition": "minecraft-bedrock";
   readonly "five-m": "fivem";
+  readonly "red-m": "redm";
+  readonly rdr3: "redm";
 }
 
 /** Accepted non-canonical game identifier. */

@@ -33,6 +33,7 @@ describe("game registry", () => {
       "minecraft-java",
       "minecraft-bedrock",
       "fivem",
+      "redm",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -106,10 +107,20 @@ describe("game registry", () => {
         rules: "conditional",
       },
     });
+    expect(getGameDefinition("redm")).toMatchObject({
+      defaultPort: 30_120,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        resources: "conditional",
+        rules: "conditional",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
+    expect(isGameId("redm")).toBe(true);
     expect(isGameId("counter-strike")).toBe(false);
   });
 
@@ -131,6 +142,8 @@ describe("game registry", () => {
       "mc-bedrock": "minecraft-bedrock",
       "minecraft-bedrock-edition": "minecraft-bedrock",
       "five-m": "fivem",
+      "red-m": "redm",
+      rdr3: "redm",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);
@@ -149,6 +162,8 @@ describe("game registry", () => {
     }
     expect(getGameDefinition("zomboid")).toBe(GAME_REGISTRY["project-zomboid"]);
     expect(getGameDefinition("mcbe")).toBe(GAME_REGISTRY["minecraft-bedrock"]);
+    expect(getGameDefinition("red-m")).toBe(GAME_REGISTRY.redm);
+    expect(getGameDefinition("rdr3")).toBe(GAME_REGISTRY.redm);
   });
 
   it("lists games in the documented registry order", () => {

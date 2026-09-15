@@ -1,6 +1,6 @@
-/** Strict parsers and fixed-path requests for FiveM's public JSON endpoints. */
+/** Strict parsers and fixed-path requests for the public Cfx FXServer JSON endpoints. */
 
-import type { FiveMPlayer } from "../../contracts/games.js";
+import type { CfxPlayer } from "../../contracts/games.js";
 import type { QueryError, QuerySourceName, QuerySourceStatus } from "../../contracts/shared.js";
 import type { PinnedAddress, PinnedTarget } from "../../network/target.js";
 import type { ExecutionScope } from "../../runtime/execution.js";
@@ -31,8 +31,18 @@ interface JsonObject {
   [key: string]: JsonValue;
 }
 
-/** Parsed facts from FiveM's `info.json`. */
-export interface FiveMInfo {
+/** Source identities and caller-facing label for one Cfx game profile. */
+export interface CfxEndpointDefinition {
+  readonly gameName: string;
+  readonly sources: {
+    readonly info: QuerySourceName;
+    readonly dynamic: QuerySourceName;
+    readonly players: QuerySourceName;
+  };
+}
+
+/** Parsed facts from Cfx's `info.json`. */
+export interface CfxInfo {
   readonly server?: string;
   readonly resources?: readonly string[];
   readonly variables?: Readonly<Record<string, string>>;
@@ -40,8 +50,8 @@ export interface FiveMInfo {
   readonly enhancedHostSupport?: boolean;
 }
 
-/** Parsed facts from FiveM's `dynamic.json`. */
-export interface FiveMDynamic {
+/** Parsed facts from Cfx's `dynamic.json`. */
+export interface CfxDynamic {
   readonly hostname?: string;
   readonly mapName?: string;
   readonly gameType?: string;
@@ -50,14 +60,14 @@ export interface FiveMDynamic {
 }
 
 /** One successful fixed endpoint response. */
-export interface FiveMEndpointResult<T> {
+export interface CfxEndpointResult<T> {
   readonly value: T;
   readonly rttMs: number;
 }
 
 /** A source-owned endpoint failure with stable provenance and public-safe error details. */
-export class FiveMEndpointError extends Error {
-  public override readonly name = "FiveMEndpointError";
+export class CfxEndpointError extends Error {
+  public override readonly name = "CfxEndpointError";
   public readonly source: QuerySourceName;
   public readonly status: QuerySourceStatus;
   public readonly queryError: QueryError;
@@ -70,8 +80,8 @@ export class FiveMEndpointError extends Error {
   }
 }
 
-/** Injectable HTTP boundary used by all three FiveM sources. */
-export interface FiveMQueryDependencies {
+/** Injectable HTTP boundary used by all three Cfx sources. */
+export interface CfxQueryDependencies {
   readonly http?: HttpTransportDependencies;
   readonly exchange?: (
     options: FixedHttpExchangeOptions,
@@ -85,10 +95,10 @@ interface EndpointOptions {
   readonly address: PinnedAddress;
 }
 
-function malformed(source: QuerySourceName): never {
-  throw new FiveMEndpointError(source, "malformed", {
+function malformed(source: QuerySourceName, gameName: string): never {
+  throw new CfxEndpointError(source, "malformed", {
     code: "MALFORMED_RESPONSE",
-    message: "The FiveM endpoint returned malformed JSON data.",
+    message: `The ${gameName} endpoint returned malformed JSON data.`,
     source,
   });
 }
@@ -129,18 +139,18 @@ function validateJsonBudget(value: JsonValue): void {
   visit(value, 0);
 }
 
-function parseJson(data: Uint8Array, source: QuerySourceName): JsonValue {
+function parseJson(data: Uint8Array, source: QuerySourceName, gameName: string): JsonValue {
   let text: string;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(data);
   } catch {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   const blockedBody = text.trim();
   if (blockedBody === "Nope" || blockedBody === "Nope.") {
-    throw new FiveMEndpointError(source, "blocked", {
+    throw new CfxEndpointError(source, "blocked", {
       code: "CONNECTION_FAILED",
-      message: "The FiveM endpoint blocked this request.",
+      message: `The ${gameName} endpoint blocked this request.`,
       source,
     });
   }
@@ -149,7 +159,7 @@ function parseJson(data: Uint8Array, source: QuerySourceName): JsonValue {
     validateJsonBudget(value);
     return value;
   } catch {
-    return malformed(source);
+    return malformed(source, gameName);
   }
 }
 
@@ -157,13 +167,14 @@ function optionalString(
   object: JsonObject,
   key: string,
   source: QuerySourceName,
+  gameName: string,
 ): string | undefined {
   const value = object[key];
   if (value === undefined) {
     return undefined;
   }
   if (typeof value !== "string" || value.length > MAX_SHORT_STRING_LENGTH) {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   return value;
 }
@@ -172,13 +183,14 @@ function optionalBoolean(
   object: JsonObject,
   key: string,
   source: QuerySourceName,
+  gameName: string,
 ): boolean | undefined {
   const value = object[key];
   if (value === undefined) {
     return undefined;
   }
   if (typeof value !== "boolean") {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   return value;
 }
@@ -191,25 +203,27 @@ function requiredNonNegativeInteger(
   object: JsonObject,
   key: string,
   source: QuerySourceName,
+  gameName: string,
 ): number {
   const value = nonNegativeInteger(object[key]);
-  return value ?? malformed(source);
+  return value ?? malformed(source, gameName);
 }
 
 function parseStringArray(
   value: JsonValue | undefined,
   source: QuerySourceName,
+  gameName: string,
 ): readonly string[] | undefined {
   if (value === undefined) {
     return undefined;
   }
   if (!Array.isArray(value) || value.length > MAX_COLLECTION_ITEMS) {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   const result: string[] = [];
   for (const entry of value) {
     if (typeof entry !== "string" || entry.length > MAX_SHORT_STRING_LENGTH) {
-      return malformed(source);
+      return malformed(source, gameName);
     }
     result.push(entry);
   }
@@ -219,17 +233,18 @@ function parseStringArray(
 function parseVariables(
   value: JsonValue | undefined,
   source: QuerySourceName,
+  gameName: string,
 ): Readonly<Record<string, string>> | undefined {
   if (value === undefined) {
     return undefined;
   }
   if (!isObject(value)) {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   const result: Record<string, string> = Object.create(null) as Record<string, string>;
   for (const [key, entry] of Object.entries(value)) {
     if (typeof entry !== "string" || entry.length > MAX_SHORT_STRING_LENGTH) {
-      return malformed(source);
+      return malformed(source, gameName);
     }
     result[key] = entry;
   }
@@ -247,18 +262,23 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
 }
 
 /** Parses one bounded `info.json` body without retaining unknown fields. */
-export function parseFiveMInfo(data: Uint8Array): FiveMInfo {
-  const source = "fivem-info";
-  const value = parseJson(data, source);
+export function parseCfxInfo(data: Uint8Array, definition: CfxEndpointDefinition): CfxInfo {
+  const source = definition.sources.info;
+  const value = parseJson(data, source, definition.gameName);
   if (!isObject(value)) {
-    return malformed(source);
+    return malformed(source, definition.gameName);
   }
-  const variables = parseVariables(value["vars"], source);
-  const server = optionalString(value, "server", source);
-  const resources = parseStringArray(value["resources"], source);
+  const variables = parseVariables(value["vars"], source, definition.gameName);
+  const server = optionalString(value, "server", source, definition.gameName);
+  const resources = parseStringArray(value["resources"], source, definition.gameName);
   const oneSyncEnabled =
     variables === undefined ? undefined : parseBooleanString(variables["onesync_enabled"]);
-  const enhancedHostSupport = optionalBoolean(value, "enhancedHostSupport", source);
+  const enhancedHostSupport = optionalBoolean(
+    value,
+    "enhancedHostSupport",
+    source,
+    definition.gameName,
+  );
   return Object.freeze({
     ...(server === undefined ? {} : { server }),
     ...(resources === undefined ? {} : { resources }),
@@ -272,6 +292,7 @@ function optionalInteger(
   object: JsonObject,
   key: string,
   source: QuerySourceName,
+  gameName: string,
 ): number | undefined {
   const raw = object[key];
   if (raw === undefined) {
@@ -280,23 +301,23 @@ function optionalInteger(
   const numeric =
     typeof raw === "string" && /^\d+$/u.test(raw) ? Number(raw) : nonNegativeInteger(raw);
   if (numeric === undefined || !Number.isSafeInteger(numeric) || numeric < 0) {
-    return malformed(source);
+    return malformed(source, gameName);
   }
   return numeric;
 }
 
 /** Parses one bounded `dynamic.json` body without retaining unknown fields. */
-export function parseFiveMDynamic(data: Uint8Array): FiveMDynamic {
-  const source = "fivem-dynamic";
-  const value = parseJson(data, source);
+export function parseCfxDynamic(data: Uint8Array, definition: CfxEndpointDefinition): CfxDynamic {
+  const source = definition.sources.dynamic;
+  const value = parseJson(data, source, definition.gameName);
   if (!isObject(value)) {
-    return malformed(source);
+    return malformed(source, definition.gameName);
   }
-  const hostname = optionalString(value, "hostname", source);
-  const mapName = optionalString(value, "mapname", source);
-  const gameType = optionalString(value, "gametype", source);
-  const clients = optionalInteger(value, "clients", source);
-  const maxClients = optionalInteger(value, "sv_maxclients", source);
+  const hostname = optionalString(value, "hostname", source, definition.gameName);
+  const mapName = optionalString(value, "mapname", source, definition.gameName);
+  const gameType = optionalString(value, "gametype", source, definition.gameName);
+  const clients = optionalInteger(value, "clients", source, definition.gameName);
+  const maxClients = optionalInteger(value, "sv_maxclients", source, definition.gameName);
   return Object.freeze({
     ...(hostname === undefined ? {} : { hostname }),
     ...(mapName === undefined ? {} : { mapName }),
@@ -307,51 +328,59 @@ export function parseFiveMDynamic(data: Uint8Array): FiveMDynamic {
 }
 
 /** Parses one bounded `players.json` body into the stable public player contract. */
-export function parseFiveMPlayers(data: Uint8Array): readonly FiveMPlayer[] {
-  const source = "fivem-players";
-  const value = parseJson(data, source);
+export function parseCfxPlayers(
+  data: Uint8Array,
+  definition: CfxEndpointDefinition,
+): readonly CfxPlayer[] {
+  const source = definition.sources.players;
+  const value = parseJson(data, source, definition.gameName);
   if (!Array.isArray(value) || value.length > MAX_COLLECTION_ITEMS) {
-    return malformed(source);
+    return malformed(source, definition.gameName);
   }
-  const result: FiveMPlayer[] = [];
+  const result: CfxPlayer[] = [];
   for (const entry of value) {
     if (!isObject(entry)) {
-      return malformed(source);
+      return malformed(source, definition.gameName);
     }
-    const name = optionalString(entry, "name", source);
+    const name = optionalString(entry, "name", source, definition.gameName);
     if (name === undefined) {
-      return malformed(source);
+      return malformed(source, definition.gameName);
     }
-    const id = requiredNonNegativeInteger(entry, "id", source);
+    const id = requiredNonNegativeInteger(entry, "id", source, definition.gameName);
     const pingRaw = entry["ping"];
     const ping = pingRaw === undefined ? undefined : nonNegativeInteger(pingRaw);
     if (pingRaw !== undefined && ping === undefined) {
-      return malformed(source);
+      return malformed(source, definition.gameName);
     }
     result.push(Object.freeze({ id, name, ...(ping === undefined ? {} : { ping }) }));
   }
   return Object.freeze(result);
 }
 
-function endpointFailure(source: QuerySourceName, statusCode: number, data: Uint8Array): never {
+function endpointFailure(
+  source: QuerySourceName,
+  gameName: string,
+  statusCode: number,
+  data: Uint8Array,
+): never {
   const trimmed = new TextDecoder().decode(data).trim();
   if (trimmed === "Nope" || trimmed === "Nope.") {
-    throw new FiveMEndpointError(source, "blocked", {
+    throw new CfxEndpointError(source, "blocked", {
       code: "CONNECTION_FAILED",
-      message: "The FiveM endpoint blocked this request.",
+      message: `The ${gameName} endpoint blocked this request.`,
       source,
     });
   }
   if (statusCode === 404) {
-    throw new FiveMEndpointError(source, "unsupported", {
+    throw new CfxEndpointError(source, "unsupported", {
       code: "CONNECTION_FAILED",
-      message: "The FiveM endpoint was not found.",
+      message: `The ${gameName} endpoint was not found.`,
       source,
     });
   }
-  throw new FiveMEndpointError(source, "failed", {
+  throw new CfxEndpointError(source, "failed", {
     code: "CONNECTION_FAILED",
-    message: "The FiveM endpoint request failed.",
+    message: `The ${gameName} endpoint request failed.`,
     source,
   });
 }
@@ -359,11 +388,12 @@ function endpointFailure(source: QuerySourceName, statusCode: number, data: Uint
 async function queryEndpoint<T>(
   options: EndpointOptions,
   source: QuerySourceName,
+  gameName: string,
   path: string,
   maxResponseBytes: number,
   parse: (data: Uint8Array) => T,
-  dependencies: FiveMQueryDependencies,
-): Promise<FiveMEndpointResult<T>> {
+  dependencies: CfxQueryDependencies,
+): Promise<CfxEndpointResult<T>> {
   try {
     const response = await (dependencies.exchange ?? fixedHttpExchange)(
       {
@@ -377,11 +407,11 @@ async function queryEndpoint<T>(
       dependencies.http,
     );
     if (response.statusCode < 200 || response.statusCode > 299) {
-      return endpointFailure(source, response.statusCode, response.data);
+      return endpointFailure(source, gameName, response.statusCode, response.data);
     }
     return Object.freeze({ value: parse(response.data), rttMs: response.rttMs });
   } catch (error) {
-    if (error instanceof FiveMEndpointError) {
+    if (error instanceof CfxEndpointError) {
       throw error;
     }
     if (error instanceof HttpTransportError) {
@@ -391,7 +421,7 @@ async function queryEndpoint<T>(
           : error.code === "MALFORMED_RESPONSE" || error.code === "RESPONSE_TOO_LARGE"
             ? "malformed"
             : "failed";
-      throw new FiveMEndpointError(source, status, {
+      throw new CfxEndpointError(source, status, {
         code: error.code,
         message: error.message,
         source,
@@ -401,47 +431,53 @@ async function queryEndpoint<T>(
   }
 }
 
-/** Requests and parses FiveM's fixed `info.json` endpoint. */
-export function queryFiveMInfo(
+/** Requests and parses Cfx's fixed `info.json` endpoint. */
+export function queryCfxInfo(
   options: EndpointOptions,
-  dependencies: FiveMQueryDependencies = {},
-): Promise<FiveMEndpointResult<FiveMInfo>> {
+  definition: CfxEndpointDefinition,
+  dependencies: CfxQueryDependencies = {},
+): Promise<CfxEndpointResult<CfxInfo>> {
   return queryEndpoint(
     options,
-    "fivem-info",
+    definition.sources.info,
+    definition.gameName,
     INFO_PATH,
     INFO_MAX_BYTES,
-    parseFiveMInfo,
+    (data) => parseCfxInfo(data, definition),
     dependencies,
   );
 }
 
-/** Requests and parses FiveM's fixed `dynamic.json` endpoint. */
-export function queryFiveMDynamic(
+/** Requests and parses Cfx's fixed `dynamic.json` endpoint. */
+export function queryCfxDynamic(
   options: EndpointOptions,
-  dependencies: FiveMQueryDependencies = {},
-): Promise<FiveMEndpointResult<FiveMDynamic>> {
+  definition: CfxEndpointDefinition,
+  dependencies: CfxQueryDependencies = {},
+): Promise<CfxEndpointResult<CfxDynamic>> {
   return queryEndpoint(
     options,
-    "fivem-dynamic",
+    definition.sources.dynamic,
+    definition.gameName,
     DYNAMIC_PATH,
     DYNAMIC_MAX_BYTES,
-    parseFiveMDynamic,
+    (data) => parseCfxDynamic(data, definition),
     dependencies,
   );
 }
 
-/** Requests and parses FiveM's fixed `players.json` endpoint. */
-export function queryFiveMPlayers(
+/** Requests and parses Cfx's fixed `players.json` endpoint. */
+export function queryCfxPlayers(
   options: EndpointOptions,
-  dependencies: FiveMQueryDependencies = {},
-): Promise<FiveMEndpointResult<readonly FiveMPlayer[]>> {
+  definition: CfxEndpointDefinition,
+  dependencies: CfxQueryDependencies = {},
+): Promise<CfxEndpointResult<readonly CfxPlayer[]>> {
   return queryEndpoint(
     options,
-    "fivem-players",
+    definition.sources.players,
+    definition.gameName,
     PLAYERS_PATH,
     PLAYERS_MAX_BYTES,
-    parseFiveMPlayers,
+    (data) => parseCfxPlayers(data, definition),
     dependencies,
   );
 }

@@ -1,0 +1,10 @@
+{
+  "server": "FXServer-master v1.0.0",
+  "resources": ["mapmanager", "rdr3_spawnmanager"],
+  "vars": {
+    "gamename": "rdr3",
+    "onesync_enabled": "true",
+    "sv_projectName": "QueryHost Frontier"
+  },
+  "enhancedHostSupport": true
+}
