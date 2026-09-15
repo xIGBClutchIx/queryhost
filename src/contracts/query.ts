@@ -9,6 +9,7 @@ import type {
   ProjectZomboidData,
   RustData,
   SevenDaysToDieData,
+  ValheimData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -22,6 +23,7 @@ export interface GameDataMap {
   readonly rust: RustData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
+  readonly valheim: ValheimData;
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
@@ -33,6 +35,7 @@ export interface GameRawDataMap {
   readonly rust: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
+  readonly valheim: never;
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;

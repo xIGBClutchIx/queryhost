@@ -16,7 +16,7 @@ Version 1.1.0 contains the package foundation and current supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
+- the public `query()` entry point and complete Rust, Project Zomboid, 7 Days to Die, and Steam-backend Valheim profiles over the bounded A2S stack
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -62,6 +62,8 @@ Implemented A2S profiles default to `mode: "full"`: Info is required, then Playe
 
 Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Generic A2S has no default port: `port` is required and means the server's actual A2S query port. It returns common Info facts and Player data under `data`, with unchanged Rules under `rawData.rules`.
 
+Valheim queries its direct Steam-backend A2S endpoint. The default game port is UDP 2456 and the query destination is UDP 2457; custom game ports preserve that `+1` convention. Info provides the world, build, password state, and counts. Full mode also requests Player records, whose names Valheim commonly leaves empty, while Rules is reported as `unsupported` without network work. Successful data carries `backend: "steam"`. Servers launched with `-crossplay` use PlayFab relay discovery and cannot be queried through this direct A2S profile.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -80,6 +82,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `rust`              | —                                                            |
 | `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
 | `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `valheim`           | —                                                            |
 | `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
 | `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
 | `fivem`             | `five-m`                                                     |
@@ -103,6 +106,7 @@ queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
 queryhost 7dtd play.example.com 26900
+queryhost valheim play.example.com 2456
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120

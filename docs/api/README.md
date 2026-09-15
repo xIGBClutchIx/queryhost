@@ -34,6 +34,8 @@
 - [ServerPlayers](interfaces/ServerPlayers.md)
 - [SevenDaysToDieData](interfaces/SevenDaysToDieData.md)
 - [SevenDaysToDiePlayer](interfaces/SevenDaysToDiePlayer.md)
+- [ValheimData](interfaces/ValheimData.md)
+- [ValheimPlayer](interfaces/ValheimPlayer.md)
 
 ## Type Aliases
 

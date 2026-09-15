@@ -20,6 +20,7 @@ Options:
 Examples:
   queryhost a2s play.example.com 27015
   queryhost rust play.example.com 28015
+  queryhost valheim play.example.com 2456
   queryhost mc play.example.com 25565
   queryhost rust play.example.com --mode summary
   npm run query -- rust play.example.com 28015 --timeout 3000

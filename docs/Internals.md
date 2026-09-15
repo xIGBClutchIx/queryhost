@@ -97,9 +97,9 @@ After a required source succeeds, requested independent optional sources receive
 
 ## Shared A2S profile invariants
 
-Generic A2S, Rust, Project Zomboid, and 7 Days to Die use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+Generic A2S, Rust, Project Zomboid, 7 Days to Die, and Valheim use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
 
-Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
+Full mode requests each source allowed by the game's declared optional-source policy. Summary mode records both as `not-requested` without opening optional sockets. A game-known unsupported source is recorded as `unsupported` without network work or a partial-result warning. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
 
 The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline.
 
@@ -109,10 +109,11 @@ The public query deadline defaults to 5,000 ms and accepts values through 30,000
 - Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
 - Project Zomboid converts Player records and interprets lowercase `description`, numeric `pvp`, `version`, and semicolon-delimited `mods`. The Rules version overrides A2S Info's generic version when available. Its default A2S destination is UDP 16261.
 - 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `LevelName`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
+- Valheim supports direct A2S only when the dedicated server uses its Steam backend. Its registry game port is UDP 2456 and query port is UDP 2457; custom game ports preserve that offset. Info supplies normalized server facts and its keyword carries `data.networkVersion`. Player is conditional and may contain connection durations with deliberately empty names. Rules is known unsupported and is never attempted. A successful result identifies `data.backend` as `steam`; PlayFab `-crossplay` servers have no direct endpoint this profile can follow.
 
 Each game owns independent successful-source fixtures and tests for its merge semantics and port convention. Shared profile tests own common timeout, malformed-response, target-policy, summary-mode, and provenance behavior so those cases are not repeated for every game. A shared parser or orchestration module must never branch on one of these game IDs.
 
-Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
+Successful A2S profiles keep normalized values in `server` and `data`. Where Rules is supported, the untouched map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules. Valheim's raw-data map is `never` because its Rules source is unsupported.
 
 ## TCP transport invariants
 

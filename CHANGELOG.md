@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- Valheim dedicated-server queries for the direct Steam backend, with default game/query ports, typed network and Player data, and explicit unsupported provenance for Rules.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added

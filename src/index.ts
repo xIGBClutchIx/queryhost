@@ -62,4 +62,6 @@ export type {
   RustPlayer,
   SevenDaysToDieData,
   SevenDaysToDiePlayer,
+  ValheimData,
+  ValheimPlayer,
 } from "./contracts/games.js";
