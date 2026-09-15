@@ -21,6 +21,8 @@
 - [MinecraftPlugin](interfaces/MinecraftPlugin.md)
 - [MinecraftSoftware](interfaces/MinecraftSoftware.md)
 - [MinecraftSrvTarget](interfaces/MinecraftSrvTarget.md)
+- [PalworldData](interfaces/PalworldData.md)
+- [PalworldPlayer](interfaces/PalworldPlayer.md)
 - [ProjectZomboidData](interfaces/ProjectZomboidData.md)
 - [ProjectZomboidPlayer](interfaces/ProjectZomboidPlayer.md)
 - [QueryError](interfaces/QueryError.md)

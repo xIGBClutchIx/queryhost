@@ -42,6 +42,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### palworld
+
+> `readonly` **palworld**: [`PalworldData`](PalworldData.md)
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: [`ProjectZomboidData`](ProjectZomboidData.md)

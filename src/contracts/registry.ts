@@ -17,9 +17,11 @@ export interface GameDefinition<G extends GameId = GameId> {
   readonly defaultPort?: number;
   /**
    * Conventional query port corresponding to `defaultPort` when the protocol uses a separate
-   * destination. QueryHost preserves this offset for custom game ports.
+   * destination. Custom game ports preserve the offset unless `queryPortStrategy` is `fixed`.
    */
   readonly defaultQueryPort?: number;
+  /** Whether a custom game port shifts the conventional query port or leaves it fixed. */
+  readonly queryPortStrategy?: "offset" | "fixed";
   readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
 }
 
@@ -32,6 +34,7 @@ export type GameRegistry = {
 export const GAME_IDS: readonly [
   "a2s",
   "rust",
+  "palworld",
   "project-zomboid",
   "7-days-to-die",
   "minecraft-java",
@@ -40,6 +43,7 @@ export const GAME_IDS: readonly [
 ] = [
   "a2s",
   "rust",
+  "palworld",
   "project-zomboid",
   "7-days-to-die",
   "minecraft-java",
@@ -89,6 +93,22 @@ export const GAME_REGISTRY: GameRegistry = {
     name: "Rust",
     defaultPort: 28015,
     defaultQueryPort: 28017,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  palworld: {
+    id: "palworld",
+    name: "Palworld",
+    defaultPort: 8211,
+    defaultQueryPort: 27015,
+    queryPortStrategy: "fixed",
     capabilities: {
       summary: "supported",
       players: "conditional",

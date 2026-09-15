@@ -28,6 +28,7 @@ describe("game registry", () => {
     expect(GAME_IDS).toEqual([
       "a2s",
       "rust",
+      "palworld",
       "project-zomboid",
       "7-days-to-die",
       "minecraft-java",
@@ -69,6 +70,12 @@ describe("game registry", () => {
     expect(getGameDefinition("a2s").defaultPort).toBeUndefined();
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
     expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
+    expect(getGameDefinition("palworld")).toMatchObject({
+      defaultPort: 8_211,
+      defaultQueryPort: 27_015,
+      queryPortStrategy: "fixed",
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
     expect(getGameDefinition("project-zomboid")).toMatchObject({
       defaultPort: 16_261,
       capabilities: { summary: "supported", players: "conditional", mods: "conditional" },
@@ -110,6 +117,7 @@ describe("game registry", () => {
 
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
+    expect(isGameId("palworld")).toBe(true);
     expect(isGameId("counter-strike")).toBe(false);
   });
 

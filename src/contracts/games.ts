@@ -52,6 +52,22 @@ export interface RustData {
   readonly players?: readonly RustPlayer[];
 }
 
+/** One player returned by Palworld's conditional Steam A2S Player source. */
+export interface PalworldPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Palworld-specific data collected from its public Steam query listener. */
+export interface PalworldData {
+  /** Server-advertised tags, when the A2S Info response provides them. */
+  readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
+  readonly players?: readonly PalworldPlayer[];
+}
+
 /** Project Zomboid-specific data collected from A2S sources. */
 export interface ProjectZomboidData {
   readonly description?: string;

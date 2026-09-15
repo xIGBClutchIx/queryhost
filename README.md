@@ -62,13 +62,15 @@ Implemented A2S profiles default to `mode: "full"`: Info is required, then Playe
 
 Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Generic A2S has no default port: `port` is required and means the server's actual A2S query port. It returns common Info facts and Player data under `data`, with unchanged Rules under `rawData.rules`.
 
+Palworld uses its public Steam A2S listener for unauthenticated status queries. Info supplies the normalized summary; Player and Rules are conditional because deployments do not consistently expose them. This profile does not call Pocketpair's separate authenticated REST API, so REST-only player details and server settings are not represented as A2S data.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
 
 FiveM uses HTTP port 30120 by default. In `full` mode, its fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
-`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
 Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
@@ -78,6 +80,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | ------------------- | ------------------------------------------------------------ |
 | `a2s`               | —                                                            |
 | `rust`              | —                                                            |
+| `palworld`          | —                                                            |
 | `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
 | `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
 | `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
@@ -99,6 +102,7 @@ The installed package also provides the same command as `queryhost`. It writes t
 ```bash
 queryhost a2s play.example.com 27015
 queryhost rust play.example.com 28015 --mode full --timeout 3000
+queryhost palworld play.example.com 8211 --mode full
 queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
