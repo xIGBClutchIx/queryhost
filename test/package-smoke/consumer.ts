@@ -1,6 +1,7 @@
 import {
   GAME_REGISTRY,
   query,
+  type DayZData,
   type FiveMData,
   type QueryResult,
   type RedMData,
@@ -25,4 +26,7 @@ GAME_REGISTRY.fivem.defaultPort satisfies number | undefined;
 GAME_REGISTRY.redm.defaultPort satisfies number | undefined;
 vintageStoryData.response satisfies "liveness" | "status";
 GAME_REGISTRY["vintage-story"].defaultPort satisfies number | undefined;
+GAME_REGISTRY.dayz.defaultQueryPort satisfies number | undefined;
+declare const dayz: DayZData;
+dayz.dedicated satisfies boolean | undefined;
 void rustQuery;

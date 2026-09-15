@@ -117,6 +117,48 @@ export interface SevenDaysToDiePlayer {
   readonly durationSeconds: number;
 }
 
+/** One DayZ mod decoded from the paged server-browser metadata in A2S Rules. */
+export interface DayZMod {
+  readonly name: string;
+  /** Decimal Steam Workshop item ID; omitted when the server advertises zero. */
+  readonly workshopId?: string;
+  /** Unsigned 32-bit short hash advertised by the server. */
+  readonly hash: number;
+}
+
+/** Raw direct DayZ Rules retained separately from decoded paged metadata. */
+export interface DayZRawData {
+  /** Direct string-valued pairs; binary metadata pages are decoded under {@link DayZData}. */
+  readonly rules: GameRuleMap;
+}
+
+/** DayZ-specific data collected from its Steam A2S endpoint. */
+export interface DayZData {
+  /** Uninterpreted comma-delimited A2S Info keywords, split in server order. */
+  readonly tags?: readonly string[];
+  /** Server-browser metadata format version, when paged metadata is available. */
+  readonly rulesProtocol?: number;
+  readonly description?: string;
+  /** Omitted when Rules metadata is unavailable; empty means the server confirmed no mods. */
+  readonly mods?: readonly DayZMod[];
+  /** Omitted when Rules metadata is unavailable; empty means the server confirmed no keys. */
+  readonly signatures?: readonly string[];
+  /** Terrain identifier advertised by DayZ's optional Rules response. */
+  readonly island?: string;
+  /** Operating-system identifier advertised by DayZ's optional Rules response. */
+  readonly platform?: "linux" | "windows";
+  readonly dedicated?: boolean;
+  readonly allowedBuild?: number;
+  /** Game connection port advertised by the server; never followed as a query destination. */
+  readonly clientPort?: number;
+  readonly requiredBuild?: number;
+  readonly requiredVersion?: number;
+  /** Raw numeric `timeLeft` value reported by DayZ. */
+  readonly timeLeft?: number;
+  /** Raw numeric language flags reported by DayZ. */
+  readonly language?: number;
+}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */

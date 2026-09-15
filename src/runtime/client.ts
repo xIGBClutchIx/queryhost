@@ -61,6 +61,7 @@ import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
 import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
+import { queryDayZProfile } from "../profiles/dayz.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -95,6 +96,7 @@ type ImplementedGame =
   | "palworld"
   | "project-zomboid"
   | "7-days-to-die"
+  | "dayz"
   | "minecraft-java"
   | "minecraft-bedrock"
   | "fivem"
@@ -200,6 +202,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "7-days-to-die",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(querySevenDaysToDieProfile),
+  ),
+  dayz: createProfileRunner(
+    "dayz",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryDayZProfile),
   ),
   "minecraft-java": createProfileRunner(
     "minecraft-java",
