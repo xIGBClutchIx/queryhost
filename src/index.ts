@@ -56,6 +56,8 @@ export type {
   MinecraftJavaData,
   MinecraftMotd,
   MinecraftPlugin,
+  PalworldData,
+  PalworldPlayer,
   MinecraftSoftware,
   MinecraftSrvTarget,
   ProjectZomboidData,

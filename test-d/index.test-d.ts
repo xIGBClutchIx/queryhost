@@ -16,6 +16,8 @@ import {
   type GameId,
   type MinecraftBedrockData,
   type MinecraftJavaData,
+  type PalworldData,
+  type PalworldPlayer,
   type ProjectZomboidData,
   type ProjectZomboidPlayer,
   type RedMData,
@@ -33,6 +35,7 @@ expectType<
   readonly [
     "a2s",
     "rust",
+    "palworld",
     "project-zomboid",
     "7-days-to-die",
     "minecraft-java",
@@ -55,6 +58,7 @@ const rustInput: QueryInput<"rust"> = {
 };
 expectType<"rust">(rustInput.game);
 expectType<Promise<QueryResult<"rust">>>(query(rustInput));
+expectType<Promise<QueryResult<"palworld">>>(query({ game: "palworld", host: "play.example.com" }));
 expectType<Promise<QueryResult<"project-zomboid">>>(
   query({ game: "project-zomboid", host: "play.example.com" }),
 );
@@ -115,6 +119,9 @@ if (dynamicResult.ok) {
     case "rust":
       expectType<RustData>(dynamicResult.data);
       break;
+    case "palworld":
+      expectType<PalworldData>(dynamicResult.data);
+      break;
     case "project-zomboid":
       expectType<ProjectZomboidData>(dynamicResult.data);
       break;
@@ -142,10 +149,13 @@ if (dynamicResult.ok) {
 declare const dataMap: GameDataMap;
 declare const rawDataMap: GameRawDataMap;
 expectType<Readonly<Record<string, string>>>(rawDataMap["project-zomboid"].rules);
+expectType<Readonly<Record<string, string>>>(rawDataMap.palworld.rules);
 expectType<A2sData>(dataMap.a2s);
 expectType<readonly A2sPlayer[] | undefined>(dataMap.a2s.players);
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
+expectType<PalworldData>(dataMap.palworld);
+expectType<readonly PalworldPlayer[] | undefined>(dataMap.palworld.players);
 expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);
 expectType<readonly string[] | undefined>(dataMap["project-zomboid"].mods);
 expectType<readonly SevenDaysToDiePlayer[] | undefined>(dataMap["7-days-to-die"].players);

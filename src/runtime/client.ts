@@ -46,6 +46,7 @@ import type { MinecraftQueryDependencies } from "../protocols/minecraft-java/que
 import type { MinecraftJavaStatusDependencies } from "../protocols/minecraft-java/status.js";
 import type { CfxQueryDependencies } from "../protocols/cfx/query.js";
 import { queryMinecraftJavaProfile } from "../profiles/minecraft-java.js";
+import { queryPalworldProfile } from "../profiles/palworld.js";
 import { queryMinecraftBedrockProfile } from "../profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
@@ -83,6 +84,7 @@ interface SourceTrace {
 type ImplementedGame =
   | "a2s"
   | "rust"
+  | "palworld"
   | "project-zomboid"
   | "7-days-to-die"
   | "minecraft-java"
@@ -173,6 +175,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "rust",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(queryRustProfile),
+  ),
+  palworld: createProfileRunner(
+    "palworld",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryPalworldProfile),
   ),
   "project-zomboid": createProfileRunner(
     "project-zomboid",
@@ -272,6 +279,9 @@ function queryPort(input: QueryInput<GameId>): number {
   }
   if (definition.defaultPort === undefined) {
     return validatePort(gamePort);
+  }
+  if (definition.queryPortStrategy === "fixed" && definition.defaultQueryPort !== undefined) {
+    return validatePort(definition.defaultQueryPort);
   }
   const queryPortOffset =
     (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort;

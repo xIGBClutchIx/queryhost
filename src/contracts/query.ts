@@ -6,6 +6,7 @@ import type {
   FiveMData,
   MinecraftBedrockData,
   MinecraftJavaData,
+  PalworldData,
   ProjectZomboidData,
   RedMData,
   RustData,
@@ -21,6 +22,7 @@ import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } fro
 export interface GameDataMap {
   readonly a2s: A2sData;
   readonly rust: RustData;
+  readonly palworld: PalworldData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
   readonly "minecraft-java": MinecraftJavaData;
@@ -33,6 +35,7 @@ export interface GameDataMap {
 export interface GameRawDataMap {
   readonly a2s: A2sRawData;
   readonly rust: A2sRawData;
+  readonly palworld: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
   readonly "minecraft-java": never;

@@ -40,6 +40,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### palworld
+
+> `readonly` **palworld**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: [`A2sRawData`](A2sRawData.md)
