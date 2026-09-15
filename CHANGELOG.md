@@ -8,6 +8,7 @@ QueryHost records user-visible package changes in this file.
 
 - RedM queries through the shared Cfx FXServer HTTP endpoints, with typed server data, player lists, and game-specific source provenance.
 - Satisfactory dedicated-server queries using the authentication-free lightweight UDP state and optional HTTPS health APIs.
+- Direct Vintage Story server queries with stock-server liveness detection and typed richer status data when the server provides it.
 
 ## [1.1.0] - 2026-09-12
 

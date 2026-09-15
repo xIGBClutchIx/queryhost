@@ -73,4 +73,5 @@ export type {
   SatisfactoryRawData,
   SatisfactoryServerState,
   SatisfactorySubState,
+  VintageStoryData,
 } from "./contracts/games.js";

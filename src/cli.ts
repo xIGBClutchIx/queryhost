@@ -24,6 +24,7 @@ Examples:
   queryhost palworld play.example.com 8211
   queryhost mc play.example.com 25565
   queryhost satisfactory play.example.com 7777
+  queryhost vs play.example.com 42420
   queryhost rust play.example.com --mode summary
   npm run query -- rust play.example.com 28015 --timeout 3000
 

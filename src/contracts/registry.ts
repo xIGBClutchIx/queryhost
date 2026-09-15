@@ -42,6 +42,7 @@ export const GAME_IDS: readonly [
   "fivem",
   "redm",
   "satisfactory",
+  "vintage-story",
 ] = [
   "a2s",
   "rust",
@@ -53,6 +54,7 @@ export const GAME_IDS: readonly [
   "fivem",
   "redm",
   "satisfactory",
+  "vintage-story",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -75,6 +77,8 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   "five-m": "fivem",
   "red-m": "redm",
   rdr3: "redm",
+  vintagestory: "vintage-story",
+  vs: "vintage-story",
 });
 
 /**
@@ -216,6 +220,20 @@ export const GAME_REGISTRY: GameRegistry = {
     capabilities: {
       summary: "supported",
       players: "unsupported",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "vintage-story": {
+    id: "vintage-story",
+    name: "Vintage Story",
+    defaultPort: 42420,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",

@@ -24,6 +24,8 @@ import { parseMinecraftStatusResponse } from "../../src/protocols/minecraft-java
 import { SatisfactoryProtocolError } from "../../src/protocols/satisfactory/errors.js";
 import { parseSatisfactoryState } from "../../src/protocols/satisfactory/lightweight.js";
 import { parseSatisfactoryHealth } from "../../src/protocols/satisfactory/query.js";
+import { VintageStoryProtocolError } from "../../src/protocols/vintage-story/errors.js";
+import { parseVintageStoryQueryResponse } from "../../src/protocols/vintage-story/query.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -131,6 +133,17 @@ describe("bounded parser properties", (): void => {
             parse(data);
           }, SatisfactoryProtocolError);
         }
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Vintage Story frames to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(bytes, (data): void => {
+        acceptsOnlyStableFailure((): void => {
+          parseVintageStoryQueryResponse(data);
+        }, VintageStoryProtocolError);
       }),
       PROPERTY_OPTIONS,
     );

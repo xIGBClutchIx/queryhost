@@ -112,6 +112,18 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### vintagestory
+
+> `readonly` **vintagestory**: `"vintage-story"`
+
+***
+
+### vs
+
+> `readonly` **vs**: `"vintage-story"`
+
+***
+
 ### zomboid
 
 > `readonly` **zomboid**: `"project-zomboid"`

@@ -41,7 +41,8 @@ export type QuerySourceName =
   | "redm-dynamic"
   | "redm-players"
   | "satisfactory-lightweight"
-  | "satisfactory-health";
+  | "satisfactory-health"
+  | "vintage-story-query";
 
 /** Outcome of an individual source, independent from the overall query result. */
 export type QuerySourceStatus =

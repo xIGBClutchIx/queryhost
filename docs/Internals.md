@@ -39,6 +39,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `protocols/cfx/` owns the shared FXServer fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `protocols/satisfactory/` owns Lightweight Query framing and the fixed HTTPS HealthCheck request and response schema.
+- `protocols/vintage-story/` owns the direct TCP query packet, frame inspection, strict protobuf-compatible decoding, and stock-server liveness acknowledgement.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -139,6 +140,14 @@ JSON bodies have endpoint byte limits plus depth, node, collection, key, and str
 HTTP 404 is `unsupported`, transport and other HTTP failures retain their specific source status, and both `Nope` and the server's current `Nope.` body are explicit `blocked` outcomes. A confirmed empty resources, variables, or players collection remains empty; a failed or blocked endpoint omits its fields. Any usable endpoint produces a successful result, with warnings and `partial: true` when another requested endpoint failed. If every requested endpoint fails, the query fails after all source reports are preserved.
 
 Primary references: [Cfx vanilla FXServer setup](https://docs.fivem.net/docs/server-manual/setting-up-a-server-vanilla/), [Cfx server commands](https://docs.fivem.net/docs/server-manual/server-commands/), and the [FXServer HTTP handler](https://github.com/citizenfx/fivem/blob/master/code/components/citizen-server-impl/src/InfoHttpHandler.cpp).
+
+## Vintage Story query invariants
+
+Vintage Story sends the protocol's fixed eight-byte empty `ServerQuery` request directly to TCP 42420 by default, or to the caller's validated `port`/`queryPort`. The game and query port are the same. Every address attempt uses only the immutable addresses returned by target validation; the profile does not consult the master server, follow response-directed destinations, or accept a caller-provided URL.
+
+Responses use the game's four-byte big-endian frame length. Compressed frames, trailing bytes, non-canonical varints, duplicate known fields, invalid UTF-8, impossible player counts, and responses above 8,192 bytes fail deterministically. Unknown protobuf-compatible fields are skipped only within the validated frame and bounded wire representation.
+
+Current stock 1.22 servers return the exact protocol acknowledgement `Query complete` to an unauthenticated direct query. That response confirms protocol liveness but no metadata, so the public result sets `data.response` to `liveness` and leaves name, version, player counts, mode, MOTD, and password state omitted. Servers that implement the official `ServerQueryAnswer` schema produce `data.response: "status"`; only fields present in that answer are normalized. These behaviors were verified against the official 1.22.7 server archive and the official server configuration documentation, which specifies TCP and UDP port 42420.
 
 ## Minecraft Java SLP invariants
 

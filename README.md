@@ -25,6 +25,7 @@ The current source tree contains the package foundation and supported profiles:
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
 - concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 - Satisfactory lightweight UDP status with optional authentication-free HTTPS health enrichment
+- direct Vintage Story TCP queries with stock-server liveness detection and typed richer status responses
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
 The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
@@ -71,6 +72,8 @@ Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by def
 
 FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by default. In `full` mode, their fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce game-specific partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
+Vintage Story uses its normal TCP game port, 42420 by default. Current stock servers acknowledge the direct status request without disclosing metadata, producing `data.response: "liveness"`; compatible servers may return the protocol's richer status answer with name, MOTD, player counts, mode, password state, and version. QueryHost connects only to the caller's validated, pinned target and does not consult the public server list or another central service.
+
 Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
@@ -91,6 +94,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `fivem`             | `five-m`                                                     |
 | `redm`              | `red-m`, `rdr3`                                              |
 | `satisfactory`      | —                                                            |
+| `vintage-story`     | `vintagestory`, `vs`                                         |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both expose the complete untouched Rules map under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
 
@@ -117,6 +121,7 @@ queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120
 queryhost redm play.example.com 30120
 queryhost satisfactory play.example.com 7777
+queryhost vs play.example.com 42420
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

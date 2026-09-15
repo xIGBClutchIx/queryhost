@@ -31,6 +31,7 @@ import {
   type SevenDaysToDiePlayer,
   type SatisfactoryData,
   type SatisfactoryRawData,
+  type VintageStoryData,
 } from "queryhost";
 
 expectType<
@@ -45,6 +46,7 @@ expectType<
     "fivem",
     "redm",
     "satisfactory",
+    "vintage-story",
   ]
 >(GAME_IDS);
 
@@ -87,6 +89,7 @@ expectType<Promise<QueryResult<"redm">>>(query({ game: "rdr3", host: "play.examp
 expectType<Promise<QueryResult<"satisfactory">>>(
   query({ game: "satisfactory", host: "play.example.com" }),
 );
+expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -96,6 +99,7 @@ expectType<"rust">(getGameDefinition("rust").id);
 expectType<"project-zomboid">(getGameDefinition("pz").id);
 expectType<"minecraft-java">(getGameDefinition("minecraft").id);
 expectType<"7-days-to-die">(canonicalGameId("7d2d"));
+expectType<"vintage-story">(canonicalGameId("vintagestory"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
 expectType<number | undefined>(getGameDefinition("minecraft-java").defaultPort);
@@ -150,6 +154,9 @@ if (dynamicResult.ok) {
       expectType<SatisfactoryData>(dynamicResult.data);
       expectType<SatisfactoryRawData | undefined>(dynamicResult.rawData);
       break;
+    case "vintage-story":
+      expectType<VintageStoryData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -203,6 +210,9 @@ expectType<"healthy" | "slow" | undefined>(dataMap.satisfactory.health);
 expectType<string>(rawDataMap.satisfactory.serverFlags);
 expectType<number | undefined>(rawDataMap.satisfactory.subStates[0]?.version);
 expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData);
+expectType<VintageStoryData>(dataMap["vintage-story"]);
+expectType<"liveness" | "status">(dataMap["vintage-story"].response);
+expectType<string | undefined>(dataMap["vintage-story"].motd);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);

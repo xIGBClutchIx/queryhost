@@ -58,6 +58,9 @@ import { queryRedMProfile } from "../profiles/redm.js";
 import { querySatisfactoryProfile } from "../profiles/satisfactory.js";
 import type { SatisfactoryQueryDependencies } from "../protocols/satisfactory/query.js";
 import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
+import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
+import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
+import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -76,6 +79,7 @@ export interface QueryDependencies {
   readonly fivem?: CfxQueryDependencies;
   readonly redm?: CfxQueryDependencies;
   readonly satisfactory?: SatisfactoryQueryDependencies;
+  readonly vintageStory?: VintageStoryQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -95,7 +99,8 @@ type ImplementedGame =
   | "minecraft-bedrock"
   | "fivem"
   | "redm"
-  | "satisfactory";
+  | "satisfactory"
+  | "vintage-story";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -220,6 +225,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "satisfactory",
     ["satisfactory-lightweight", "satisfactory-health"],
     satisfactoryProfileRunner,
+  ),
+  "vintage-story": createProfileRunner(
+    "vintage-story",
+    ["vintage-story-query"],
+    vintageStoryProfileRunner,
   ),
 });
 
@@ -391,6 +401,19 @@ async function satisfactoryProfileRunner(
   });
 }
 
+async function vintageStoryProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"vintage-story">> {
+  return queryVintageStoryProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    observer: options.observer,
+    ...(options.dependencies.vintageStory === undefined
+      ? {}
+      : { query: options.dependencies.vintageStory }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -444,6 +467,10 @@ function udpErrorSource(trace: SourceTrace): QuerySourceName {
   return trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info";
 }
 
+function tcpErrorSource(trace: SourceTrace): QuerySourceName {
+  return trace.started.has("vintage-story-query") ? "vintage-story-query" : "minecraft-slp";
+}
+
 function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined {
   if (error instanceof TargetResolutionError) {
     return { code: error.code, message: error.message };
@@ -456,7 +483,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     };
   }
   if (error instanceof TcpTransportError) {
-    return { code: error.code, message: error.message, source: "minecraft-slp" };
+    return { code: error.code, message: error.message, source: tcpErrorSource(trace) };
   }
   if (error instanceof A2sProtocolError) {
     return a2sProtocolError(error);
@@ -466,6 +493,13 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof MinecraftBedrockProtocolError) {
     return minecraftBedrockProtocolError(error);
+  }
+  if (error instanceof VintageStoryProtocolError) {
+    return {
+      code: error.code,
+      message: error.message,
+      source: "vintage-story-query",
+    };
   }
   if (error instanceof CfxProfileError) {
     return error.queryError;

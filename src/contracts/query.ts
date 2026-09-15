@@ -13,6 +13,7 @@ import type {
   SevenDaysToDieData,
   SatisfactoryData,
   SatisfactoryRawData,
+  VintageStoryData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -32,6 +33,7 @@ export interface GameDataMap {
   readonly fivem: FiveMData;
   readonly redm: RedMData;
   readonly satisfactory: SatisfactoryData;
+  readonly "vintage-story": VintageStoryData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -46,6 +48,7 @@ export interface GameRawDataMap {
   readonly fivem: never;
   readonly redm: never;
   readonly satisfactory: SatisfactoryRawData;
+  readonly "vintage-story": never;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -71,6 +74,8 @@ export interface GameAliasMap {
   readonly "five-m": "fivem";
   readonly "red-m": "redm";
   readonly rdr3: "redm";
+  readonly vintagestory: "vintage-story";
+  readonly vs: "vintage-story";
 }
 
 /** Accepted non-canonical game identifier. */
