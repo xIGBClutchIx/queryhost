@@ -48,6 +48,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### redm
+
+> `readonly` **redm**: [`RedMData`](RedMData.md)
+
+***
+
 ### rust
 
 > `readonly` **rust**: [`RustData`](RustData.md)

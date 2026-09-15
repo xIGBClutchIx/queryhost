@@ -18,6 +18,8 @@ import {
   type MinecraftJavaData,
   type ProjectZomboidData,
   type ProjectZomboidPlayer,
+  type RedMData,
+  type RedMPlayer,
   type QueryError,
   type QueryInput,
   type QueryResult,
@@ -36,6 +38,7 @@ expectType<
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
+    "redm",
   ]
 >(GAME_IDS);
 
@@ -72,6 +75,8 @@ expectType<Promise<QueryResult<"minecraft-bedrock">>>(
   query({ game: "mcbe", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"redm">>>(query({ game: "red-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"redm">>>(query({ game: "rdr3", host: "play.example.com" }));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -125,6 +130,9 @@ if (dynamicResult.ok) {
     case "fivem":
       expectType<FiveMData>(dynamicResult.data);
       break;
+    case "redm":
+      expectType<RedMData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -163,6 +171,10 @@ expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables
 expectType<readonly FiveMPlayer[] | undefined>(dataMap.fivem.players);
 expectType<string | undefined>(dataMap.fivem.gameType);
 expectType<boolean | undefined>(dataMap.fivem.oneSyncEnabled);
+expectType<RedMData>(dataMap.redm);
+expectType<readonly RedMPlayer[] | undefined>(dataMap.redm.players);
+expectType<readonly string[] | undefined>(dataMap.redm.resources);
+expectType<Readonly<Record<string, string>> | undefined>(dataMap.redm.variables);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);
@@ -172,3 +184,8 @@ expectType<number | undefined>(fivemPlayer.ping);
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);
 expectType<number>(rustPlayer.durationSeconds);
+
+declare const redmPlayer: RedMPlayer;
+expectType<number>(redmPlayer.id);
+expectType<string>(redmPlayer.name);
+expectType<number | undefined>(redmPlayer.ping);

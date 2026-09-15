@@ -7,11 +7,12 @@ import { parseA2sPlayerPacket } from "../../src/protocols/a2s/player.js";
 import { parseA2sRulesPacket } from "../../src/protocols/a2s/rules.js";
 import { isA2sResponseComplete, reconstructA2sResponse } from "../../src/protocols/a2s/split.js";
 import {
-  FiveMEndpointError,
-  parseFiveMDynamic,
-  parseFiveMInfo,
-  parseFiveMPlayers,
-} from "../../src/protocols/fivem/query.js";
+  CfxEndpointError,
+  parseCfxDynamic,
+  parseCfxInfo,
+  parseCfxPlayers,
+} from "../../src/protocols/cfx/query.js";
+import { FIVEM_ENDPOINTS } from "../../src/profiles/fivem.js";
 import { MinecraftBedrockProtocolError } from "../../src/protocols/minecraft-bedrock/errors.js";
 import { parseMinecraftBedrockPong } from "../../src/protocols/minecraft-bedrock/ping.js";
 import { MinecraftJavaProtocolError } from "../../src/protocols/minecraft-java/errors.js";
@@ -103,13 +104,13 @@ describe("bounded parser properties", (): void => {
     );
   });
 
-  it("reduces arbitrary FiveM bodies to stable endpoint errors", (): void => {
+  it("reduces arbitrary Cfx bodies to stable endpoint errors", (): void => {
     fc.assert(
       fc.property(bytes, (data): void => {
-        for (const parse of [parseFiveMInfo, parseFiveMDynamic, parseFiveMPlayers]) {
+        for (const parse of [parseCfxInfo, parseCfxDynamic, parseCfxPlayers]) {
           acceptsOnlyStableFailure((): void => {
-            parse(data);
-          }, FiveMEndpointError);
+            parse(data, FIVEM_ENDPOINTS);
+          }, CfxEndpointError);
         }
       }),
       PROPERTY_OPTIONS,

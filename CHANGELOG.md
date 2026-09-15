@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- RedM queries through the shared Cfx FXServer HTTP endpoints, with typed server data, player lists, and game-specific source provenance.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added

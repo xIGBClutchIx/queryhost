@@ -22,6 +22,9 @@ const { GAME_IDS, GAME_REGISTRY, canonicalGameId } = queryhost;
 if (!GAME_IDS.includes("fivem")) {
   throw new Error("The packed JavaScript entry point omitted FiveM.");
 }
+if (!GAME_IDS.includes("redm") || GAME_REGISTRY.redm.defaultPort !== 30_120) {
+  throw new Error("The packed JavaScript entry point omitted RedM metadata.");
+}
 if (GAME_REGISTRY["minecraft-java"].defaultPort !== 25_565) {
   throw new Error("The packed registry returned the wrong Minecraft Java port.");
 }

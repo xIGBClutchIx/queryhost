@@ -37,7 +37,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 - `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
-- `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
+- `protocols/cfx/` owns the shared FXServer fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -126,13 +126,17 @@ One fixed HTTP exchange connects directly to an address already present in a pin
 
 The transport uses a non-redirecting platform request and returns every valid HTTP status to the protocol. It asks for identity encoding, caps both declared and streamed response size at the protocol's limit, rejects mismatched content lengths, and destroys the response and request exactly once on success, failure, timeout, or cancellation. A protocol receives copied bytes, status, RTT, and pinned destination facts; it remains responsible for status and body interpretation.
 
-## FiveM HTTP profile invariants
+## Cfx HTTP profile invariants
 
-FiveM resolves and pins the caller's host on TCP port 30120 by default. Full mode starts `info.json`, `dynamic.json`, and `players.json` concurrently with separate child budgets against the same selected address. If none succeeds, the complete three-source set may be retried on the next pinned address; once any endpoint succeeds, failed endpoints are not retried elsewhere, preventing one result from merging different server instances. Summary mode requests only `dynamic.json` and records the other sources as `not-requested`.
+FiveM and RedM resolve and pin the caller's host on TCP port 30120 by default. Cfx's official setup guide configures the same FXServer binary for RedM with `gamename rdr3` and binds its TCP and UDP endpoints to 30120. The shared FXServer HTTP handler owns `info.json`, `dynamic.json`, and `players.json`; the server-command documentation also defines their common `sv_requestParanoia` blocking behavior. The protocol and orchestration modules therefore contain no game-ID branches: thin profile definitions provide only the caller-facing game name and distinct source identities.
+
+Full mode starts all three endpoints concurrently with separate child budgets against the same selected address. If none succeeds, the complete three-source set may be retried on the next pinned address; once any endpoint succeeds, failed endpoints are not retried elsewhere, preventing one result from merging different server instances. Summary mode requests only `dynamic.json` and records the other sources as `not-requested`.
 
 JSON bodies have endpoint byte limits plus depth, node, collection, key, and string limits. `info.json` supplies the server software identity, resources, server-info variables, OneSync state, and enhanced-host flag. `dynamic.json` supplies the normalized name, map, game type, and player counts. `players.json` supplies bounded public player IDs, names, and pings. Unknown fields are ignored only after the complete document satisfies the shared structural budget.
 
 HTTP 404 is `unsupported`, transport and other HTTP failures retain their specific source status, and both `Nope` and the server's current `Nope.` body are explicit `blocked` outcomes. A confirmed empty resources, variables, or players collection remains empty; a failed or blocked endpoint omits its fields. Any usable endpoint produces a successful result, with warnings and `partial: true` when another requested endpoint failed. If every requested endpoint fails, the query fails after all source reports are preserved.
+
+Primary references: [Cfx vanilla FXServer setup](https://docs.fivem.net/docs/server-manual/setting-up-a-server-vanilla/), [Cfx server commands](https://docs.fivem.net/docs/server-manual/server-commands/), and the [FXServer HTTP handler](https://github.com/citizenfx/fivem/blob/master/code/components/citizen-server-impl/src/InfoHttpHandler.cpp).
 
 ## Minecraft Java SLP invariants
 

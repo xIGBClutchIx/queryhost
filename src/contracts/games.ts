@@ -145,21 +145,33 @@ export interface MinecraftBedrockData {
   readonly advertisedIpv6Port?: number;
 }
 
-/** One player reported by FiveM's fixed players endpoint. */
-export interface FiveMPlayer {
+/** One player reported by a Cfx FXServer fixed players endpoint. */
+export interface CfxPlayer {
   readonly id: number;
   readonly name: string;
   readonly ping?: number;
 }
 
-/** FiveM-specific data merged from its fixed JSON endpoints. */
-export interface FiveMData {
+/** Data shared by Cfx FXServer games and merged from their fixed JSON endpoints. */
+export interface CfxData<P extends CfxPlayer = CfxPlayer> {
   /** Omitted when the resources endpoint is unavailable; an empty array means confirmed empty. */
   readonly resources?: readonly string[];
   readonly variables?: Readonly<Record<string, string>>;
   /** Omitted when the players endpoint is unavailable; an empty array means confirmed empty. */
-  readonly players?: readonly FiveMPlayer[];
+  readonly players?: readonly P[];
   readonly gameType?: string;
   readonly oneSyncEnabled?: boolean;
   readonly enhancedHostSupport?: boolean;
 }
+
+/** One player reported by FiveM's fixed players endpoint. */
+export interface FiveMPlayer extends CfxPlayer {}
+
+/** FiveM-specific data merged from its fixed JSON endpoints. */
+export interface FiveMData extends CfxData<FiveMPlayer> {}
+
+/** One player reported by RedM's fixed players endpoint. */
+export interface RedMPlayer extends CfxPlayer {}
+
+/** RedM-specific data merged from its fixed JSON endpoints. */
+export interface RedMData extends CfxData<RedMPlayer> {}

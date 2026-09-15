@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / FiveMPlayer
+[queryhost](../README.md) / RedMPlayer
 
-# Interface: FiveMPlayer
+# Interface: RedMPlayer
 
-One player reported by FiveM's fixed players endpoint.
+One player reported by RedM's fixed players endpoint.
 
 ## Extends
 

@@ -6,7 +6,7 @@ QueryHost is a game-server query engine with correct protocols, explicit source 
 
 ## Status
 
-Version 1.1.0 contains the package foundation and current supported profiles:
+The current source tree contains the package foundation and supported profiles:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
@@ -23,7 +23,7 @@ Version 1.1.0 contains the package foundation and current supported profiles:
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
 - Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
-- concurrent FiveM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
+- concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
 The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
@@ -66,7 +66,7 @@ Minecraft Java performs optional SRV discovery followed by one required Server L
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
 
-FiveM uses HTTP port 30120 by default. In `full` mode, its fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
+FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by default. In `full` mode, their fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce game-specific partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
@@ -83,6 +83,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
 | `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
 | `fivem`             | `five-m`                                                     |
+| `redm`              | `red-m`, `rdr3`                                              |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both expose the complete untouched Rules map under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
 
@@ -106,6 +107,7 @@ queryhost 7dtd play.example.com 26900
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120
+queryhost redm play.example.com 30120
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.
