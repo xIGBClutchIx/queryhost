@@ -37,6 +37,7 @@ export const GAME_IDS: readonly [
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "vintage-story",
 ] = [
   "a2s",
   "rust",
@@ -45,6 +46,7 @@ export const GAME_IDS: readonly [
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "vintage-story",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -65,6 +67,8 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   "mc-bedrock": "minecraft-bedrock",
   "minecraft-bedrock-edition": "minecraft-bedrock",
   "five-m": "fivem",
+  vintagestory: "vintage-story",
+  vs: "vintage-story",
 });
 
 /**
@@ -166,6 +170,20 @@ export const GAME_REGISTRY: GameRegistry = {
       mods: "unsupported",
       plugins: "unsupported",
       resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+  "vintage-story": {
+    id: "vintage-story",
+    name: "Vintage Story",
+    defaultPort: 42420,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
       srv: "unsupported",
     },
   },

@@ -51,3 +51,9 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### rust
 
 > `readonly` **rust**: [`RustData`](RustData.md)
+
+***
+
+### vintage-story
+
+> `readonly` **vintage-story**: [`VintageStoryData`](VintageStoryData.md)

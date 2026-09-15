@@ -34,6 +34,16 @@ export interface A2sData {
   readonly players?: readonly A2sPlayer[];
 }
 
+/** Vintage Story-specific fields disclosed by a server query answer. */
+export interface VintageStoryData {
+  /** Whether the server returned only stock liveness or the richer status schema. */
+  readonly response: "liveness" | "status";
+  /** Server message of the day; omitted when the server only confirms liveness. */
+  readonly motd?: string;
+  /** World play style or game mode advertised by the server. */
+  readonly gameMode?: string;
+}
+
 /** One player reported by Rust's optional A2S Player source. */
 export interface RustPlayer {
   /** Protocol list index supplied by the server. */

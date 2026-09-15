@@ -34,6 +34,7 @@
 - [ServerPlayers](interfaces/ServerPlayers.md)
 - [SevenDaysToDieData](interfaces/SevenDaysToDieData.md)
 - [SevenDaysToDiePlayer](interfaces/SevenDaysToDiePlayer.md)
+- [VintageStoryData](interfaces/VintageStoryData.md)
 
 ## Type Aliases
 

@@ -33,6 +33,7 @@ describe("game registry", () => {
       "minecraft-java",
       "minecraft-bedrock",
       "fivem",
+      "vintage-story",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -106,6 +107,14 @@ describe("game registry", () => {
         rules: "conditional",
       },
     });
+    expect(getGameDefinition("vintage-story")).toMatchObject({
+      defaultPort: 42_420,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        rules: "unsupported",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {
@@ -131,6 +140,8 @@ describe("game registry", () => {
       "mc-bedrock": "minecraft-bedrock",
       "minecraft-bedrock-edition": "minecraft-bedrock",
       "five-m": "fivem",
+      vintagestory: "vintage-story",
+      vs: "vintage-story",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);
@@ -149,6 +160,7 @@ describe("game registry", () => {
     }
     expect(getGameDefinition("zomboid")).toBe(GAME_REGISTRY["project-zomboid"]);
     expect(getGameDefinition("mcbe")).toBe(GAME_REGISTRY["minecraft-bedrock"]);
+    expect(getGameDefinition("vs")).toBe(GAME_REGISTRY["vintage-story"]);
   });
 
   it("lists games in the documented registry order", () => {

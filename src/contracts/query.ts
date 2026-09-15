@@ -9,6 +9,7 @@ import type {
   ProjectZomboidData,
   RustData,
   SevenDaysToDieData,
+  VintageStoryData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -25,6 +26,7 @@ export interface GameDataMap {
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
+  readonly "vintage-story": VintageStoryData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -36,6 +38,7 @@ export interface GameRawDataMap {
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;
+  readonly "vintage-story": never;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -59,6 +62,8 @@ export interface GameAliasMap {
   readonly "mc-bedrock": "minecraft-bedrock";
   readonly "minecraft-bedrock-edition": "minecraft-bedrock";
   readonly "five-m": "fivem";
+  readonly vintagestory: "vintage-story";
+  readonly vs: "vintage-story";
 }
 
 /** Accepted non-canonical game identifier. */

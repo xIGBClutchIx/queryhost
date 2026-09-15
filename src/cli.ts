@@ -21,6 +21,7 @@ Examples:
   queryhost a2s play.example.com 27015
   queryhost rust play.example.com 28015
   queryhost mc play.example.com 25565
+  queryhost vs play.example.com 42420
   queryhost rust play.example.com --mode summary
   npm run query -- rust play.example.com 28015 --timeout 3000
 

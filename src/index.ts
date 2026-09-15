@@ -62,4 +62,5 @@ export type {
   RustPlayer,
   SevenDaysToDieData,
   SevenDaysToDiePlayer,
+  VintageStoryData,
 } from "./contracts/games.js";

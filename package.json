@@ -6,7 +6,8 @@
     "game-server",
     "minecraft",
     "source-query",
-    "typescript"
+    "typescript",
+    "vintage-story"
   ],
   "homepage": "https://query.host/",
   "bugs": {

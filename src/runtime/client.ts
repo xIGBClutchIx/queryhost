@@ -52,6 +52,9 @@ import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
 import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
+import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
+import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
+import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -68,6 +71,7 @@ export interface QueryDependencies {
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
   readonly fivem?: FiveMQueryDependencies;
+  readonly vintageStory?: VintageStoryQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -84,7 +88,8 @@ type ImplementedGame =
   | "7-days-to-die"
   | "minecraft-java"
   | "minecraft-bedrock"
-  | "fivem";
+  | "fivem"
+  | "vintage-story";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -194,6 +199,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "fivem",
     ["fivem-info", "fivem-dynamic", "fivem-players"],
     fivemProfileRunner,
+  ),
+  "vintage-story": createProfileRunner(
+    "vintage-story",
+    ["vintage-story-query"],
+    vintageStoryProfileRunner,
   ),
 });
 
@@ -337,6 +347,19 @@ async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfi
   });
 }
 
+async function vintageStoryProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"vintage-story">> {
+  return queryVintageStoryProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    observer: options.observer,
+    ...(options.dependencies.vintageStory === undefined
+      ? {}
+      : { query: options.dependencies.vintageStory }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -387,6 +410,10 @@ function udpErrorSource(trace: SourceTrace): QuerySourceName {
   return trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info";
 }
 
+function tcpErrorSource(trace: SourceTrace): QuerySourceName {
+  return trace.started.has("vintage-story-query") ? "vintage-story-query" : "minecraft-slp";
+}
+
 function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined {
   if (error instanceof TargetResolutionError) {
     return { code: error.code, message: error.message };
@@ -399,7 +426,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     };
   }
   if (error instanceof TcpTransportError) {
-    return { code: error.code, message: error.message, source: "minecraft-slp" };
+    return { code: error.code, message: error.message, source: tcpErrorSource(trace) };
   }
   if (error instanceof A2sProtocolError) {
     return a2sProtocolError(error);
@@ -409,6 +436,13 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof MinecraftBedrockProtocolError) {
     return minecraftBedrockProtocolError(error);
+  }
+  if (error instanceof VintageStoryProtocolError) {
+    return {
+      code: error.code,
+      message: error.message,
+      source: "vintage-story-query",
+    };
   }
   if (error instanceof FiveMProfileError) {
     return error.queryError;

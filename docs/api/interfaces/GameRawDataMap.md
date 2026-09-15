@@ -49,3 +49,9 @@ Associates implemented games with their untouched protocol payloads.
 ### rust
 
 > `readonly` **rust**: [`A2sRawData`](A2sRawData.md)
+
+***
+
+### vintage-story
+
+> `readonly` **vintage-story**: `never`

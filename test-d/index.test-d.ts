@@ -25,6 +25,7 @@ import {
   type RustPlayer,
   type SevenDaysToDieData,
   type SevenDaysToDiePlayer,
+  type VintageStoryData,
 } from "queryhost";
 
 expectType<
@@ -36,6 +37,7 @@ expectType<
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
+    "vintage-story",
   ]
 >(GAME_IDS);
 
@@ -72,6 +74,7 @@ expectType<Promise<QueryResult<"minecraft-bedrock">>>(
   query({ game: "mcbe", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -81,6 +84,7 @@ expectType<"rust">(getGameDefinition("rust").id);
 expectType<"project-zomboid">(getGameDefinition("pz").id);
 expectType<"minecraft-java">(getGameDefinition("minecraft").id);
 expectType<"7-days-to-die">(canonicalGameId("7d2d"));
+expectType<"vintage-story">(canonicalGameId("vintagestory"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
 expectType<number | undefined>(getGameDefinition("minecraft-java").defaultPort);
@@ -125,6 +129,9 @@ if (dynamicResult.ok) {
     case "fivem":
       expectType<FiveMData>(dynamicResult.data);
       break;
+    case "vintage-story":
+      expectType<VintageStoryData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -163,6 +170,9 @@ expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables
 expectType<readonly FiveMPlayer[] | undefined>(dataMap.fivem.players);
 expectType<string | undefined>(dataMap.fivem.gameType);
 expectType<boolean | undefined>(dataMap.fivem.oneSyncEnabled);
+expectType<VintageStoryData>(dataMap["vintage-story"]);
+expectType<"liveness" | "status">(dataMap["vintage-story"].response);
+expectType<string | undefined>(dataMap["vintage-story"].motd);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);

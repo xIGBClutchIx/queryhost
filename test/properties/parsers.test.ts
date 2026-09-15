@@ -20,6 +20,8 @@ import {
   parseMinecraftQueryStat,
 } from "../../src/protocols/minecraft-java/query.js";
 import { parseMinecraftStatusResponse } from "../../src/protocols/minecraft-java/status.js";
+import { VintageStoryProtocolError } from "../../src/protocols/vintage-story/errors.js";
+import { parseVintageStoryQueryResponse } from "../../src/protocols/vintage-story/query.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -111,6 +113,17 @@ describe("bounded parser properties", (): void => {
             parse(data);
           }, FiveMEndpointError);
         }
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Vintage Story frames to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(bytes, (data): void => {
+        acceptsOnlyStableFailure((): void => {
+          parseVintageStoryQueryResponse(data);
+        }, VintageStoryProtocolError);
       }),
       PROPERTY_OPTIONS,
     );

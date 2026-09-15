@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- Direct Vintage Story server queries with stock-server liveness detection and typed richer status data when the server provides it.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added
