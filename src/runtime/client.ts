@@ -52,6 +52,9 @@ import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
 import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
+import { querySatisfactoryProfile } from "../profiles/satisfactory.js";
+import type { SatisfactoryQueryDependencies } from "../protocols/satisfactory/query.js";
+import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -68,6 +71,7 @@ export interface QueryDependencies {
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
   readonly fivem?: FiveMQueryDependencies;
+  readonly satisfactory?: SatisfactoryQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -84,7 +88,8 @@ type ImplementedGame =
   | "7-days-to-die"
   | "minecraft-java"
   | "minecraft-bedrock"
-  | "fivem";
+  | "fivem"
+  | "satisfactory";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -194,6 +199,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "fivem",
     ["fivem-info", "fivem-dynamic", "fivem-players"],
     fivemProfileRunner,
+  ),
+  satisfactory: createProfileRunner(
+    "satisfactory",
+    ["satisfactory-lightweight", "satisfactory-health"],
+    satisfactoryProfileRunner,
   ),
 });
 
@@ -337,6 +347,21 @@ async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfi
   });
 }
 
+async function satisfactoryProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"satisfactory">> {
+  return querySatisfactoryProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.satisfactory === undefined
+      ? {}
+      : { query: options.dependencies.satisfactory }),
+    ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -381,6 +406,9 @@ function minecraftBedrockProtocolError(error: MinecraftBedrockProtocolError): Qu
 }
 
 function udpErrorSource(trace: SourceTrace): QuerySourceName {
+  if (trace.started.has("satisfactory-lightweight")) {
+    return "satisfactory-lightweight";
+  }
   if (trace.started.has("minecraft-bedrock-raknet")) {
     return "minecraft-bedrock-raknet";
   }
@@ -412,6 +440,18 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof FiveMProfileError) {
     return error.queryError;
+  }
+  if (error instanceof SatisfactoryProtocolError) {
+    return {
+      code: error.code,
+      message:
+        error.code === "RESPONSE_TOO_LARGE"
+          ? "The Satisfactory response exceeded its size limit."
+          : error.code === "INVALID_INPUT"
+            ? "The Satisfactory query input is invalid."
+            : "The Satisfactory response was malformed.",
+      source: "satisfactory-lightweight",
+    };
   }
   if (error instanceof OutboundAttemptLimitError) {
     return {

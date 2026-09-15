@@ -24,6 +24,7 @@ QueryHost has one direct runtime dependency: `@foxglove/wasm-bz2` for bounded de
 | Minecraft Java    | Server List Ping          | DNS SRV discovery when applicable, UDP Query in full mode                           | `test/fixtures/minecraft-java`    |
 | Minecraft Bedrock | RakNet unconnected ping   | None                                                                                | `test/fixtures/minecraft-bedrock` |
 | FiveM             | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/fivem`             |
+| Satisfactory      | Lightweight UDP state     | HTTPS `HealthCheck` in full mode except while loading                               | `test/fixtures/satisfactory`      |
 
 Each advertised profile has typed public data, explicit registry capabilities and ports, deterministic merge tests, source provenance, bounded parser and transport behavior, target-safety coverage, successful source fixtures, and failure coverage for its applicable malformed, timeout, blocked, unsupported, skipped, and partial-result paths. Fixture READMEs identify synthetic or redacted provenance. Repository tests run profiles against fake transports and servers; the separately packed consumers verify the public package without adding a target-safety bypass.
 

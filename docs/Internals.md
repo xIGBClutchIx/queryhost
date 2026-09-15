@@ -33,11 +33,12 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `network/target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
-- `transports/http.ts` owns bounded, non-redirecting GET requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
+- `transports/http.ts` owns bounded, non-redirecting GET/POST requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 - `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
+- `protocols/satisfactory/` owns Lightweight Query framing and the fixed HTTPS HealthCheck request and response schema.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
@@ -122,7 +123,7 @@ Connection failure, write failure, early EOF, malformed framing, byte-limit exha
 
 ## Fixed HTTP transport invariants
 
-One fixed HTTP exchange connects directly to an address already present in a pinned target. The original normalized hostname is retained only for the HTTP `Host` header and, for HTTPS DNS names, TLS SNI. Protocols provide a fixed path consisting of one safe path segment; caller URLs, authorities, query strings, fragments, and redirect destinations are not accepted.
+One fixed HTTP exchange connects directly to an address already present in a pinned target. The original normalized hostname is retained only for the HTTP `Host` header and, for HTTPS DNS names, TLS SNI. Protocols provide a fixed path consisting only of safe path segments; caller URLs, authorities, query strings, fragments, and redirect destinations are not accepted.
 
 The transport uses a non-redirecting platform request and returns every valid HTTP status to the protocol. It asks for identity encoding, caps both declared and streamed response size at the protocol's limit, rejects mismatched content lengths, and destroys the response and request exactly once on success, failure, timeout, or cancellation. A protocol receives copied bytes, status, RTT, and pinned destination facts; it remains responsible for status and body interpretation.
 
@@ -157,6 +158,16 @@ The Bedrock profile sends one 33-byte unconnected ping to UDP 19132 by default, 
 The pong must echo the request timestamp and contain the exact RakNet offline-message magic, an unsigned server GUID, and an exact 16-bit payload length. Responses are limited to 2,048 bytes. Advertisement text must be valid UTF-8 and is split into at most 32 semicolon fields of at most 1,024 bytes each. `MCPE` and `MCEE` are the only accepted edition headers. Missing later fields remain omitted, bounded extra fields are ignored, and every present numeric field must use a canonical non-negative decimal representation within its field-specific range.
 
 The primary MOTD becomes `server.name` and `data.motd`; version and player counts are normalized under `server`. Edition, numeric protocol, game mode, decimal server ID, and advertised IPv4/IPv6 ports remain under `MinecraftBedrockData`. Advertised ports are informational because following untrusted response-directed destinations would cross the validated target boundary. RakNet is the profile's single required source, so timeout, malformed data, or transport failure returns a failed query rather than partial success.
+
+## Satisfactory Dedicated Server invariants
+
+Satisfactory resolves and pins one public destination on port 7777 by default. The required source is the version-1 Lightweight Query API over UDP. Poll cookies are random unsigned 64-bit correlation values; responses must echo the cookie and match the fixed magic, message type, version, terminator, exact packet length, bounded UTF-8 server name, known lifecycle state, and bounded substate collection. The parser retains the unsigned flag word as a decimal string, interprets only the documented modded bit, and discards future unknown substate IDs as required by the shipped protocol documentation.
+
+Full mode optionally sends the fixed `HealthCheck` JSON request to HTTPS `/api/v1` on the same pinned address that answered UDP. It never performs `PasswordlessLogin`, accepts a password or token, or invokes authenticated state and management functions. When lightweight status is `loading`, HTTPS is documented unavailable and remains `not-requested`; summary mode also skips it. Health failures preserve the required UDP result as partial with source-specific warnings.
+
+The server always uses TLS and generates a self-signed certificate when the operator does not install one. Because QueryHost has no interactive certificate-trust store, the Satisfactory health request explicitly disables certificate identity validation. TLS still encrypts the exchange, and direct connection to the already validated pinned address prevents DNS rebinding, but callers must not treat the health response as cryptographic server authentication. The transport exposes this as an explicit game-neutral certificate policy and otherwise retains fixed-path, no-redirect, deadline, body-size, and cleanup rules.
+
+Source: Coffee Stain's `CommunityResources/DedicatedServerAPIDocs.md`, mirrored by the Official Satisfactory Wiki's [Lightweight Query API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/Lightweight_Query_API) and [HTTPS API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/HTTPS_API) pages. The shipped document defines the same-port UDP and HTTPS protocols, port 7777 default, TLS/self-signed behavior, API availability, packet layout, and authentication requirements.
 
 ## Command-line invariants
 

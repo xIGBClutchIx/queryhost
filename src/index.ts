@@ -62,4 +62,9 @@ export type {
   RustPlayer,
   SevenDaysToDieData,
   SevenDaysToDiePlayer,
+  SatisfactoryData,
+  SatisfactoryHealth,
+  SatisfactoryRawData,
+  SatisfactoryServerState,
+  SatisfactorySubState,
 } from "./contracts/games.js";

@@ -90,6 +90,42 @@ describe("fixed-path HTTP transport", (): void => {
     expect(redirectedRequests).toBe(0);
   });
 
+  it("sends bounded POST bodies to multi-segment fixed paths", async (): Promise<void> => {
+    let receivedMethod: string | undefined;
+    let receivedContentType: string | undefined;
+    let receivedBody = "";
+    const fake = await startFakeHttpServer((request, response): void => {
+      receivedMethod = request.method;
+      receivedContentType = request.headers["content-type"];
+      request.setEncoding("utf8");
+      request.on("data", (chunk: string): void => {
+        receivedBody += chunk;
+      });
+      request.on("end", (): void => {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end("{}");
+      });
+    });
+    const selected = target(fake.port);
+    const scope = createExecutionContext({ timeoutMs: 500 });
+    await fixedHttpExchange({
+      scope,
+      target: selected,
+      address: firstAddress(selected),
+      protocol: "http",
+      path: "/api/v1",
+      maxResponseBytes: 64,
+      method: "POST",
+      body: new TextEncoder().encode('{"function":"HealthCheck"}'),
+      contentType: "application/json",
+    });
+    scope.close();
+
+    expect(receivedMethod).toBe("POST");
+    expect(receivedContentType).toBe("application/json");
+    expect(receivedBody).toBe('{"function":"HealthCheck"}');
+  });
+
   it("enforces declared, streamed, and mismatched body lengths", async (): Promise<void> => {
     const declared = await startFakeHttpServer((_request, response): void => {
       response.writeHead(200, { "Content-Length": "100" });
@@ -259,9 +295,65 @@ describe("fixed-path HTTP transport", (): void => {
     scope.close();
 
     expect(configuration).toMatchObject({
+      method: "GET",
       address: "127.0.0.1",
       hostHeader: "play.example.com",
       servername: "play.example.com",
+      rejectUnauthorized: true,
+    });
+  });
+
+  it("passes bounded POST data and an explicit TLS certificate policy", async (): Promise<void> => {
+    let configuration: HttpRequestConfiguration | undefined;
+    const dependencies: HttpTransportDependencies = {
+      createRequest(value, onResponse): HttpRequestAdapter {
+        configuration = value;
+        return {
+          onError(): void {},
+          end(): void {
+            onResponse({
+              statusCode: 200,
+              contentLength: 2,
+              onData(listener): void {
+                listener(new TextEncoder().encode("{}"));
+              },
+              onEnd(listener): void {
+                listener();
+              },
+              onError(): void {},
+              destroy(): void {},
+            });
+          },
+          destroy(): void {},
+        };
+      },
+      now: (): number => 0,
+    };
+    const selected = target(7777);
+    const body = new TextEncoder().encode('{"function":"HealthCheck"}');
+    const scope = createExecutionContext({ timeoutMs: 500 });
+    await fixedHttpExchange(
+      {
+        scope,
+        target: selected,
+        address: firstAddress(selected),
+        protocol: "https",
+        path: "/api/v1",
+        maxResponseBytes: 64,
+        method: "POST",
+        body,
+        contentType: "application/json",
+        tlsCertificatePolicy: "disabled",
+      },
+      dependencies,
+    );
+    scope.close();
+
+    expect(configuration).toMatchObject({
+      method: "POST",
+      body,
+      contentType: "application/json",
+      rejectUnauthorized: false,
     });
   });
 });

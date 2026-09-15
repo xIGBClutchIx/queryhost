@@ -36,7 +36,9 @@ export type QuerySourceName =
   | "minecraft-bedrock-raknet"
   | "fivem-info"
   | "fivem-dynamic"
-  | "fivem-players";
+  | "fivem-players"
+  | "satisfactory-lightweight"
+  | "satisfactory-health";
 
 /** Outcome of an individual source, independent from the overall query result. */
 export type QuerySourceStatus =

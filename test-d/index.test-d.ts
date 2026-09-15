@@ -25,6 +25,8 @@ import {
   type RustPlayer,
   type SevenDaysToDieData,
   type SevenDaysToDiePlayer,
+  type SatisfactoryData,
+  type SatisfactoryRawData,
 } from "queryhost";
 
 expectType<
@@ -36,6 +38,7 @@ expectType<
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
+    "satisfactory",
   ]
 >(GAME_IDS);
 
@@ -72,6 +75,9 @@ expectType<Promise<QueryResult<"minecraft-bedrock">>>(
   query({ game: "mcbe", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"satisfactory">>>(
+  query({ game: "satisfactory", host: "play.example.com" }),
+);
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -125,6 +131,10 @@ if (dynamicResult.ok) {
     case "fivem":
       expectType<FiveMData>(dynamicResult.data);
       break;
+    case "satisfactory":
+      expectType<SatisfactoryData>(dynamicResult.data);
+      expectType<SatisfactoryRawData | undefined>(dynamicResult.rawData);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -163,6 +173,14 @@ expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables
 expectType<readonly FiveMPlayer[] | undefined>(dataMap.fivem.players);
 expectType<string | undefined>(dataMap.fivem.gameType);
 expectType<boolean | undefined>(dataMap.fivem.oneSyncEnabled);
+expectType<SatisfactoryData>(dataMap.satisfactory);
+expectType<"idle" | "loading" | "playing">(dataMap.satisfactory.state);
+expectType<number>(dataMap.satisfactory.serverNetCl);
+expectType<boolean>(dataMap.satisfactory.modded);
+expectType<"healthy" | "slow" | undefined>(dataMap.satisfactory.health);
+expectType<string>(rawDataMap.satisfactory.serverFlags);
+expectType<number | undefined>(rawDataMap.satisfactory.subStates[0]?.version);
+expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);

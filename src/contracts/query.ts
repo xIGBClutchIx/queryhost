@@ -9,6 +9,8 @@ import type {
   ProjectZomboidData,
   RustData,
   SevenDaysToDieData,
+  SatisfactoryData,
+  SatisfactoryRawData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -25,6 +27,7 @@ export interface GameDataMap {
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
+  readonly satisfactory: SatisfactoryData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -36,6 +39,7 @@ export interface GameRawDataMap {
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;
+  readonly satisfactory: SatisfactoryRawData;
 }
 
 /** Every game identifier supported by the typed public contract. */

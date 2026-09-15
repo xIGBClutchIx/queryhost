@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- Satisfactory dedicated-server queries using the authentication-free lightweight UDP state and optional HTTPS health APIs.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added

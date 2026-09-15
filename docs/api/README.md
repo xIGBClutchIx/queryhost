@@ -30,6 +30,10 @@
 - [QueryWarning](interfaces/QueryWarning.md)
 - [RustData](interfaces/RustData.md)
 - [RustPlayer](interfaces/RustPlayer.md)
+- [SatisfactoryData](interfaces/SatisfactoryData.md)
+- [SatisfactoryHealth](interfaces/SatisfactoryHealth.md)
+- [SatisfactoryRawData](interfaces/SatisfactoryRawData.md)
+- [SatisfactorySubState](interfaces/SatisfactorySubState.md)
 - [ServerInfo](interfaces/ServerInfo.md)
 - [ServerPlayers](interfaces/ServerPlayers.md)
 - [SevenDaysToDieData](interfaces/SevenDaysToDieData.md)
@@ -51,6 +55,7 @@
 - [QuerySourceName](type-aliases/QuerySourceName.md)
 - [QuerySourceStatus](type-aliases/QuerySourceStatus.md)
 - [QueryWarningCode](type-aliases/QueryWarningCode.md)
+- [SatisfactoryServerState](type-aliases/SatisfactoryServerState.md)
 - [SupportLevel](type-aliases/SupportLevel.md)
 
 ## Variables
