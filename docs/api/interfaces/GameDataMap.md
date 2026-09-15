@@ -24,6 +24,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### dayz
+
+> `readonly` **dayz**: [`DayZData`](DayZData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)

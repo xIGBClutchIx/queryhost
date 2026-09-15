@@ -51,6 +51,7 @@ import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
+import { queryDayZProfile } from "../profiles/dayz.js";
 import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -82,6 +83,7 @@ type ImplementedGame =
   | "rust"
   | "project-zomboid"
   | "7-days-to-die"
+  | "dayz"
   | "minecraft-java"
   | "minecraft-bedrock"
   | "fivem";
@@ -179,6 +181,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "7-days-to-die",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(querySevenDaysToDieProfile),
+  ),
+  dayz: createProfileRunner(
+    "dayz",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryDayZProfile),
   ),
   "minecraft-java": createProfileRunner(
     "minecraft-java",

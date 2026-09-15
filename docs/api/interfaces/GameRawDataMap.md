@@ -22,6 +22,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### dayz
+
+> `readonly` **dayz**: [`DayZRawData`](DayZRawData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: `never`

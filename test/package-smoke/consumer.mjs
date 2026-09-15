@@ -25,6 +25,9 @@ if (!GAME_IDS.includes("fivem")) {
 if (GAME_REGISTRY["minecraft-java"].defaultPort !== 25_565) {
   throw new Error("The packed registry returned the wrong Minecraft Java port.");
 }
+if (GAME_REGISTRY.dayz.defaultQueryPort !== 2_305) {
+  throw new Error("The DayZ registry entry is missing its Steam query port.");
+}
 if (canonicalGameId("7d2d") !== "7-days-to-die") {
   throw new Error("The packed alias resolver returned the wrong canonical game.");
 }

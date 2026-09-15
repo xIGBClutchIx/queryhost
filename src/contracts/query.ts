@@ -3,6 +3,8 @@
 import type {
   A2sData,
   A2sRawData,
+  DayZData,
+  DayZRawData,
   FiveMData,
   MinecraftBedrockData,
   MinecraftJavaData,
@@ -22,6 +24,7 @@ export interface GameDataMap {
   readonly rust: RustData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
+  readonly dayz: DayZData;
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
@@ -33,6 +36,7 @@ export interface GameRawDataMap {
   readonly rust: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
+  readonly dayz: DayZRawData;
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;

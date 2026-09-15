@@ -30,6 +30,7 @@ describe("game registry", () => {
       "rust",
       "project-zomboid",
       "7-days-to-die",
+      "dayz",
       "minecraft-java",
       "minecraft-bedrock",
       "fivem",
@@ -76,6 +77,16 @@ describe("game registry", () => {
     expect(getGameDefinition("7-days-to-die")).toMatchObject({
       defaultPort: 26_900,
       capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
+    expect(getGameDefinition("dayz")).toMatchObject({
+      defaultPort: 2302,
+      defaultQueryPort: 2305,
+      capabilities: {
+        summary: "supported",
+        players: "unsupported",
+        rules: "conditional",
+        mods: "conditional",
+      },
     });
     expect(getGameDefinition("minecraft-java")).toMatchObject({
       defaultPort: 25_565,

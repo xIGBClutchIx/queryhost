@@ -3,6 +3,9 @@ import { expectAssignable, expectError, expectNotAssignable, expectType } from "
 import {
   type A2sData,
   type A2sPlayer,
+  type DayZData,
+  type DayZMod,
+  type DayZRawData,
   canonicalGameId,
   GAME_IDS,
   getGameDefinition,
@@ -33,6 +36,7 @@ expectType<
     "rust",
     "project-zomboid",
     "7-days-to-die",
+    "dayz",
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
@@ -58,6 +62,7 @@ expectType<Promise<QueryResult<"project-zomboid">>>(
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7-days-to-die", host: "play.example.com" }),
 );
+expectType<Promise<QueryResult<"dayz">>>(query({ game: "dayz", host: "play.example.com" }));
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7d2d", host: "play.example.com" }),
 );
@@ -116,6 +121,9 @@ if (dynamicResult.ok) {
     case "7-days-to-die":
       expectType<SevenDaysToDieData>(dynamicResult.data);
       break;
+    case "dayz":
+      expectType<DayZData>(dynamicResult.data);
+      break;
     case "minecraft-java":
       expectType<MinecraftJavaData>(dynamicResult.data);
       break;
@@ -142,6 +150,14 @@ expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid
 expectType<readonly string[] | undefined>(dataMap["project-zomboid"].mods);
 expectType<readonly SevenDaysToDiePlayer[] | undefined>(dataMap["7-days-to-die"].players);
 expectType<string | undefined>(dataMap["7-days-to-die"].currentServerTime);
+expectType<DayZData>(dataMap.dayz);
+expectType<readonly string[] | undefined>(dataMap.dayz.tags);
+expectType<boolean | undefined>(dataMap.dayz.dedicated);
+expectType<number | undefined>(dataMap.dayz.clientPort);
+expectType<readonly DayZMod[] | undefined>(dataMap.dayz.mods);
+expectType<string | undefined>(dataMap.dayz.mods?.[0]?.workshopId);
+expectType<Readonly<Record<string, string>>>(rawDataMap.dayz.rules);
+expectType<DayZRawData>(rawDataMap.dayz);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
 expectType<string | undefined>(dataMap["minecraft-java"].motd?.plain);
 expectType<number | undefined>(dataMap["minecraft-java"].protocolVersion);

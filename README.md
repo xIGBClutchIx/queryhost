@@ -6,7 +6,7 @@ QueryHost is a game-server query engine with correct protocols, explicit source 
 
 ## Status
 
-Version 1.1.0 contains the package foundation and current supported profiles:
+The current source contains the package foundation and supported profiles:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
@@ -16,7 +16,7 @@ Version 1.1.0 contains the package foundation and current supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
+- the public `query()` entry point and complete Rust, Project Zomboid, 7 Days to Die, and DayZ profiles over bounded A2S sources
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -58,7 +58,7 @@ if (result.ok) {
 
 `QueryResult` is a discriminated union. Check `ok` before reading `data` or `error`. A dynamic `GameId` can be narrowed with an exhaustive switch on `result.game`.
 
-Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
+Implemented A2S profiles default to `mode: "full"`: Info is required, then supported optional sources run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 
 Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Generic A2S has no default port: `port` is required and means the server's actual A2S query port. It returns common Info facts and Player data under `data`, with unchanged Rules under `rawData.rules`.
 
@@ -68,7 +68,7 @@ Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by def
 
 FiveM uses HTTP port 30120 by default. In `full` mode, its fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
-`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
 Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
@@ -80,11 +80,16 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `rust`              | —                                                            |
 | `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
 | `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `dayz`              | —                                                            |
 | `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
 | `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
 | `fivem`             | `five-m`                                                     |
 
-Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both expose the complete untouched Rules map under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
+Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
+
+DayZ uses required A2S Info and optional A2S Rules. It exposes ordered Info keywords plus validated direct Rules fields such as terrain, platform, dedicated state, connection port, and build/version values. Its bounded DayZ decoder also reassembles escaped server-browser metadata pages into a description, Steam Workshop mods, and signing-key names. Direct string-valued Rules remain available under `rawData.rules`; binary page records are represented by their typed decoded values instead of lossy strings. Malformed or undocumented values remain raw instead of being guessed. DayZ's A2S Player response is intentionally `unsupported`: Info still supplies confirmed aggregate player counts, but the profile does not present anonymous or malformed Player records as identities. DayZ's official [server configuration](https://community.bohemia.net/wiki/DayZ:Server_Configuration) documents its separately configured game and Steam query ports, while the official [server-browser source](https://github.com/BohemiaInteractive/DayZ-Script-Diff/blob/main/scripts/5_mission/gui/newui/serverbrowsermenu/serverbrowsermenunew.c) keeps both destinations distinct.
+
+Every named A2S profile exposes confirmed string Rules unchanged under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
 
 ## Command-line queries
 
@@ -98,6 +103,7 @@ The installed package also provides the same command as `queryhost`. It writes t
 
 ```bash
 queryhost a2s play.example.com 27015
+queryhost dayz play.example.com 2302 --mode full
 queryhost rust play.example.com 28015 --mode full --timeout 3000
 queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261

@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- DayZ dedicated-server queries with typed Info and Rules data, an explicit unsupported Player source, and separate game/query-port defaults.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added

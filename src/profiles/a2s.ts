@@ -15,6 +15,8 @@ import { queryA2sInfo, type A2sInfoQueryResult } from "../protocols/a2s/info.js"
 import type { A2sExchangeDependencies } from "../protocols/a2s/network.js";
 import {
   queryA2sOptionalSources,
+  type A2sOptionalSourcePolicy,
+  type A2sRulesQuery,
   type A2sOptionalSourcesResult,
 } from "../protocols/a2s/optional.js";
 
@@ -34,6 +36,12 @@ export interface A2sProfileOptions {
   readonly mode: QueryMode;
   readonly observer: A2sProfileObserver;
   readonly a2s?: A2sExchangeDependencies;
+  /** Profile-owned capability policy; omitted profiles query Player in full mode. */
+  readonly playerPolicy?: A2sOptionalSourcePolicy;
+  /** Profile-owned capability policy; omitted profiles query Rules in full mode. */
+  readonly rulesPolicy?: A2sOptionalSourcePolicy;
+  /** Profile-owned decoder for a protocol-compatible Rules extension. */
+  readonly queryRules?: A2sRulesQuery;
 }
 
 /** Protocol facts collected before one game profile interprets them. */
@@ -177,8 +185,9 @@ export async function queryA2sProfile(options: A2sProfileOptions): Promise<A2sPr
       target: options.target,
       address: info.address,
       operationTimeoutMs: OPTIONAL_OPERATION_TIMEOUT_MS,
-      player: queryOptional ? "query" : "not-requested",
-      rules: queryOptional ? "query" : "not-requested",
+      player: queryOptional ? (options.playerPolicy ?? "query") : "not-requested",
+      rules: queryOptional ? (options.rulesPolicy ?? "query") : "not-requested",
+      ...(options.queryRules === undefined ? {} : { queryRules: options.queryRules }),
       onSourceStarted: options.observer.onSourceStarted,
       onSourceCompleted: options.observer.onSourceCompleted,
     },
