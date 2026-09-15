@@ -44,6 +44,33 @@ export interface VintageStoryData {
   readonly gameMode?: string;
 }
 
+/** One player returned by Don't Starve Together's optional Steam A2S Player source. */
+export interface DontStarveTogetherPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Don't Starve Together shard facts reported through its Steam A2S endpoint. */
+export interface DontStarveTogetherData {
+  readonly protocol: number;
+  readonly game: string;
+  readonly folder: string;
+  readonly bots: number;
+  readonly serverType: "dedicated" | "listen" | "proxy";
+  readonly environment: "linux" | "macos" | "windows";
+  readonly vac: boolean;
+  /** Truncated 16-bit App ID carried by the base Source Info layout. */
+  readonly appId?: number;
+  /** Full 64-bit Steam game ID, encoded as decimal text when the response provides it. */
+  readonly steamGameId?: string;
+  /** Server-advertised Steam tags, when present. */
+  readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the shard confirmed no players. */
+  readonly players?: readonly DontStarveTogetherPlayer[];
+}
+
 /** One player reported by Rust's optional A2S Player source. */
 export interface RustPlayer {
   /** Protocol list index supplied by the server. */

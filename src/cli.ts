@@ -19,6 +19,7 @@ Options:
 
 Examples:
   queryhost a2s play.example.com 27015
+  queryhost dst play.example.com 10999 --query-port 27016
   queryhost rust play.example.com 28015
   queryhost redm play.example.com 30120
   queryhost palworld play.example.com 8211

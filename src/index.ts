@@ -52,6 +52,8 @@ export type {
   DayZData,
   DayZMod,
   DayZRawData,
+  DontStarveTogetherData,
+  DontStarveTogetherPlayer,
   FiveMData,
   FiveMPlayer,
   GameRuleMap,

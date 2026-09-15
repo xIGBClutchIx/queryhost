@@ -1,6 +1,7 @@
 import {
   GAME_REGISTRY,
   query,
+  type DontStarveTogetherData,
   type DayZData,
   type FiveMData,
   type QueryResult,
@@ -16,12 +17,15 @@ const rustQuery: Promise<QueryResult<"rust">> = query({
 
 declare const rustData: RustData;
 declare const fivemData: FiveMData;
+declare const dstData: DontStarveTogetherData;
 declare const redmData: RedMData;
 declare const vintageStoryData: VintageStoryData;
 
 rustData.tags satisfies readonly string[] | undefined;
 fivemData.players?.[0]?.name satisfies string | undefined;
 redmData.players?.[0]?.name satisfies string | undefined;
+dstData.steamGameId satisfies string | undefined;
+GAME_REGISTRY["dont-starve-together"].defaultQueryPort satisfies number | undefined;
 GAME_REGISTRY.fivem.defaultPort satisfies number | undefined;
 GAME_REGISTRY.redm.defaultPort satisfies number | undefined;
 vintageStoryData.response satisfies "liveness" | "status";

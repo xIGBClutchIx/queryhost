@@ -16,7 +16,7 @@ The current source tree contains the package foundation and supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Project Zomboid, 7 Days to Die, and DayZ profiles over bounded A2S sources
+- the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, and DayZ profiles over bounded A2S sources
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -66,6 +66,8 @@ Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Gene
 
 Palworld uses its public Steam A2S listener for unauthenticated status queries. Info supplies the normalized summary; Player and Rules are conditional because deployments do not consistently expose them. This profile does not call Pocketpair's separate authenticated REST API, so REST-only player details and server settings are not represented as A2S data.
 
+Don't Starve Together uses the Steam A2S service exposed by each shard, not its gameplay socket or Klei's lobby HTTP service. `port` is the gameplay port (default 10999); the independent Steam query port defaults to 27016 and can be changed with `queryPort`. A query describes only the shard that owns that Steam port. QueryHost does not discover sibling shards or combine a cluster, and a Klei lobby listing's gameplay port does not reveal a custom Steam query port.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -76,7 +78,7 @@ Vintage Story uses its normal TCP game port, 42420 by default. Current stock ser
 
 Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
 
-`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Don't Starve Together keeps its independently configured query port at 27016 even when `port` changes. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
 Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
@@ -96,6 +98,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `redm`              | `red-m`, `rdr3`                                              |
 | `satisfactory`      | —                                                            |
 | `vintage-story`     | `vintagestory`, `vs`                                         |
+| `dont-starve-together` | `dst`, `dontstarvetogether`                                  |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
 
@@ -116,6 +119,7 @@ The installed package also provides the same command as `queryhost`. It writes t
 ```bash
 queryhost a2s play.example.com 27015
 queryhost dayz play.example.com 2302 --mode full
+queryhost dst play.example.com 10999 --query-port 27016
 queryhost rust play.example.com 28015 --mode full --timeout 3000
 queryhost palworld play.example.com 8211 --mode full
 queryhost rust play.example.com --query-port 28017 --mode summary

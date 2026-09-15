@@ -33,6 +33,7 @@ export type GameRegistry = {
 /** Stable presentation order for supported games. */
 export const GAME_IDS: readonly [
   "a2s",
+  "dont-starve-together",
   "rust",
   "palworld",
   "project-zomboid",
@@ -46,6 +47,7 @@ export const GAME_IDS: readonly [
   "vintage-story",
 ] = [
   "a2s",
+  "dont-starve-together",
   "rust",
   "palworld",
   "project-zomboid",
@@ -61,6 +63,8 @@ export const GAME_IDS: readonly [
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
 export const GAME_ALIASES: GameAliasMap = Object.freeze({
+  dst: "dont-starve-together",
+  dontstarvetogether: "dont-starve-together",
   zomboid: "project-zomboid",
   pz: "project-zomboid",
   projectzomboid: "project-zomboid",
@@ -90,6 +94,22 @@ export const GAME_REGISTRY: GameRegistry = {
   a2s: {
     id: "a2s",
     name: "Generic A2S",
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "dont-starve-together": {
+    id: "dont-starve-together",
+    name: "Don't Starve Together",
+    defaultPort: 10_999,
+    defaultQueryPort: 27_016,
+    queryPortStrategy: "fixed",
     capabilities: {
       summary: "supported",
       players: "conditional",

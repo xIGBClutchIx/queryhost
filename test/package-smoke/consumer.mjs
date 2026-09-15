@@ -19,8 +19,8 @@ if (JSON.stringify(actualExports) !== JSON.stringify(expectedExports)) {
 
 const { GAME_IDS, GAME_REGISTRY, canonicalGameId } = queryhost;
 
-if (!GAME_IDS.includes("fivem")) {
-  throw new Error("The packed JavaScript entry point omitted FiveM.");
+if (!GAME_IDS.includes("fivem") || !GAME_IDS.includes("dont-starve-together")) {
+  throw new Error("The packed JavaScript entry point omitted a supported profile.");
 }
 if (!GAME_IDS.includes("redm") || GAME_REGISTRY.redm.defaultPort !== 30_120) {
   throw new Error("The packed JavaScript entry point omitted RedM metadata.");
@@ -42,6 +42,9 @@ if (canonicalGameId("vs") !== "vintage-story") {
 }
 if (GAME_REGISTRY["vintage-story"].defaultPort !== 42_420) {
   throw new Error("The packed registry returned the wrong Vintage Story port.");
+}
+if (canonicalGameId("dst") !== "dont-starve-together") {
+  throw new Error("The packed DST alias resolved to the wrong canonical game.");
 }
 
 let internalModuleBlocked = false;

@@ -55,6 +55,7 @@ describe("query command arguments", (): void => {
   });
 
   it.each([
+    ["dst", "dont-starve-together"],
     ["zomboid", "project-zomboid"],
     ["7dtd", "7-days-to-die"],
     ["minecraft", "minecraft-java"],

@@ -27,6 +27,7 @@ describe("game registry", () => {
   it("contains every initial game exactly once", () => {
     expect(GAME_IDS).toEqual([
       "a2s",
+      "dont-starve-together",
       "rust",
       "palworld",
       "project-zomboid",
@@ -59,6 +60,10 @@ describe("game registry", () => {
         expect(definition.defaultQueryPort).toBeGreaterThan(0);
         expect(definition.defaultQueryPort).toBeLessThanOrEqual(65_535);
       }
+      if (definition.queryPortStrategy !== undefined) {
+        expect(definition.defaultQueryPort).toBeDefined();
+        expect(["offset", "fixed"]).toContain(definition.queryPortStrategy);
+      }
       expect(Object.keys(definition.capabilities).sort()).toEqual(CAPABILITIES);
       expect(
         Object.values(definition.capabilities).every((level) => SUPPORT_LEVELS.has(level)),
@@ -72,6 +77,12 @@ describe("game registry", () => {
       capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
     });
     expect(getGameDefinition("a2s").defaultPort).toBeUndefined();
+    expect(getGameDefinition("dont-starve-together")).toMatchObject({
+      defaultPort: 10_999,
+      defaultQueryPort: 27_016,
+      queryPortStrategy: "fixed",
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
     expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
     expect(getGameDefinition("palworld")).toMatchObject({
@@ -163,6 +174,8 @@ describe("game registry", () => {
 
   it("resolves aliases without adding duplicate registry identities", () => {
     expect(GAME_ALIASES).toEqual({
+      dst: "dont-starve-together",
+      dontstarvetogether: "dont-starve-together",
       zomboid: "project-zomboid",
       pz: "project-zomboid",
       projectzomboid: "project-zomboid",
@@ -189,6 +202,7 @@ describe("game registry", () => {
     expect(isGameInputId("seven-days-to-die")).toBe(true);
     expect(isGameInputId("counter-strike")).toBe(false);
     expect(canonicalGameId("7d2d")).toBe("7-days-to-die");
+    expect(canonicalGameId("dst")).toBe("dont-starve-together");
     expect(canonicalGameId("7-days-to-die")).toBe("7-days-to-die");
     for (const alias of Object.keys(GAME_ALIASES)) {
       expect(isGameId(alias)).toBe(false);
@@ -200,6 +214,7 @@ describe("game registry", () => {
       expect(canonicalGameId(alias)).toBe(canonical);
     }
     expect(getGameDefinition("zomboid")).toBe(GAME_REGISTRY["project-zomboid"]);
+    expect(getGameDefinition("dst")).toBe(GAME_REGISTRY["dont-starve-together"]);
     expect(getGameDefinition("mcbe")).toBe(GAME_REGISTRY["minecraft-bedrock"]);
     expect(getGameDefinition("red-m")).toBe(GAME_REGISTRY.redm);
     expect(getGameDefinition("rdr3")).toBe(GAME_REGISTRY.redm);
