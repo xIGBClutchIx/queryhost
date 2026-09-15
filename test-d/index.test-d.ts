@@ -3,6 +3,8 @@ import { expectAssignable, expectError, expectNotAssignable, expectType } from "
 import {
   type A2sData,
   type A2sPlayer,
+  type DontStarveTogetherData,
+  type DontStarveTogetherPlayer,
   canonicalGameId,
   GAME_IDS,
   getGameDefinition,
@@ -30,6 +32,7 @@ import {
 expectType<
   readonly [
     "a2s",
+    "dont-starve-together",
     "rust",
     "project-zomboid",
     "7-days-to-die",
@@ -44,6 +47,12 @@ expectType<Promise<QueryResult<"a2s">>>(
 );
 expectError(query({ game: "a2s", host: "play.example.com" }));
 expectError(query({ game: "a2s", host: "play.example.com", port: 27_015, queryPort: 27_016 }));
+expectType<Promise<QueryResult<"dont-starve-together">>>(
+  query({ game: "dont-starve-together", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"dont-starve-together">>>(
+  query({ game: "dst", host: "play.example.com", port: 11_000, queryPort: 27_018 }),
+);
 
 const rustInput: QueryInput<"rust"> = {
   game: "rust",
@@ -78,11 +87,15 @@ declare const dynamicInput: QueryInput;
 expectType<Promise<QueryResult>>(query(dynamicInput));
 
 expectType<"rust">(getGameDefinition("rust").id);
+expectType<"dont-starve-together">(getGameDefinition("dst").id);
 expectType<"project-zomboid">(getGameDefinition("pz").id);
 expectType<"minecraft-java">(getGameDefinition("minecraft").id);
 expectType<"7-days-to-die">(canonicalGameId("7d2d"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
+expectType<"game-port-offset" | "independent" | undefined>(
+  getGameDefinition("dont-starve-together").queryPortPolicy,
+);
 expectType<number | undefined>(getGameDefinition("minecraft-java").defaultPort);
 expectType<number | undefined>(getGameDefinition("a2s").defaultPort);
 
@@ -106,6 +119,9 @@ if (dynamicResult.ok) {
   switch (dynamicResult.game) {
     case "a2s":
       expectType<A2sData>(dynamicResult.data);
+      break;
+    case "dont-starve-together":
+      expectType<DontStarveTogetherData>(dynamicResult.data);
       break;
     case "rust":
       expectType<RustData>(dynamicResult.data);
@@ -136,6 +152,11 @@ declare const rawDataMap: GameRawDataMap;
 expectType<Readonly<Record<string, string>>>(rawDataMap["project-zomboid"].rules);
 expectType<A2sData>(dataMap.a2s);
 expectType<readonly A2sPlayer[] | undefined>(dataMap.a2s.players);
+expectType<DontStarveTogetherData>(dataMap["dont-starve-together"]);
+expectType<readonly DontStarveTogetherPlayer[] | undefined>(
+  dataMap["dont-starve-together"].players,
+);
+expectType<Readonly<Record<string, string>>>(rawDataMap["dont-starve-together"].rules);
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
 expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);

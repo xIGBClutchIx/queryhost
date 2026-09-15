@@ -4,6 +4,10 @@ QueryHost records user-visible package changes in this file.
 
 ## Unreleased
 
+### Added
+
+- Don't Starve Together shard queries through the independently configured Steam A2S port, with typed Info and Player data plus unchanged Rules output.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added

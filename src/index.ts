@@ -47,6 +47,8 @@ export type {
   A2sData,
   A2sPlayer,
   A2sRawData,
+  DontStarveTogetherData,
+  DontStarveTogetherPlayer,
   FiveMData,
   FiveMPlayer,
   GameRuleMap,

@@ -9,6 +9,8 @@
 - [A2sData](interfaces/A2sData.md)
 - [A2sPlayer](interfaces/A2sPlayer.md)
 - [A2sRawData](interfaces/A2sRawData.md)
+- [DontStarveTogetherData](interfaces/DontStarveTogetherData.md)
+- [DontStarveTogetherPlayer](interfaces/DontStarveTogetherPlayer.md)
 - [FiveMData](interfaces/FiveMData.md)
 - [FiveMPlayer](interfaces/FiveMPlayer.md)
 - [GameAliasMap](interfaces/GameAliasMap.md)

@@ -22,6 +22,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### dont-starve-together
+
+> `readonly` **dont-starve-together**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: `never`

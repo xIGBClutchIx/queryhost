@@ -39,6 +39,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
+- `profiles/dont-starve-together.ts` owns DST's typed A2S projection while treating the selected Steam endpoint as one shard rather than inventing cluster aggregation.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
 Tests mirror these ownership folders under `test/`. Shared fixtures, fake servers, and package-consumer checks remain in `test/fixtures`, `test/helpers`, and `test/package-smoke` rather than being duplicated beside each test.
@@ -106,11 +107,20 @@ The public query deadline defaults to 5,000 ms and accepts values through 30,000
 ## Game-specific A2S merges
 
 - Generic A2S exposes portable Info facts, Player records, and untouched Rules without guessing at game-specific rule names. It requires `port` as the actual A2S query destination because there is no reliable universal default.
+- Don't Starve Together exposes portable Info facts, the full Steam game ID when present, Player records, and untouched Rules without assigning undocumented meaning to rule names. Its gameplay port defaults to UDP 10999, while the independently configured per-shard Steam A2S port defaults to UDP 27016. A custom gameplay port does not shift that query port; `queryPort` selects non-default shard configurations explicitly.
 - Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
 - Project Zomboid converts Player records and interprets lowercase `description`, numeric `pvp`, `version`, and semicolon-delimited `mods`. The Rules version overrides A2S Info's generic version when available. Its default A2S destination is UDP 16261.
 - 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `LevelName`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
 
 Each game owns independent successful-source fixtures and tests for its merge semantics and port convention. Shared profile tests own common timeout, malformed-response, target-policy, summary-mode, and provenance behavior so those cases are not repeated for every game. A shared parser or orchestration module must never branch on one of these game IDs.
+
+### Don't Starve Together cluster boundary
+
+Klei's dedicated-server settings distinguish the `[NETWORK] server_port` used for player connections, the `[STEAM] master_server_port` used by Steam services, and the `[SHARD] master_port` used for internal shard coordination. QueryHost sends Valve A2S packets only to the validated Steam query destination. It does not send gameplay handshakes, contact the shard-coordination port, or use a caller-controlled HTTP URL.
+
+Every shard process requires distinct Steam and gameplay ports when it shares a machine with another shard. Consequently, one A2S response is evidence about one responding shard, not a complete cluster. The direct protocol does not provide safe sibling-shard discovery, so the profile neither follows response-directed destinations nor merges Klei lobby metadata. Operators must supply `queryPort` when the shard's Steam port differs from 27016.
+
+The port roles are documented in Klei's [Dedicated Server Settings Guide](https://forums.kleientertainment.com/forums/topic/64552-dedicated-server-settings-guide/). The packet format remains the bounded Valve [Server queries](https://developer.valvesoftware.com/wiki/Server_queries) implementation already shared by the A2S profiles. Independent GameDig registries identify DST as Valve A2S with gameplay port 10999 and query port 27016; these corroborate the protocol selection, while the Klei settings remain authoritative for the meaning and independence of the ports.
 
 Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
 

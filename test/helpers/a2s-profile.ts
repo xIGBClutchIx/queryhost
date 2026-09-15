@@ -9,7 +9,7 @@ import type { A2sExchangeDependencies } from "../../src/protocols/a2s/network.js
 import type { QueryDependencies } from "../../src/runtime/client.js";
 import type { UdpCollectionOptions, UdpCollectionResult } from "../../src/transports/udp.js";
 
-type A2sFixtureGame = "project-zomboid" | "rust" | "seven-days-to-die";
+type A2sFixtureGame = "dont-starve-together" | "project-zomboid" | "rust" | "seven-days-to-die";
 
 const PUBLIC_ADDRESS: DnsAddressRecord = Object.freeze({
   address: "93.184.216.34",

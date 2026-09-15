@@ -15,11 +15,13 @@ export interface GameDefinition<G extends GameId = GameId> {
   readonly name: string;
   /** Default game or service port; omitted when the profile cannot infer one. */
   readonly defaultPort?: number;
-  /**
-   * Conventional query port corresponding to `defaultPort` when the protocol uses a separate
-   * destination. QueryHost preserves this offset for custom game ports.
-   */
+  /** Conventional query destination when the protocol uses a separate port. */
   readonly defaultQueryPort?: number;
+  /**
+   * How a separate query port behaves when the caller supplies a custom game port. The default
+   * preserves the registry ports' offset; `independent` keeps `defaultQueryPort` unchanged.
+   */
+  readonly queryPortPolicy?: "game-port-offset" | "independent";
   readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
 }
 
@@ -31,6 +33,7 @@ export type GameRegistry = {
 /** Stable presentation order for supported games. */
 export const GAME_IDS: readonly [
   "a2s",
+  "dont-starve-together",
   "rust",
   "project-zomboid",
   "7-days-to-die",
@@ -39,6 +42,7 @@ export const GAME_IDS: readonly [
   "fivem",
 ] = [
   "a2s",
+  "dont-starve-together",
   "rust",
   "project-zomboid",
   "7-days-to-die",
@@ -49,6 +53,8 @@ export const GAME_IDS: readonly [
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
 export const GAME_ALIASES: GameAliasMap = Object.freeze({
+  dst: "dont-starve-together",
+  dontstarvetogether: "dont-starve-together",
   zomboid: "project-zomboid",
   pz: "project-zomboid",
   projectzomboid: "project-zomboid",
@@ -74,6 +80,22 @@ export const GAME_REGISTRY: GameRegistry = {
   a2s: {
     id: "a2s",
     name: "Generic A2S",
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "dont-starve-together": {
+    id: "dont-starve-together",
+    name: "Don't Starve Together",
+    defaultPort: 10_999,
+    defaultQueryPort: 27_016,
+    queryPortPolicy: "independent",
     capabilities: {
       summary: "supported",
       players: "conditional",

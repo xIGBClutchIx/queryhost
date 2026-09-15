@@ -51,6 +51,7 @@ import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
+import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -79,6 +80,7 @@ interface SourceTrace {
 
 type ImplementedGame =
   | "a2s"
+  | "dont-starve-together"
   | "rust"
   | "project-zomboid"
   | "7-days-to-die"
@@ -164,6 +166,11 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "a2s",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(queryGenericA2sProfile),
+  ),
+  "dont-starve-together": createProfileRunner(
+    "dont-starve-together",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryDontStarveTogetherProfile),
   ),
   rust: createProfileRunner(
     "rust",
@@ -266,6 +273,9 @@ function queryPort(input: QueryInput<GameId>): number {
   }
   const queryPortOffset =
     (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort;
+  if (definition.queryPortPolicy === "independent") {
+    return validatePort(definition.defaultQueryPort ?? gamePort);
+  }
   return validatePort(gamePort + queryPortOffset);
 }
 

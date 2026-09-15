@@ -3,6 +3,7 @@
 import type {
   A2sData,
   A2sRawData,
+  DontStarveTogetherData,
   FiveMData,
   MinecraftBedrockData,
   MinecraftJavaData,
@@ -19,6 +20,7 @@ import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } fro
  */
 export interface GameDataMap {
   readonly a2s: A2sData;
+  readonly "dont-starve-together": DontStarveTogetherData;
   readonly rust: RustData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
@@ -30,6 +32,7 @@ export interface GameDataMap {
 /** Associates implemented games with their untouched protocol payloads. */
 export interface GameRawDataMap {
   readonly a2s: A2sRawData;
+  readonly "dont-starve-together": A2sRawData;
   readonly rust: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
@@ -43,6 +46,8 @@ export type GameId = keyof GameDataMap;
 
 /** Alternate input spellings mapped to one stable game identity. */
 export interface GameAliasMap {
+  readonly dst: "dont-starve-together";
+  readonly dontstarvetogether: "dont-starve-together";
   readonly zomboid: "project-zomboid";
   readonly pz: "project-zomboid";
   readonly projectzomboid: "project-zomboid";

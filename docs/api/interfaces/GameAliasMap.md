@@ -34,6 +34,18 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### dontstarvetogether
+
+> `readonly` **dontstarvetogether**: `"dont-starve-together"`
+
+***
+
+### dst
+
+> `readonly` **dst**: `"dont-starve-together"`
+
+***
+
 ### five-m
 
 > `readonly` **five-m**: `"fivem"`
