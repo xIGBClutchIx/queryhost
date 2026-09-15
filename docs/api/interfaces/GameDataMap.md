@@ -30,6 +30,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### dont-starve-together
+
+> `readonly` **dont-starve-together**: [`DontStarveTogetherData`](DontStarveTogetherData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)
@@ -75,3 +81,15 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### satisfactory
 
 > `readonly` **satisfactory**: [`SatisfactoryData`](SatisfactoryData.md)
+
+***
+
+### valheim
+
+> `readonly` **valheim**: [`ValheimData`](ValheimData.md)
+
+***
+
+### vintage-story
+
+> `readonly` **vintage-story**: [`VintageStoryData`](VintageStoryData.md)

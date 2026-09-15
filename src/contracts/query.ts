@@ -17,6 +17,7 @@ import type {
   SatisfactoryData,
   SatisfactoryRawData,
   VintageStoryData,
+  ValheimData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -33,6 +34,7 @@ export interface GameDataMap {
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
   readonly dayz: DayZData;
+  readonly valheim: ValheimData;
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
@@ -50,6 +52,7 @@ export interface GameRawDataMap {
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
   readonly dayz: DayZRawData;
+  readonly valheim: never;
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;

@@ -33,6 +33,7 @@ describe("game registry", () => {
       "project-zomboid",
       "7-days-to-die",
       "dayz",
+      "valheim",
       "minecraft-java",
       "minecraft-bedrock",
       "fivem",
@@ -109,6 +110,11 @@ describe("game registry", () => {
         mods: "conditional",
       },
     });
+    expect(getGameDefinition("valheim")).toMatchObject({
+      defaultPort: 2456,
+      defaultQueryPort: 2457,
+      capabilities: { summary: "supported", players: "conditional", rules: "unsupported" },
+    });
     expect(getGameDefinition("minecraft-java")).toMatchObject({
       defaultPort: 25_565,
       capabilities: {
@@ -169,6 +175,7 @@ describe("game registry", () => {
     expect(isGameId("fivem")).toBe(true);
     expect(isGameId("redm")).toBe(true);
     expect(isGameId("palworld")).toBe(true);
+    expect(isGameId("valheim")).toBe(true);
     expect(isGameId("counter-strike")).toBe(false);
   });
 

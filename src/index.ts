@@ -79,4 +79,6 @@ export type {
   SatisfactoryServerState,
   SatisfactorySubState,
   VintageStoryData,
+  ValheimData,
+  ValheimPlayer,
 } from "./contracts/games.js";

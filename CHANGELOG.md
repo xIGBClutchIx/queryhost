@@ -11,6 +11,7 @@ QueryHost records user-visible package changes in this file.
 - Direct Vintage Story server queries with stock-server liveness detection and typed richer status data when the server provides it.
 - DayZ dedicated-server queries with typed Info and Rules data, an explicit unsupported Player source, and separate game/query-port defaults.
 - Don't Starve Together shard queries through the independently configured Steam A2S port, with typed Info and Player data plus unchanged Rules output.
+- Valheim dedicated-server queries for the direct Steam backend, with default game/query ports, typed network and Player data, and explicit unsupported provenance for Rules.
 
 ## [1.1.0] - 2026-09-12
 

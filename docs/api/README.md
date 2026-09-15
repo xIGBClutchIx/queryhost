@@ -11,6 +11,11 @@
 - [A2sRawData](interfaces/A2sRawData.md)
 - [CfxData](interfaces/CfxData.md)
 - [CfxPlayer](interfaces/CfxPlayer.md)
+- [DayZData](interfaces/DayZData.md)
+- [DayZMod](interfaces/DayZMod.md)
+- [DayZRawData](interfaces/DayZRawData.md)
+- [DontStarveTogetherData](interfaces/DontStarveTogetherData.md)
+- [DontStarveTogetherPlayer](interfaces/DontStarveTogetherPlayer.md)
 - [FiveMData](interfaces/FiveMData.md)
 - [FiveMPlayer](interfaces/FiveMPlayer.md)
 - [GameAliasMap](interfaces/GameAliasMap.md)
@@ -44,6 +49,8 @@
 - [ServerPlayers](interfaces/ServerPlayers.md)
 - [SevenDaysToDieData](interfaces/SevenDaysToDieData.md)
 - [SevenDaysToDiePlayer](interfaces/SevenDaysToDiePlayer.md)
+- [ValheimData](interfaces/ValheimData.md)
+- [ValheimPlayer](interfaces/ValheimPlayer.md)
 - [VintageStoryData](interfaces/VintageStoryData.md)
 
 ## Type Aliases

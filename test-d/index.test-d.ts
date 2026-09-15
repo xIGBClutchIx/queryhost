@@ -37,6 +37,8 @@ import {
   type SatisfactoryData,
   type SatisfactoryRawData,
   type VintageStoryData,
+  type ValheimData,
+  type ValheimPlayer,
 } from "queryhost";
 
 expectType<
@@ -48,6 +50,7 @@ expectType<
     "project-zomboid",
     "7-days-to-die",
     "dayz",
+    "valheim",
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
@@ -84,6 +87,7 @@ expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7-days-to-die", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"dayz">>>(query({ game: "dayz", host: "play.example.com" }));
+expectType<Promise<QueryResult<"valheim">>>(query({ game: "valheim", host: "play.example.com" }));
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7d2d", host: "play.example.com" }),
 );
@@ -162,6 +166,9 @@ if (dynamicResult.ok) {
     case "dayz":
       expectType<DayZData>(dynamicResult.data);
       break;
+    case "valheim":
+      expectType<ValheimData>(dynamicResult.data);
+      break;
     case "minecraft-java":
       expectType<MinecraftJavaData>(dynamicResult.data);
       break;
@@ -214,6 +221,11 @@ expectType<readonly DayZMod[] | undefined>(dataMap.dayz.mods);
 expectType<string | undefined>(dataMap.dayz.mods?.[0]?.workshopId);
 expectType<Readonly<Record<string, string>>>(rawDataMap.dayz.rules);
 expectType<DayZRawData>(rawDataMap.dayz);
+expectType<ValheimData>(dataMap.valheim);
+expectType<"steam">(dataMap.valheim.backend);
+expectType<string | undefined>(dataMap.valheim.networkVersion);
+expectType<readonly ValheimPlayer[] | undefined>(dataMap.valheim.players);
+expectType<never>(rawDataMap.valheim);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
 expectType<string | undefined>(dataMap["minecraft-java"].motd?.plain);
 expectType<number | undefined>(dataMap["minecraft-java"].protocolVersion);

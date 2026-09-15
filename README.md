@@ -16,7 +16,7 @@ The current source tree contains the package foundation and supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, and DayZ profiles over bounded A2S sources
+- the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, DayZ, and Steam-backend Valheim profiles over bounded A2S sources
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -68,6 +68,8 @@ Palworld uses its public Steam A2S listener for unauthenticated status queries. 
 
 Don't Starve Together uses the Steam A2S service exposed by each shard, not its gameplay socket or Klei's lobby HTTP service. `port` is the gameplay port (default 10999); the independent Steam query port defaults to 27016 and can be changed with `queryPort`. A query describes only the shard that owns that Steam port. QueryHost does not discover sibling shards or combine a cluster, and a Klei lobby listing's gameplay port does not reveal a custom Steam query port.
 
+Valheim queries its direct Steam-backend A2S endpoint. The default game port is UDP 2456 and the query destination is UDP 2457; custom game ports preserve that `+1` convention. Info provides the world, build, password state, and counts. Full mode also requests Player records, whose names Valheim commonly leaves empty, while Rules is reported as `unsupported` without network work. Successful data carries `backend: "steam"`. Servers launched with `-crossplay` use PlayFab relay discovery and cannot be queried through this direct A2S profile.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -84,20 +86,21 @@ Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name 
 
 Game inputs accept documented aliases while results always use the canonical ID. `minecraft` and `mc` resolve to Java Edition; Bedrock remains explicit.
 
-| Canonical ID        | Accepted aliases                                             |
-| ------------------- | ------------------------------------------------------------ |
-| `a2s`               | —                                                            |
-| `rust`              | —                                                            |
-| `palworld`          | —                                                            |
-| `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
-| `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
-| `dayz`              | —                                                            |
-| `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
-| `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
-| `fivem`             | `five-m`                                                     |
-| `redm`              | `red-m`, `rdr3`                                              |
-| `satisfactory`      | —                                                            |
-| `vintage-story`     | `vintagestory`, `vs`                                         |
+| Canonical ID           | Accepted aliases                                             |
+| ---------------------- | ------------------------------------------------------------ |
+| `a2s`                  | —                                                            |
+| `rust`                 | —                                                            |
+| `palworld`             | —                                                            |
+| `project-zomboid`      | `projectzomboid`, `zomboid`, `pz`                            |
+| `7-days-to-die`        | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `dayz`                 | —                                                            |
+| `valheim`              | —                                                            |
+| `minecraft-java`       | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
+| `minecraft-bedrock`    | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
+| `fivem`                | `five-m`                                                     |
+| `redm`                 | `red-m`, `rdr3`                                              |
+| `satisfactory`         | —                                                            |
+| `vintage-story`        | `vintagestory`, `vs`                                         |
 | `dont-starve-together` | `dst`, `dontstarvetogether`                                  |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
@@ -126,6 +129,7 @@ queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
 queryhost 7dtd play.example.com 26900
+queryhost valheim play.example.com 2456
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120

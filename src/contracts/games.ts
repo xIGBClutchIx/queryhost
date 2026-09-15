@@ -186,6 +186,25 @@ export interface DayZData {
   readonly language?: number;
 }
 
+/** One connection record reported by Valheim's optional A2S Player source. */
+export interface ValheimPlayer {
+  readonly index: number;
+  /** Valheim's Steam backend commonly returns an empty name for privacy. */
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Valheim-specific data available from its direct Steam-backend A2S endpoint. */
+export interface ValheimData {
+  /** A successful direct A2S response proves that the queried endpoint uses Steam discovery. */
+  readonly backend: "steam";
+  /** Game build advertised through Valheim's A2S keyword field, when present. */
+  readonly networkVersion?: string;
+  /** Omitted when Player is unavailable; empty means the server confirmed no connections. */
+  readonly players?: readonly ValheimPlayer[];
+}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */
