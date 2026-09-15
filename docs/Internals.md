@@ -174,6 +174,19 @@ The server always uses TLS and generates a self-signed certificate when the oper
 
 Source: Coffee Stain's `CommunityResources/DedicatedServerAPIDocs.md`, mirrored by the Official Satisfactory Wiki's [Lightweight Query API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/Lightweight_Query_API) and [HTTPS API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/HTTPS_API) pages. The shipped document defines the same-port UDP and HTTPS protocols, port 7777 default, TLS/self-signed behavior, API availability, packet layout, and authentication requirements.
 
+## Factorio support boundary
+
+Factorio is intentionally not registered as an implemented game. As of September 2026, Wube's published interfaces do not define an unauthenticated, read-only status exchange against a dedicated server:
+
+- The [official multiplayer documentation](https://wiki.factorio.com/Multiplayer) identifies UDP 34197 as the default gameplay port and `_factorio._udp` as optional DNS SRV discovery. These are connection-routing facts; the documentation does not define a status request or response packet.
+- Wube's [server settings](https://github.com/wube/factorio-data/blob/master/server-settings.example.json) publish public games to the official matching server and require Factorio credentials for that visibility. Hidden and LAN-only servers therefore cannot be covered by the public listing.
+- The [official Matchmaking API documentation](https://wiki.factorio.com/Matchmaking_API) requires a username and token to list games. Its unauthenticated detail endpoint accepts a matching-service `game_id` obtained from that listing, so the returned name, version, player, mod, and heartbeat fields are central-service metadata rather than a direct exchange with the caller's target.
+- The dedicated-server command line exposes a separately configured [RCON port and password](https://wiki.factorio.com/Command_line_parameters). RCON is an authenticated administration surface, not a public server-status protocol, and neither its port nor its credentials can be inferred from the gameplay address.
+
+QueryHost must not treat UDP silence as reachability, reverse-engineer a gameplay connection handshake into a status protocol, send administrative RCON credentials through the public query contract, or substitute matching-service data for a live query of the requested server. Those approaches would respectively fabricate data, rely on an unstable private wire contract, expand the trust boundary, or exclude valid hidden and LAN-only servers while claiming direct support.
+
+Factorio can become a registered profile if Wube publishes a stable direct status exchange, or if QueryHost deliberately adds a separately scoped authenticated-management contract. Until then there is no `FactorioData`, registry entry, profile dispatch, CLI ID, fixture, or generated API surface to keep synchronized.
+
 ## Command-line invariants
 
 The packaged `queryhost` binary and repository `npm run query --` script share the same entry point. The command accepts only a canonical or documented aliased game ID, host, optional port, and bounded library options; it does not expose protocol packets or bypass target validation. It prints the full public `QueryResult` as JSON, uses standard output for results and help, and reserves standard error for invalid invocation or an unexpected command-level failure. Ctrl+C aborts the active library query so the normal cleanup path closes network resources.
