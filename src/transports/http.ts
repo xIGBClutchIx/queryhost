@@ -10,7 +10,7 @@ import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js
 import type { ExecutionScope } from "../runtime/execution.js";
 
 const MAX_HTTP_RESPONSE_BYTES = 1_048_576;
-const FIXED_PATH = /^\/[A-Za-z0-9._~-]+$/u;
+const FIXED_PATH = /^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*$/u;
 
 /** HTTP failures that map directly into the stable public query contract. */
 export type HttpTransportErrorCode = Extract<
@@ -45,6 +45,7 @@ export class HttpTransportError extends Error {
 
 /** Request configuration passed to the injectable platform adapter. */
 export interface HttpRequestConfiguration {
+  readonly method: "GET" | "POST";
   readonly protocol: "http" | "https";
   readonly address: string;
   readonly family: IpFamily;
@@ -52,6 +53,9 @@ export interface HttpRequestConfiguration {
   readonly path: string;
   readonly hostHeader: string;
   readonly servername?: string;
+  readonly body?: Uint8Array;
+  readonly contentType?: "application/json";
+  readonly rejectUnauthorized: boolean;
 }
 
 /** Minimal response boundary used by production networking and deterministic tests. */
@@ -80,7 +84,7 @@ export interface HttpTransportDependencies {
   now(): number;
 }
 
-/** Inputs for one GET request to a protocol-owned fixed path. */
+/** Inputs for one request to a protocol-owned fixed path. */
 export interface FixedHttpExchangeOptions {
   readonly scope: ExecutionScope;
   readonly target: PinnedTarget;
@@ -88,6 +92,11 @@ export interface FixedHttpExchangeOptions {
   readonly protocol: "http" | "https";
   readonly path: string;
   readonly maxResponseBytes: number;
+  readonly method?: "GET" | "POST";
+  readonly body?: Uint8Array;
+  readonly contentType?: "application/json";
+  /** HTTPS certificate validation policy selected by the protocol. */
+  readonly tlsCertificatePolicy?: "system" | "disabled";
 }
 
 /** Complete bounded HTTP response and transport measurements. */
@@ -135,7 +144,7 @@ function nodeRequest(
   onResponse: (response: HttpResponseAdapter) => void,
 ): HttpRequestAdapter {
   const requestOptions = {
-    method: "GET",
+    method: configuration.method,
     hostname: configuration.address,
     family: configuration.family,
     port: configuration.port,
@@ -145,8 +154,15 @@ function nodeRequest(
       Accept: "application/json",
       "Accept-Encoding": "identity",
       Connection: "close",
+      ...(configuration.contentType === undefined
+        ? {}
+        : { "Content-Type": configuration.contentType }),
+      ...(configuration.body === undefined
+        ? {}
+        : { "Content-Length": String(configuration.body.byteLength) }),
     },
     ...(configuration.servername === undefined ? {} : { servername: configuration.servername }),
+    rejectUnauthorized: configuration.rejectUnauthorized,
   } as const;
   const request: ClientRequest =
     configuration.protocol === "https"
@@ -161,7 +177,7 @@ function nodeRequest(
       request.once("error", listener);
     },
     end(): void {
-      request.end();
+      request.end(configuration.body);
     },
     destroy(): void {
       request.destroy();
@@ -196,7 +212,12 @@ function validateOptions(options: FixedHttpExchangeOptions): void {
     !Number.isSafeInteger(options.maxResponseBytes) ||
     options.maxResponseBytes < 1 ||
     options.maxResponseBytes > MAX_HTTP_RESPONSE_BYTES ||
-    !options.target.addresses.some((address) => addressesMatch(address, options.address))
+    !options.target.addresses.some((address) => addressesMatch(address, options.address)) ||
+    (options.method !== undefined && options.method !== "GET" && options.method !== "POST") ||
+    (options.body !== undefined &&
+      (options.method !== "POST" || options.body.byteLength > MAX_HTTP_RESPONSE_BYTES)) ||
+    (options.contentType !== undefined && options.body === undefined) ||
+    (options.tlsCertificatePolicy !== undefined && options.protocol !== "https")
   ) {
     throw new HttpTransportError("INVALID_INPUT");
   }
@@ -226,7 +247,7 @@ function isAborted(signal: AbortSignal): boolean {
   return signal.aborted;
 }
 
-/** Performs one non-redirecting GET against a pinned address and bounded response body. */
+/** Performs one non-redirecting request against a pinned address and bounded response body. */
 export function fixedHttpExchange(
   options: FixedHttpExchangeOptions,
   dependencies: HttpTransportDependencies = NODE_DEPENDENCIES,
@@ -325,12 +346,16 @@ export function fixedHttpExchange(
     };
 
     const configuration: HttpRequestConfiguration = {
+      method: options.method ?? "GET",
       protocol: options.protocol,
       address: options.address.address,
       family: options.address.family,
       port: options.target.port,
       path: options.path,
       hostHeader: hostHeader(options.target, options.protocol),
+      ...(options.body === undefined ? {} : { body: Uint8Array.from(options.body) }),
+      ...(options.contentType === undefined ? {} : { contentType: options.contentType }),
+      rejectUnauthorized: options.tlsCertificatePolicy !== "disabled",
       ...(options.protocol === "https" && isIP(options.target.hostname) === 0
         ? { servername: options.target.hostname }
         : {}),

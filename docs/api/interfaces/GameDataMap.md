@@ -63,3 +63,9 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### rust
 
 > `readonly` **rust**: [`RustData`](RustData.md)
+
+***
+
+### satisfactory
+
+> `readonly` **satisfactory**: [`SatisfactoryData`](SatisfactoryData.md)

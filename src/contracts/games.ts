@@ -191,3 +191,39 @@ export interface RedMPlayer extends CfxPlayer {}
 
 /** RedM-specific data merged from its fixed JSON endpoints. */
 export interface RedMData extends CfxData<RedMPlayer> {}
+
+/** Lifecycle state returned by Satisfactory's lightweight status service. */
+export type SatisfactoryServerState = "idle" | "loading" | "playing";
+
+/** One recognized Satisfactory subsystem revision counter. */
+export interface SatisfactorySubState {
+  /** Protocol-defined subsystem ID from 0 through 7. */
+  readonly id: number;
+  readonly version: number;
+}
+
+/** Health data returned by the credential-free HTTPS HealthCheck function. */
+export interface SatisfactoryHealth {
+  readonly health: "healthy" | "slow";
+  /** Empty means the vanilla server confirmed that it supplied no custom data. */
+  readonly serverCustomData: string;
+}
+
+/** Satisfactory-specific facts from its dedicated-server status APIs. */
+export interface SatisfactoryData {
+  readonly state: SatisfactoryServerState;
+  /** Dedicated server network changelist. */
+  readonly serverNetCl: number;
+  readonly modded: boolean;
+  /** Omitted in summary mode, while loading, or when the optional HTTPS source fails. */
+  readonly health?: SatisfactoryHealth["health"];
+}
+
+/** Parsed protocol fields retained separately from normalized Satisfactory data. */
+export interface SatisfactoryRawData {
+  readonly stateCode: 1 | 2 | 3;
+  readonly serverFlags: string;
+  readonly subStates: readonly SatisfactorySubState[];
+  /** Omitted when the optional HTTPS source did not complete. */
+  readonly health?: SatisfactoryHealth;
+}

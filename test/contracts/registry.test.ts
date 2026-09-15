@@ -35,6 +35,7 @@ describe("game registry", () => {
       "minecraft-bedrock",
       "fivem",
       "redm",
+      "satisfactory",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -121,6 +122,14 @@ describe("game registry", () => {
         players: "conditional",
         resources: "conditional",
         rules: "conditional",
+      },
+    });
+    expect(getGameDefinition("satisfactory")).toMatchObject({
+      defaultPort: 7777,
+      capabilities: {
+        summary: "supported",
+        players: "unsupported",
+        rules: "unsupported",
       },
     });
   });

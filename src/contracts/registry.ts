@@ -41,6 +41,7 @@ export const GAME_IDS: readonly [
   "minecraft-bedrock",
   "fivem",
   "redm",
+  "satisfactory",
 ] = [
   "a2s",
   "rust",
@@ -51,6 +52,7 @@ export const GAME_IDS: readonly [
   "minecraft-bedrock",
   "fivem",
   "redm",
+  "satisfactory",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -204,6 +206,20 @@ export const GAME_REGISTRY: GameRegistry = {
       mods: "unsupported",
       plugins: "unsupported",
       resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+  satisfactory: {
+    id: "satisfactory",
+    name: "Satisfactory",
+    defaultPort: 7777,
+    capabilities: {
+      summary: "supported",
+      players: "unsupported",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
       srv: "unsupported",
     },
   },

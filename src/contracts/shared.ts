@@ -39,7 +39,9 @@ export type QuerySourceName =
   | "fivem-players"
   | "redm-info"
   | "redm-dynamic"
-  | "redm-players";
+  | "redm-players"
+  | "satisfactory-lightweight"
+  | "satisfactory-health";
 
 /** Outcome of an individual source, independent from the overall query result. */
 export type QuerySourceStatus =

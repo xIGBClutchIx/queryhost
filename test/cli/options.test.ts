@@ -47,6 +47,13 @@ describe("query command arguments", (): void => {
     });
   });
 
+  it("accepts the canonical Satisfactory profile and optional custom port", (): void => {
+    expect(parseQueryArguments(["satisfactory", "play.example.com", "17777"])).toEqual({
+      kind: "query",
+      options: { game: "satisfactory", host: "play.example.com", port: 17_777 },
+    });
+  });
+
   it.each([
     ["zomboid", "project-zomboid"],
     ["7dtd", "7-days-to-die"],

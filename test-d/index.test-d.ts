@@ -29,6 +29,8 @@ import {
   type RustPlayer,
   type SevenDaysToDieData,
   type SevenDaysToDiePlayer,
+  type SatisfactoryData,
+  type SatisfactoryRawData,
 } from "queryhost";
 
 expectType<
@@ -42,6 +44,7 @@ expectType<
     "minecraft-bedrock",
     "fivem",
     "redm",
+    "satisfactory",
   ]
 >(GAME_IDS);
 
@@ -81,6 +84,9 @@ expectType<Promise<QueryResult<"minecraft-bedrock">>>(
 expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
 expectType<Promise<QueryResult<"redm">>>(query({ game: "red-m", host: "play.example.com" }));
 expectType<Promise<QueryResult<"redm">>>(query({ game: "rdr3", host: "play.example.com" }));
+expectType<Promise<QueryResult<"satisfactory">>>(
+  query({ game: "satisfactory", host: "play.example.com" }),
+);
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -140,6 +146,10 @@ if (dynamicResult.ok) {
     case "redm":
       expectType<RedMData>(dynamicResult.data);
       break;
+    case "satisfactory":
+      expectType<SatisfactoryData>(dynamicResult.data);
+      expectType<SatisfactoryRawData | undefined>(dynamicResult.rawData);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -185,6 +195,14 @@ expectType<RedMData>(dataMap.redm);
 expectType<readonly RedMPlayer[] | undefined>(dataMap.redm.players);
 expectType<readonly string[] | undefined>(dataMap.redm.resources);
 expectType<Readonly<Record<string, string>> | undefined>(dataMap.redm.variables);
+expectType<SatisfactoryData>(dataMap.satisfactory);
+expectType<"idle" | "loading" | "playing">(dataMap.satisfactory.state);
+expectType<number>(dataMap.satisfactory.serverNetCl);
+expectType<boolean>(dataMap.satisfactory.modded);
+expectType<"healthy" | "slow" | undefined>(dataMap.satisfactory.health);
+expectType<string>(rawDataMap.satisfactory.serverFlags);
+expectType<number | undefined>(rawDataMap.satisfactory.subStates[0]?.version);
+expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);

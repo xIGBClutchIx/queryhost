@@ -21,6 +21,9 @@ import {
   parseMinecraftQueryStat,
 } from "../../src/protocols/minecraft-java/query.js";
 import { parseMinecraftStatusResponse } from "../../src/protocols/minecraft-java/status.js";
+import { SatisfactoryProtocolError } from "../../src/protocols/satisfactory/errors.js";
+import { parseSatisfactoryState } from "../../src/protocols/satisfactory/lightweight.js";
+import { parseSatisfactoryHealth } from "../../src/protocols/satisfactory/query.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -111,6 +114,22 @@ describe("bounded parser properties", (): void => {
           acceptsOnlyStableFailure((): void => {
             parse(data, FIVEM_ENDPOINTS);
           }, CfxEndpointError);
+        }
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Satisfactory packets to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(bytes, (data): void => {
+        for (const parse of [
+          (packet: Uint8Array) => parseSatisfactoryState(packet, 0n),
+          parseSatisfactoryHealth,
+        ]) {
+          acceptsOnlyStableFailure((): void => {
+            parse(data);
+          }, SatisfactoryProtocolError);
         }
       }),
       PROPERTY_OPTIONS,
