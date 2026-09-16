@@ -7,11 +7,12 @@ import { parseA2sPlayerPacket } from "../../src/protocols/a2s/player.js";
 import { parseA2sRulesPacket } from "../../src/protocols/a2s/rules.js";
 import { isA2sResponseComplete, reconstructA2sResponse } from "../../src/protocols/a2s/split.js";
 import {
-  FiveMEndpointError,
-  parseFiveMDynamic,
-  parseFiveMInfo,
-  parseFiveMPlayers,
-} from "../../src/protocols/fivem/query.js";
+  CfxEndpointError,
+  parseCfxDynamic,
+  parseCfxInfo,
+  parseCfxPlayers,
+} from "../../src/protocols/cfx/query.js";
+import { FIVEM_ENDPOINTS } from "../../src/profiles/fivem.js";
 import { MinecraftBedrockProtocolError } from "../../src/protocols/minecraft-bedrock/errors.js";
 import { parseMinecraftBedrockPong } from "../../src/protocols/minecraft-bedrock/ping.js";
 import { MinecraftJavaProtocolError } from "../../src/protocols/minecraft-java/errors.js";
@@ -20,6 +21,11 @@ import {
   parseMinecraftQueryStat,
 } from "../../src/protocols/minecraft-java/query.js";
 import { parseMinecraftStatusResponse } from "../../src/protocols/minecraft-java/status.js";
+import { SatisfactoryProtocolError } from "../../src/protocols/satisfactory/errors.js";
+import { parseSatisfactoryState } from "../../src/protocols/satisfactory/lightweight.js";
+import { parseSatisfactoryHealth } from "../../src/protocols/satisfactory/query.js";
+import { VintageStoryProtocolError } from "../../src/protocols/vintage-story/errors.js";
+import { parseVintageStoryQueryResponse } from "../../src/protocols/vintage-story/query.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -103,14 +109,41 @@ describe("bounded parser properties", (): void => {
     );
   });
 
-  it("reduces arbitrary FiveM bodies to stable endpoint errors", (): void => {
+  it("reduces arbitrary Cfx bodies to stable endpoint errors", (): void => {
     fc.assert(
       fc.property(bytes, (data): void => {
-        for (const parse of [parseFiveMInfo, parseFiveMDynamic, parseFiveMPlayers]) {
+        for (const parse of [parseCfxInfo, parseCfxDynamic, parseCfxPlayers]) {
+          acceptsOnlyStableFailure((): void => {
+            parse(data, FIVEM_ENDPOINTS);
+          }, CfxEndpointError);
+        }
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Satisfactory packets to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(bytes, (data): void => {
+        for (const parse of [
+          (packet: Uint8Array) => parseSatisfactoryState(packet, 0n),
+          parseSatisfactoryHealth,
+        ]) {
           acceptsOnlyStableFailure((): void => {
             parse(data);
-          }, FiveMEndpointError);
+          }, SatisfactoryProtocolError);
         }
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Vintage Story frames to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(bytes, (data): void => {
+        acceptsOnlyStableFailure((): void => {
+          parseVintageStoryQueryResponse(data);
+        }, VintageStoryProtocolError);
       }),
       PROPERTY_OPTIONS,
     );

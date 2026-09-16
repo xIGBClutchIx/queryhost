@@ -44,14 +44,26 @@ import { MinecraftBedrockProtocolError } from "../protocols/minecraft-bedrock/er
 import type { MinecraftBedrockPingDependencies } from "../protocols/minecraft-bedrock/ping.js";
 import type { MinecraftQueryDependencies } from "../protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "../protocols/minecraft-java/status.js";
-import type { FiveMQueryDependencies } from "../protocols/fivem/query.js";
+import type { CfxQueryDependencies } from "../protocols/cfx/query.js";
 import { queryMinecraftJavaProfile } from "../profiles/minecraft-java.js";
+import { queryPalworldProfile } from "../profiles/palworld.js";
 import { queryMinecraftBedrockProfile } from "../profiles/minecraft-bedrock.js";
 import { queryProjectZomboidProfile } from "../profiles/project-zomboid.js";
 import { queryRustProfile } from "../profiles/rust.js";
 import { querySevenDaysToDieProfile } from "../profiles/seven-days-to-die.js";
+import { queryValheimProfile } from "../profiles/valheim.js";
 import { queryGenericA2sProfile } from "../profiles/generic-a2s.js";
-import { FiveMProfileError, queryFiveMProfile } from "../profiles/fivem.js";
+import { CfxProfileError } from "../profiles/cfx.js";
+import { queryFiveMProfile } from "../profiles/fivem.js";
+import { queryRedMProfile } from "../profiles/redm.js";
+import { querySatisfactoryProfile } from "../profiles/satisfactory.js";
+import type { SatisfactoryQueryDependencies } from "../protocols/satisfactory/query.js";
+import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
+import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
+import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
+import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
+import { queryDayZProfile } from "../profiles/dayz.js";
+import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -67,7 +79,10 @@ export interface QueryDependencies {
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
-  readonly fivem?: FiveMQueryDependencies;
+  readonly fivem?: CfxQueryDependencies;
+  readonly redm?: CfxQueryDependencies;
+  readonly satisfactory?: SatisfactoryQueryDependencies;
+  readonly vintageStory?: VintageStoryQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -79,12 +94,19 @@ interface SourceTrace {
 
 type ImplementedGame =
   | "a2s"
+  | "dont-starve-together"
   | "rust"
+  | "palworld"
   | "project-zomboid"
   | "7-days-to-die"
+  | "dayz"
+  | "valheim"
   | "minecraft-java"
   | "minecraft-bedrock"
-  | "fivem";
+  | "fivem"
+  | "redm"
+  | "satisfactory"
+  | "vintage-story";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -165,10 +187,20 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(queryGenericA2sProfile),
   ),
+  "dont-starve-together": createProfileRunner(
+    "dont-starve-together",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryDontStarveTogetherProfile),
+  ),
   rust: createProfileRunner(
     "rust",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(queryRustProfile),
+  ),
+  palworld: createProfileRunner(
+    "palworld",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryPalworldProfile),
   ),
   "project-zomboid": createProfileRunner(
     "project-zomboid",
@@ -179,6 +211,16 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "7-days-to-die",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner(querySevenDaysToDieProfile),
+  ),
+  dayz: createProfileRunner(
+    "dayz",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryDayZProfile),
+  ),
+  valheim: createProfileRunner(
+    "valheim",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(queryValheimProfile),
   ),
   "minecraft-java": createProfileRunner(
     "minecraft-java",
@@ -194,6 +236,21 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "fivem",
     ["fivem-info", "fivem-dynamic", "fivem-players"],
     fivemProfileRunner,
+  ),
+  redm: createProfileRunner(
+    "redm",
+    ["redm-info", "redm-dynamic", "redm-players"],
+    redmProfileRunner,
+  ),
+  satisfactory: createProfileRunner(
+    "satisfactory",
+    ["satisfactory-lightweight", "satisfactory-health"],
+    satisfactoryProfileRunner,
+  ),
+  "vintage-story": createProfileRunner(
+    "vintage-story",
+    ["vintage-story-query"],
+    vintageStoryProfileRunner,
   ),
 });
 
@@ -263,6 +320,9 @@ function queryPort(input: QueryInput<GameId>): number {
   }
   if (definition.defaultPort === undefined) {
     return validatePort(gamePort);
+  }
+  if (definition.queryPortStrategy === "fixed" && definition.defaultQueryPort !== undefined) {
+    return validatePort(definition.defaultQueryPort);
   }
   const queryPortOffset =
     (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort;
@@ -337,6 +397,44 @@ async function fivemProfileRunner(options: ProfileRunOptions): Promise<GameProfi
   });
 }
 
+async function redmProfileRunner(options: ProfileRunOptions): Promise<GameProfileResult<"redm">> {
+  return queryRedMProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.redm === undefined ? {} : { query: options.dependencies.redm }),
+  });
+}
+
+async function satisfactoryProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"satisfactory">> {
+  return querySatisfactoryProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    mode: options.mode,
+    observer: options.observer,
+    ...(options.dependencies.satisfactory === undefined
+      ? {}
+      : { query: options.dependencies.satisfactory }),
+    ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
+  });
+}
+
+async function vintageStoryProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"vintage-story">> {
+  return queryVintageStoryProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    observer: options.observer,
+    ...(options.dependencies.vintageStory === undefined
+      ? {}
+      : { query: options.dependencies.vintageStory }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -381,10 +479,17 @@ function minecraftBedrockProtocolError(error: MinecraftBedrockProtocolError): Qu
 }
 
 function udpErrorSource(trace: SourceTrace): QuerySourceName {
+  if (trace.started.has("satisfactory-lightweight")) {
+    return "satisfactory-lightweight";
+  }
   if (trace.started.has("minecraft-bedrock-raknet")) {
     return "minecraft-bedrock-raknet";
   }
   return trace.started.has("minecraft-query") ? "minecraft-query" : "a2s-info";
+}
+
+function tcpErrorSource(trace: SourceTrace): QuerySourceName {
+  return trace.started.has("vintage-story-query") ? "vintage-story-query" : "minecraft-slp";
 }
 
 function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined {
@@ -399,7 +504,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     };
   }
   if (error instanceof TcpTransportError) {
-    return { code: error.code, message: error.message, source: "minecraft-slp" };
+    return { code: error.code, message: error.message, source: tcpErrorSource(trace) };
   }
   if (error instanceof A2sProtocolError) {
     return a2sProtocolError(error);
@@ -410,8 +515,27 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   if (error instanceof MinecraftBedrockProtocolError) {
     return minecraftBedrockProtocolError(error);
   }
-  if (error instanceof FiveMProfileError) {
+  if (error instanceof VintageStoryProtocolError) {
+    return {
+      code: error.code,
+      message: error.message,
+      source: "vintage-story-query",
+    };
+  }
+  if (error instanceof CfxProfileError) {
     return error.queryError;
+  }
+  if (error instanceof SatisfactoryProtocolError) {
+    return {
+      code: error.code,
+      message:
+        error.code === "RESPONSE_TOO_LARGE"
+          ? "The Satisfactory response exceeded its size limit."
+          : error.code === "INVALID_INPUT"
+            ? "The Satisfactory query input is invalid."
+            : "The Satisfactory response was malformed.",
+      source: "satisfactory-lightweight",
+    };
   }
   if (error instanceof OutboundAttemptLimitError) {
     return {

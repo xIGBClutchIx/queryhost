@@ -1,0 +1,7 @@
+{
+  "hostname": "QueryHost RedM",
+  "clients": 2,
+  "mapname": "redm-map-one",
+  "gametype": "Freeroam",
+  "sv_maxclients": "32"
+}

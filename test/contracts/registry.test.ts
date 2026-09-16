@@ -27,12 +27,19 @@ describe("game registry", () => {
   it("contains every initial game exactly once", () => {
     expect(GAME_IDS).toEqual([
       "a2s",
+      "dont-starve-together",
       "rust",
+      "palworld",
       "project-zomboid",
       "7-days-to-die",
+      "dayz",
+      "valheim",
       "minecraft-java",
       "minecraft-bedrock",
       "fivem",
+      "redm",
+      "satisfactory",
+      "vintage-story",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -54,6 +61,10 @@ describe("game registry", () => {
         expect(definition.defaultQueryPort).toBeGreaterThan(0);
         expect(definition.defaultQueryPort).toBeLessThanOrEqual(65_535);
       }
+      if (definition.queryPortStrategy !== undefined) {
+        expect(definition.defaultQueryPort).toBeDefined();
+        expect(["offset", "fixed"]).toContain(definition.queryPortStrategy);
+      }
       expect(Object.keys(definition.capabilities).sort()).toEqual(CAPABILITIES);
       expect(
         Object.values(definition.capabilities).every((level) => SUPPORT_LEVELS.has(level)),
@@ -67,8 +78,20 @@ describe("game registry", () => {
       capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
     });
     expect(getGameDefinition("a2s").defaultPort).toBeUndefined();
+    expect(getGameDefinition("dont-starve-together")).toMatchObject({
+      defaultPort: 10_999,
+      defaultQueryPort: 27_016,
+      queryPortStrategy: "fixed",
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
     expect(getGameDefinition("rust")).toEqual(GAME_REGISTRY.rust);
     expect(getGameDefinition("rust").defaultQueryPort).toBe(28_017);
+    expect(getGameDefinition("palworld")).toMatchObject({
+      defaultPort: 8_211,
+      defaultQueryPort: 27_015,
+      queryPortStrategy: "fixed",
+      capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
     expect(getGameDefinition("project-zomboid")).toMatchObject({
       defaultPort: 16_261,
       capabilities: { summary: "supported", players: "conditional", mods: "conditional" },
@@ -76,6 +99,21 @@ describe("game registry", () => {
     expect(getGameDefinition("7-days-to-die")).toMatchObject({
       defaultPort: 26_900,
       capabilities: { summary: "supported", players: "conditional", rules: "conditional" },
+    });
+    expect(getGameDefinition("dayz")).toMatchObject({
+      defaultPort: 2302,
+      defaultQueryPort: 2305,
+      capabilities: {
+        summary: "supported",
+        players: "unsupported",
+        rules: "conditional",
+        mods: "conditional",
+      },
+    });
+    expect(getGameDefinition("valheim")).toMatchObject({
+      defaultPort: 2456,
+      defaultQueryPort: 2457,
+      capabilities: { summary: "supported", players: "conditional", rules: "unsupported" },
     });
     expect(getGameDefinition("minecraft-java")).toMatchObject({
       defaultPort: 25_565,
@@ -106,15 +144,45 @@ describe("game registry", () => {
         rules: "conditional",
       },
     });
+    expect(getGameDefinition("redm")).toMatchObject({
+      defaultPort: 30_120,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        resources: "conditional",
+        rules: "conditional",
+      },
+    });
+    expect(getGameDefinition("satisfactory")).toMatchObject({
+      defaultPort: 7777,
+      capabilities: {
+        summary: "supported",
+        players: "unsupported",
+        rules: "unsupported",
+      },
+    });
+    expect(getGameDefinition("vintage-story")).toMatchObject({
+      defaultPort: 42_420,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        rules: "unsupported",
+      },
+    });
   });
 
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
+    expect(isGameId("redm")).toBe(true);
+    expect(isGameId("palworld")).toBe(true);
+    expect(isGameId("valheim")).toBe(true);
     expect(isGameId("counter-strike")).toBe(false);
   });
 
   it("resolves aliases without adding duplicate registry identities", () => {
     expect(GAME_ALIASES).toEqual({
+      dst: "dont-starve-together",
+      dontstarvetogether: "dont-starve-together",
       zomboid: "project-zomboid",
       pz: "project-zomboid",
       projectzomboid: "project-zomboid",
@@ -131,12 +199,17 @@ describe("game registry", () => {
       "mc-bedrock": "minecraft-bedrock",
       "minecraft-bedrock-edition": "minecraft-bedrock",
       "five-m": "fivem",
+      "red-m": "redm",
+      rdr3: "redm",
+      vintagestory: "vintage-story",
+      vs: "vintage-story",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);
     expect(isGameInputId("seven-days-to-die")).toBe(true);
     expect(isGameInputId("counter-strike")).toBe(false);
     expect(canonicalGameId("7d2d")).toBe("7-days-to-die");
+    expect(canonicalGameId("dst")).toBe("dont-starve-together");
     expect(canonicalGameId("7-days-to-die")).toBe("7-days-to-die");
     for (const alias of Object.keys(GAME_ALIASES)) {
       expect(isGameId(alias)).toBe(false);
@@ -148,7 +221,11 @@ describe("game registry", () => {
       expect(canonicalGameId(alias)).toBe(canonical);
     }
     expect(getGameDefinition("zomboid")).toBe(GAME_REGISTRY["project-zomboid"]);
+    expect(getGameDefinition("dst")).toBe(GAME_REGISTRY["dont-starve-together"]);
     expect(getGameDefinition("mcbe")).toBe(GAME_REGISTRY["minecraft-bedrock"]);
+    expect(getGameDefinition("red-m")).toBe(GAME_REGISTRY.redm);
+    expect(getGameDefinition("rdr3")).toBe(GAME_REGISTRY.redm);
+    expect(getGameDefinition("vs")).toBe(GAME_REGISTRY["vintage-story"]);
   });
 
   it("lists games in the documented registry order", () => {

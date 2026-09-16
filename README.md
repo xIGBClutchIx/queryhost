@@ -6,7 +6,7 @@ QueryHost is a game-server query engine with correct protocols, explicit source 
 
 ## Status
 
-Version 1.1.0 contains the package foundation and current supported profiles:
+The current source tree contains the package foundation and supported profiles:
 
 - typed public result contracts and an exhaustive game registry
 - global deadlines, a shared outbound-attempt budget, cancellation, cleanup, and stable internal errors
@@ -16,14 +16,16 @@ Version 1.1.0 contains the package foundation and current supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Project Zomboid, and 7 Days to Die profiles that merge A2S Info, Player, and Rules
+- the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, DayZ, and Steam-backend Valheim profiles over bounded A2S sources
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
 - Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
-- concurrent FiveM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
+- concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
+- Satisfactory lightweight UDP status with optional authentication-free HTTPS health enrichment
+- direct Vintage Story TCP queries with stock-server liveness detection and typed richer status responses
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
 The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
@@ -58,33 +60,54 @@ if (result.ok) {
 
 `QueryResult` is a discriminated union. Check `ok` before reading `data` or `error`. A dynamic `GameId` can be narrowed with an exhaustive switch on `result.game`.
 
-Implemented A2S profiles default to `mode: "full"`: Info is required, then Player and Rules run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
+Implemented A2S profiles default to `mode: "full"`: Info is required, then supported optional sources run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 
 Use `game: "a2s"` for an otherwise unsupported Source or GoldSource server. Generic A2S has no default port: `port` is required and means the server's actual A2S query port. It returns common Info facts and Player data under `data`, with unchanged Rules under `rawData.rules`.
+
+Palworld uses its public Steam A2S listener for unauthenticated status queries. Info supplies the normalized summary; Player and Rules are conditional because deployments do not consistently expose them. This profile does not call Pocketpair's separate authenticated REST API, so REST-only player details and server settings are not represented as A2S data.
+
+Don't Starve Together uses the Steam A2S service exposed by each shard, not its gameplay socket or Klei's lobby HTTP service. `port` is the gameplay port (default 10999); the independent Steam query port defaults to 27016 and can be changed with `queryPort`. A query describes only the shard that owns that Steam port. QueryHost does not discover sibling shards or combine a cluster, and a Klei lobby listing's gameplay port does not reveal a custom Steam query port.
+
+Valheim queries its direct Steam-backend A2S endpoint. The default game port is UDP 2456 and the query destination is UDP 2457; custom game ports preserve that `+1` convention. Info provides the world, build, password state, and counts. Full mode also requests Player records, whose names Valheim commonly leaves empty, while Rules is reported as `unsupported` without network work. Successful data carries `backend: "steam"`. Servers launched with `-crossplay` use PlayFab relay discovery and cannot be queried through this direct A2S profile.
 
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
 
-FiveM uses HTTP port 30120 by default. In `full` mode, its fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
+FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by default. In `full` mode, their fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce game-specific partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 
-`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+Vintage Story uses its normal TCP game port, 42420 by default. Current stock servers acknowledge the direct status request without disclosing metadata, producing `data.response: "liveness"`; compatible servers may return the protocol's richer status answer with name, MOTD, player counts, mode, password state, and version. QueryHost connects only to the caller's validated, pinned target and does not consult the public server list or another central service.
+
+Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
+
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Don't Starve Together keeps its independently configured query port at 27016 even when `port` changes. Project Zomboid uses UDP 16261 and 7 Days to Die uses UDP 26900 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
 Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
 Game inputs accept documented aliases while results always use the canonical ID. `minecraft` and `mc` resolve to Java Edition; Bedrock remains explicit.
 
-| Canonical ID        | Accepted aliases                                             |
-| ------------------- | ------------------------------------------------------------ |
-| `a2s`               | —                                                            |
-| `rust`              | —                                                            |
-| `project-zomboid`   | `projectzomboid`, `zomboid`, `pz`                            |
-| `7-days-to-die`     | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
-| `minecraft-java`    | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
-| `minecraft-bedrock` | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
-| `fivem`             | `five-m`                                                     |
+| Canonical ID           | Accepted aliases                                             |
+| ---------------------- | ------------------------------------------------------------ |
+| `a2s`                  | —                                                            |
+| `rust`                 | —                                                            |
+| `palworld`             | —                                                            |
+| `project-zomboid`      | `projectzomboid`, `zomboid`, `pz`                            |
+| `7-days-to-die`        | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `dayz`                 | —                                                            |
+| `valheim`              | —                                                            |
+| `minecraft-java`       | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
+| `minecraft-bedrock`    | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
+| `fivem`                | `five-m`                                                     |
+| `redm`                 | `red-m`, `rdr3`                                              |
+| `satisfactory`         | —                                                            |
+| `vintage-story`        | `vintagestory`, `vs`                                         |
+| `dont-starve-together` | `dst`, `dontstarvetogether`                                  |
 
-Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website. Both expose the complete untouched Rules map under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
+Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
+
+DayZ uses required A2S Info and optional A2S Rules. It exposes ordered Info keywords plus validated direct Rules fields such as terrain, platform, dedicated state, connection port, and build/version values. Its bounded DayZ decoder also reassembles escaped server-browser metadata pages into a description, Steam Workshop mods, and signing-key names. Direct string-valued Rules remain available under `rawData.rules`; binary page records are represented by their typed decoded values instead of lossy strings. Malformed or undocumented values remain raw instead of being guessed. DayZ's A2S Player response is intentionally `unsupported`: Info still supplies confirmed aggregate player counts, but the profile does not present anonymous or malformed Player records as identities. DayZ's official [server configuration](https://community.bohemia.net/wiki/DayZ:Server_Configuration) documents its separately configured game and Steam query ports, while the official [server-browser source](https://github.com/BohemiaInteractive/DayZ-Script-Diff/blob/main/scripts/5_mission/gui/newui/serverbrowsermenu/serverbrowsermenunew.c) keeps both destinations distinct.
+
+Every named A2S profile exposes confirmed string Rules unchanged under `rawData.rules`, separate from normalized `data`; all rule-derived values and `rawData` remain omitted when Rules is unavailable.
 
 ## Command-line queries
 
@@ -98,14 +121,21 @@ The installed package also provides the same command as `queryhost`. It writes t
 
 ```bash
 queryhost a2s play.example.com 27015
+queryhost dayz play.example.com 2302 --mode full
+queryhost dst play.example.com 10999 --query-port 27016
 queryhost rust play.example.com 28015 --mode full --timeout 3000
+queryhost palworld play.example.com 8211 --mode full
 queryhost rust play.example.com --query-port 28017 --mode summary
 queryhost project-zomboid play.example.com 16261
 queryhost 7-days-to-die play.example.com 26900
 queryhost 7dtd play.example.com 26900
+queryhost valheim play.example.com 2456
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120
+queryhost redm play.example.com 30120
+queryhost satisfactory play.example.com 7777
+queryhost vs play.example.com 42420
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

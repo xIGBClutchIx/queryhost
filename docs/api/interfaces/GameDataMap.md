@@ -24,6 +24,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### dayz
+
+> `readonly` **dayz**: [`DayZData`](DayZData.md)
+
+***
+
+### dont-starve-together
+
+> `readonly` **dont-starve-together**: [`DontStarveTogetherData`](DontStarveTogetherData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)
@@ -42,12 +54,42 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### palworld
+
+> `readonly` **palworld**: [`PalworldData`](PalworldData.md)
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: [`ProjectZomboidData`](ProjectZomboidData.md)
 
 ***
 
+### redm
+
+> `readonly` **redm**: [`RedMData`](RedMData.md)
+
+***
+
 ### rust
 
 > `readonly` **rust**: [`RustData`](RustData.md)
+
+***
+
+### satisfactory
+
+> `readonly` **satisfactory**: [`SatisfactoryData`](SatisfactoryData.md)
+
+***
+
+### valheim
+
+> `readonly` **valheim**: [`ValheimData`](ValheimData.md)
+
+***
+
+### vintage-story
+
+> `readonly` **vintage-story**: [`VintageStoryData`](VintageStoryData.md)

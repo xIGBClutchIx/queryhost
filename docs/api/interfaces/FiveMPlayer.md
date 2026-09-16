@@ -8,11 +8,19 @@
 
 One player reported by FiveM's fixed players endpoint.
 
+## Extends
+
+- [`CfxPlayer`](CfxPlayer.md)
+
 ## Properties
 
 ### id
 
 > `readonly` **id**: `number`
+
+#### Inherited from
+
+[`CfxPlayer`](CfxPlayer.md).[`id`](CfxPlayer.md#id)
 
 ***
 
@@ -20,8 +28,16 @@ One player reported by FiveM's fixed players endpoint.
 
 > `readonly` **name**: `string`
 
+#### Inherited from
+
+[`CfxPlayer`](CfxPlayer.md).[`name`](CfxPlayer.md#name)
+
 ***
 
 ### ping?
 
 > `readonly` `optional` **ping?**: `number`
+
+#### Inherited from
+
+[`CfxPlayer`](CfxPlayer.md).[`ping`](CfxPlayer.md#ping)

@@ -1,12 +1,13 @@
 {
   "name": "queryhost",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Fast, typed game server queries for TypeScript.",
   "keywords": [
     "game-server",
     "minecraft",
     "source-query",
-    "typescript"
+    "typescript",
+    "vintage-story"
   ],
   "homepage": "https://query.host/",
   "bugs": {

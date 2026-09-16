@@ -35,7 +35,7 @@ Default game or service port; omitted when the profile cannot infer one.
 > `readonly` `optional` **defaultQueryPort?**: `number`
 
 Conventional query port corresponding to `defaultPort` when the protocol uses a separate
-destination. QueryHost preserves this offset for custom game ports.
+destination. Custom game ports preserve the offset unless `queryPortStrategy` is `fixed`.
 
 ***
 
@@ -48,3 +48,11 @@ destination. QueryHost preserves this offset for custom game ports.
 ### name
 
 > `readonly` **name**: `string`
+
+***
+
+### queryPortStrategy?
+
+> `readonly` `optional` **queryPortStrategy?**: `"offset"` \| `"fixed"`
+
+Whether a custom game port shifts the conventional query port or leaves it fixed.

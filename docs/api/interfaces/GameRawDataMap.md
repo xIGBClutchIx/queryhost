@@ -22,6 +22,18 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### dayz
+
+> `readonly` **dayz**: [`DayZRawData`](DayZRawData.md)
+
+***
+
+### dont-starve-together
+
+> `readonly` **dont-starve-together**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: `never`
@@ -40,12 +52,42 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### palworld
+
+> `readonly` **palworld**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: [`A2sRawData`](A2sRawData.md)
 
 ***
 
+### redm
+
+> `readonly` **redm**: `never`
+
+***
+
 ### rust
 
 > `readonly` **rust**: [`A2sRawData`](A2sRawData.md)
+
+***
+
+### satisfactory
+
+> `readonly` **satisfactory**: [`SatisfactoryRawData`](SatisfactoryRawData.md)
+
+***
+
+### valheim
+
+> `readonly` **valheim**: `never`
+
+***
+
+### vintage-story
+
+> `readonly` **vintage-story**: `never`

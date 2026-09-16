@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { QuerySourceName, QuerySourceStatus } from "../../src/contracts/shared.js";
 import type { DnsAddressRecord, DnsResolver } from "../../src/network/target.js";
-import type { FiveMQueryDependencies } from "../../src/protocols/fivem/query.js";
+import type { CfxQueryDependencies } from "../../src/protocols/cfx/query.js";
 import { queryWithDependencies, type QueryDependencies } from "../../src/runtime/client.js";
 import {
   HttpTransportError,
@@ -31,7 +31,7 @@ function resolver(addresses: readonly DnsAddressRecord[] = [PUBLIC_ADDRESS]): Dn
 }
 
 function dependencies(
-  fivem: FiveMQueryDependencies,
+  fivem: CfxQueryDependencies,
   dns: DnsResolver = resolver(),
 ): QueryDependencies {
   let nowCalls = 0;
@@ -93,7 +93,7 @@ const FAULT_STATUS: Readonly<Record<Fault, QuerySourceStatus>> = Object.freeze({
 function faultExchange(
   failedSource: QuerySourceName,
   fault: Fault,
-): NonNullable<FiveMQueryDependencies["exchange"]> {
+): NonNullable<CfxQueryDependencies["exchange"]> {
   return (options): Promise<FixedHttpExchangeResult> => {
     if (options.path !== sourcePath(failedSource)) {
       return successfulExchange(options);
@@ -122,7 +122,7 @@ describe("FiveM game profile", (): void => {
     const barrier = new Promise<void>((resolve): void => {
       release = resolve;
     });
-    const exchange: FiveMQueryDependencies["exchange"] = async (
+    const exchange: CfxQueryDependencies["exchange"] = async (
       options,
     ): Promise<FixedHttpExchangeResult> => {
       started.add(options.path);
@@ -204,7 +204,7 @@ describe("FiveM game profile", (): void => {
   });
 
   it("distinguishes confirmed empty collections from unavailable endpoints", async (): Promise<void> => {
-    const emptyExchange: FiveMQueryDependencies["exchange"] = (options) => {
+    const emptyExchange: CfxQueryDependencies["exchange"] = (options) => {
       if (options.path === "/info.json") {
         return Promise.resolve(response(options, '{"resources":[],"vars":{}}'));
       }
@@ -235,7 +235,7 @@ describe("FiveM game profile", (): void => {
 
   it("rejects JSON that exceeds the structural depth budget", async (): Promise<void> => {
     const deeplyNested = `${"[".repeat(34)}null${"]".repeat(34)}`;
-    const exchange: FiveMQueryDependencies["exchange"] = (options) =>
+    const exchange: CfxQueryDependencies["exchange"] = (options) =>
       options.path === "/info.json"
         ? Promise.resolve(response(options, deeplyNested))
         : successfulExchange(options);
@@ -250,7 +250,7 @@ describe("FiveM game profile", (): void => {
   });
 
   it("ignores a large bounded server icon instead of rejecting the info document", async (): Promise<void> => {
-    const exchange: FiveMQueryDependencies["exchange"] = (options) => {
+    const exchange: CfxQueryDependencies["exchange"] = (options) => {
       if (options.path !== "/info.json") {
         return successfulExchange(options);
       }
@@ -280,7 +280,7 @@ describe("FiveM game profile", (): void => {
   it("uses only dynamic.json in summary mode and reports skipped sources", async (): Promise<void> => {
     const paths: string[] = [];
     const ports: number[] = [];
-    const exchange: FiveMQueryDependencies["exchange"] = (options) => {
+    const exchange: CfxQueryDependencies["exchange"] = (options) => {
       paths.push(options.path);
       ports.push(options.target.port);
       return successfulExchange(options);
@@ -305,7 +305,7 @@ describe("FiveM game profile", (): void => {
   });
 
   it("fails only after every requested source is unavailable", async (): Promise<void> => {
-    const exchange: FiveMQueryDependencies["exchange"] = (options) =>
+    const exchange: CfxQueryDependencies["exchange"] = (options) =>
       Promise.resolve(response(options, "Nope", 403));
     const result = await queryWithDependencies(
       { game: "fivem", host: "play.example.com" },
@@ -332,7 +332,7 @@ describe("FiveM game profile", (): void => {
     const first = Object.freeze({ address: "1.1.1.1", family: 4 as const });
     const second = Object.freeze({ address: "8.8.8.8", family: 4 as const });
     const calls: string[] = [];
-    const exchange: FiveMQueryDependencies["exchange"] = (options) => {
+    const exchange: CfxQueryDependencies["exchange"] = (options) => {
       calls.push(`${options.address.address}${options.path}`);
       if (options.address.address === first.address) {
         return Promise.reject(new HttpTransportError("CONNECTION_FAILED"));

@@ -17,9 +17,11 @@ export interface GameDefinition<G extends GameId = GameId> {
   readonly defaultPort?: number;
   /**
    * Conventional query port corresponding to `defaultPort` when the protocol uses a separate
-   * destination. QueryHost preserves this offset for custom game ports.
+   * destination. Custom game ports preserve the offset unless `queryPortStrategy` is `fixed`.
    */
   readonly defaultQueryPort?: number;
+  /** Whether a custom game port shifts the conventional query port or leaves it fixed. */
+  readonly queryPortStrategy?: "offset" | "fixed";
   readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
 }
 
@@ -31,24 +33,40 @@ export type GameRegistry = {
 /** Stable presentation order for supported games. */
 export const GAME_IDS: readonly [
   "a2s",
+  "dont-starve-together",
   "rust",
+  "palworld",
   "project-zomboid",
   "7-days-to-die",
+  "dayz",
+  "valheim",
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "redm",
+  "satisfactory",
+  "vintage-story",
 ] = [
   "a2s",
+  "dont-starve-together",
   "rust",
+  "palworld",
   "project-zomboid",
   "7-days-to-die",
+  "dayz",
+  "valheim",
   "minecraft-java",
   "minecraft-bedrock",
   "fivem",
+  "redm",
+  "satisfactory",
+  "vintage-story",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
 export const GAME_ALIASES: GameAliasMap = Object.freeze({
+  dst: "dont-starve-together",
+  dontstarvetogether: "dont-starve-together",
   zomboid: "project-zomboid",
   pz: "project-zomboid",
   projectzomboid: "project-zomboid",
@@ -65,6 +83,10 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   "mc-bedrock": "minecraft-bedrock",
   "minecraft-bedrock-edition": "minecraft-bedrock",
   "five-m": "fivem",
+  "red-m": "redm",
+  rdr3: "redm",
+  vintagestory: "vintage-story",
+  vs: "vintage-story",
 });
 
 /**
@@ -84,11 +106,43 @@ export const GAME_REGISTRY: GameRegistry = {
       srv: "unsupported",
     },
   },
+  "dont-starve-together": {
+    id: "dont-starve-together",
+    name: "Don't Starve Together",
+    defaultPort: 10_999,
+    defaultQueryPort: 27_016,
+    queryPortStrategy: "fixed",
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
   rust: {
     id: "rust",
     name: "Rust",
     defaultPort: 28015,
     defaultQueryPort: 28017,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  palworld: {
+    id: "palworld",
+    name: "Palworld",
+    defaultPort: 8211,
+    defaultQueryPort: 27015,
+    queryPortStrategy: "fixed",
     capabilities: {
       summary: "supported",
       players: "conditional",
@@ -121,6 +175,36 @@ export const GAME_REGISTRY: GameRegistry = {
       summary: "supported",
       players: "conditional",
       rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  dayz: {
+    id: "dayz",
+    name: "DayZ",
+    defaultPort: 2302,
+    defaultQueryPort: 2305,
+    capabilities: {
+      summary: "supported",
+      players: "unsupported",
+      rules: "conditional",
+      mods: "conditional",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  valheim: {
+    id: "valheim",
+    name: "Valheim",
+    defaultPort: 2456,
+    defaultQueryPort: 2457,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",
       resources: "unsupported",
@@ -166,6 +250,48 @@ export const GAME_REGISTRY: GameRegistry = {
       mods: "unsupported",
       plugins: "unsupported",
       resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+  redm: {
+    id: "redm",
+    name: "RedM",
+    defaultPort: 30120,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "conditional",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "conditional",
+      srv: "unsupported",
+    },
+  },
+  satisfactory: {
+    id: "satisfactory",
+    name: "Satisfactory",
+    defaultPort: 7777,
+    capabilities: {
+      summary: "supported",
+      players: "unsupported",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
+  },
+  "vintage-story": {
+    id: "vintage-story",
+    name: "Vintage Story",
+    defaultPort: 42420,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
       srv: "unsupported",
     },
   },

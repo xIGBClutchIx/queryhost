@@ -34,6 +34,43 @@ export interface A2sData {
   readonly players?: readonly A2sPlayer[];
 }
 
+/** Vintage Story-specific fields disclosed by a server query answer. */
+export interface VintageStoryData {
+  /** Whether the server returned only stock liveness or the richer status schema. */
+  readonly response: "liveness" | "status";
+  /** Server message of the day; omitted when the server only confirms liveness. */
+  readonly motd?: string;
+  /** World play style or game mode advertised by the server. */
+  readonly gameMode?: string;
+}
+
+/** One player returned by Don't Starve Together's optional Steam A2S Player source. */
+export interface DontStarveTogetherPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Don't Starve Together shard facts reported through its Steam A2S endpoint. */
+export interface DontStarveTogetherData {
+  readonly protocol: number;
+  readonly game: string;
+  readonly folder: string;
+  readonly bots: number;
+  readonly serverType: "dedicated" | "listen" | "proxy";
+  readonly environment: "linux" | "macos" | "windows";
+  readonly vac: boolean;
+  /** Truncated 16-bit App ID carried by the base Source Info layout. */
+  readonly appId?: number;
+  /** Full 64-bit Steam game ID, encoded as decimal text when the response provides it. */
+  readonly steamGameId?: string;
+  /** Server-advertised Steam tags, when present. */
+  readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the shard confirmed no players. */
+  readonly players?: readonly DontStarveTogetherPlayer[];
+}
+
 /** One player reported by Rust's optional A2S Player source. */
 export interface RustPlayer {
   /** Protocol list index supplied by the server. */
@@ -50,6 +87,22 @@ export interface RustData {
   readonly tags?: readonly string[];
   /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
   readonly players?: readonly RustPlayer[];
+}
+
+/** One player returned by Palworld's conditional Steam A2S Player source. */
+export interface PalworldPlayer {
+  readonly index: number;
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Palworld-specific data collected from its public Steam query listener. */
+export interface PalworldData {
+  /** Server-advertised tags, when the A2S Info response provides them. */
+  readonly tags?: readonly string[];
+  /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
+  readonly players?: readonly PalworldPlayer[];
 }
 
 /** Project Zomboid-specific data collected from A2S sources. */
@@ -89,6 +142,67 @@ export interface SevenDaysToDiePlayer {
   readonly name: string;
   readonly score: number;
   readonly durationSeconds: number;
+}
+
+/** One DayZ mod decoded from the paged server-browser metadata in A2S Rules. */
+export interface DayZMod {
+  readonly name: string;
+  /** Decimal Steam Workshop item ID; omitted when the server advertises zero. */
+  readonly workshopId?: string;
+  /** Unsigned 32-bit short hash advertised by the server. */
+  readonly hash: number;
+}
+
+/** Raw direct DayZ Rules retained separately from decoded paged metadata. */
+export interface DayZRawData {
+  /** Direct string-valued pairs; binary metadata pages are decoded under {@link DayZData}. */
+  readonly rules: GameRuleMap;
+}
+
+/** DayZ-specific data collected from its Steam A2S endpoint. */
+export interface DayZData {
+  /** Uninterpreted comma-delimited A2S Info keywords, split in server order. */
+  readonly tags?: readonly string[];
+  /** Server-browser metadata format version, when paged metadata is available. */
+  readonly rulesProtocol?: number;
+  readonly description?: string;
+  /** Omitted when Rules metadata is unavailable; empty means the server confirmed no mods. */
+  readonly mods?: readonly DayZMod[];
+  /** Omitted when Rules metadata is unavailable; empty means the server confirmed no keys. */
+  readonly signatures?: readonly string[];
+  /** Terrain identifier advertised by DayZ's optional Rules response. */
+  readonly island?: string;
+  /** Operating-system identifier advertised by DayZ's optional Rules response. */
+  readonly platform?: "linux" | "windows";
+  readonly dedicated?: boolean;
+  readonly allowedBuild?: number;
+  /** Game connection port advertised by the server; never followed as a query destination. */
+  readonly clientPort?: number;
+  readonly requiredBuild?: number;
+  readonly requiredVersion?: number;
+  /** Raw numeric `timeLeft` value reported by DayZ. */
+  readonly timeLeft?: number;
+  /** Raw numeric language flags reported by DayZ. */
+  readonly language?: number;
+}
+
+/** One connection record reported by Valheim's optional A2S Player source. */
+export interface ValheimPlayer {
+  readonly index: number;
+  /** Valheim's Steam backend commonly returns an empty name for privacy. */
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** Valheim-specific data available from its direct Steam-backend A2S endpoint. */
+export interface ValheimData {
+  /** A successful direct A2S response proves that the queried endpoint uses Steam discovery. */
+  readonly backend: "steam";
+  /** Game build advertised through Valheim's A2S keyword field, when present. */
+  readonly networkVersion?: string;
+  /** Omitted when Player is unavailable; empty means the server confirmed no connections. */
+  readonly players?: readonly ValheimPlayer[];
 }
 
 /** Normalized Minecraft message-of-the-day representations. */
@@ -145,21 +259,69 @@ export interface MinecraftBedrockData {
   readonly advertisedIpv6Port?: number;
 }
 
-/** One player reported by FiveM's fixed players endpoint. */
-export interface FiveMPlayer {
+/** One player reported by a Cfx FXServer fixed players endpoint. */
+export interface CfxPlayer {
   readonly id: number;
   readonly name: string;
   readonly ping?: number;
 }
 
-/** FiveM-specific data merged from its fixed JSON endpoints. */
-export interface FiveMData {
+/** Data shared by Cfx FXServer games and merged from their fixed JSON endpoints. */
+export interface CfxData<P extends CfxPlayer = CfxPlayer> {
   /** Omitted when the resources endpoint is unavailable; an empty array means confirmed empty. */
   readonly resources?: readonly string[];
   readonly variables?: Readonly<Record<string, string>>;
   /** Omitted when the players endpoint is unavailable; an empty array means confirmed empty. */
-  readonly players?: readonly FiveMPlayer[];
+  readonly players?: readonly P[];
   readonly gameType?: string;
   readonly oneSyncEnabled?: boolean;
   readonly enhancedHostSupport?: boolean;
+}
+
+/** One player reported by FiveM's fixed players endpoint. */
+export interface FiveMPlayer extends CfxPlayer {}
+
+/** FiveM-specific data merged from its fixed JSON endpoints. */
+export interface FiveMData extends CfxData<FiveMPlayer> {}
+
+/** One player reported by RedM's fixed players endpoint. */
+export interface RedMPlayer extends CfxPlayer {}
+
+/** RedM-specific data merged from its fixed JSON endpoints. */
+export interface RedMData extends CfxData<RedMPlayer> {}
+
+/** Lifecycle state returned by Satisfactory's lightweight status service. */
+export type SatisfactoryServerState = "idle" | "loading" | "playing";
+
+/** One recognized Satisfactory subsystem revision counter. */
+export interface SatisfactorySubState {
+  /** Protocol-defined subsystem ID from 0 through 7. */
+  readonly id: number;
+  readonly version: number;
+}
+
+/** Health data returned by the credential-free HTTPS HealthCheck function. */
+export interface SatisfactoryHealth {
+  readonly health: "healthy" | "slow";
+  /** Empty means the vanilla server confirmed that it supplied no custom data. */
+  readonly serverCustomData: string;
+}
+
+/** Satisfactory-specific facts from its dedicated-server status APIs. */
+export interface SatisfactoryData {
+  readonly state: SatisfactoryServerState;
+  /** Dedicated server network changelist. */
+  readonly serverNetCl: number;
+  readonly modded: boolean;
+  /** Omitted in summary mode, while loading, or when the optional HTTPS source fails. */
+  readonly health?: SatisfactoryHealth["health"];
+}
+
+/** Parsed protocol fields retained separately from normalized Satisfactory data. */
+export interface SatisfactoryRawData {
+  readonly stateCode: 1 | 2 | 3;
+  readonly serverFlags: string;
+  readonly subStates: readonly SatisfactorySubState[];
+  /** Omitted when the optional HTTPS source did not complete. */
+  readonly health?: SatisfactoryHealth;
 }

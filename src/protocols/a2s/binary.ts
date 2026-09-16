@@ -4,6 +4,15 @@ import { failA2s } from "./errors.js";
 
 const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
+/** Decodes protocol-owned UTF-8 bytes or fails with the stable A2S malformed response. */
+export function decodeA2sUtf8(bytes: Uint8Array): string {
+  try {
+    return UTF8_DECODER.decode(bytes);
+  } catch {
+    return failA2s("MALFORMED_RESPONSE");
+  }
+}
+
 /** Stateful reader that either consumes a concrete value or fails without advancing past input. */
 export class A2sBinaryReader {
   readonly #bytes: Uint8Array;
@@ -68,8 +77,19 @@ export class A2sBinaryReader {
     return value;
   }
 
-  /** Reads one valid UTF-8, null-terminated string. */
-  public readString(maximumBytes?: number): string {
+  /** Reads and copies an exact number of bytes. */
+  public readBytes(length: number): Uint8Array {
+    if (!Number.isSafeInteger(length) || length < 0) {
+      return failA2s("MALFORMED_RESPONSE");
+    }
+    this.#require(length);
+    const value = this.#bytes.slice(this.#offset, this.#offset + length);
+    this.#offset += length;
+    return value;
+  }
+
+  /** Reads raw bytes through the next null terminator. */
+  public readStringBytes(maximumBytes?: number): Uint8Array {
     const terminator = this.#bytes.indexOf(0, this.#offset);
     if (
       terminator === -1 ||
@@ -81,13 +101,14 @@ export class A2sBinaryReader {
       return failA2s("MALFORMED_RESPONSE");
     }
 
-    const encoded = this.#bytes.subarray(this.#offset, terminator);
+    const encoded = this.#bytes.slice(this.#offset, terminator);
     this.#offset = terminator + 1;
-    try {
-      return UTF8_DECODER.decode(encoded);
-    } catch {
-      return failA2s("MALFORMED_RESPONSE");
-    }
+    return encoded;
+  }
+
+  /** Reads one valid UTF-8, null-terminated string. */
+  public readString(maximumBytes?: number): string {
+    return decodeA2sUtf8(this.readStringBytes(maximumBytes));
   }
 
   /** Requires that the packet contain no trailing bytes. */

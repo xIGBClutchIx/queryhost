@@ -7,10 +7,21 @@ import { UdpTransportError } from "../../transports/udp.js";
 import { A2sProtocolError } from "./errors.js";
 import type { A2sExchangeDependencies } from "./network.js";
 import { queryA2sPlayer, type A2sPlayer } from "./player.js";
-import { queryA2sRules, type A2sRules } from "./rules.js";
+import {
+  queryA2sRules,
+  type A2sRules,
+  type A2sRulesQueryOptions,
+  type A2sRulesQueryResult,
+} from "./rules.js";
 
 /** Whether an optional source should run or be represented as intentionally unavailable. */
 export type A2sOptionalSourcePolicy = "query" | "blocked" | "unsupported" | "not-requested";
+
+/** Profile-selectable Rules decoder over the shared bounded challenge exchange. */
+export type A2sRulesQuery = (
+  options: A2sRulesQueryOptions,
+  dependencies?: A2sExchangeDependencies,
+) => Promise<A2sRulesQueryResult>;
 
 /** Inputs available after target resolution and the required A2S Info source have succeeded. */
 export interface A2sOptionalSourcesOptions {
@@ -21,6 +32,7 @@ export interface A2sOptionalSourcesOptions {
   readonly operationTimeoutMs: number;
   readonly player: A2sOptionalSourcePolicy;
   readonly rules: A2sOptionalSourcePolicy;
+  readonly queryRules?: A2sRulesQuery;
   /** Internal lifecycle hook used to preserve accurate whole-query provenance. */
   readonly onSourceStarted?: (source: QuerySourceName) => void;
   /** Internal lifecycle hook used to retain reports completed before whole-query termination. */
@@ -126,7 +138,7 @@ async function runRules(
   options.onSourceStarted?.(source);
   const scope = options.scope.createOperation(options.operationTimeoutMs, source);
   try {
-    const result = await queryA2sRules(
+    const result = await (options.queryRules ?? queryA2sRules)(
       { scope, target: options.target, address: options.address },
       dependencies,
     );

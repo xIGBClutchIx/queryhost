@@ -33,12 +33,15 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `network/target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
 - `transports/udp.ts` owns bounded single- and multi-datagram exchanges with no protocol interpretation.
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
-- `transports/http.ts` owns bounded, non-redirecting GET requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
+- `transports/http.ts` owns bounded, non-redirecting GET/POST requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
 - `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
-- `protocols/fivem/` owns fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
+- `protocols/cfx/` owns the shared FXServer fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
+- `protocols/satisfactory/` owns Lightweight Query framing and the fixed HTTPS HealthCheck request and response schema.
+- `protocols/vintage-story/` owns the direct TCP query packet, frame inspection, strict protobuf-compatible decoding, and stock-server liveness acknowledgement.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
+- `profiles/dont-starve-together.ts` owns DST's typed A2S projection while treating the selected Steam endpoint as one shard rather than inventing cluster aggregation.
 - Each named module under `profiles/` owns only that game's interpretation and public data merge.
 
 Tests mirror these ownership folders under `test/`. Shared fixtures, fake servers, and package-consumer checks remain in `test/fixtures`, `test/helpers`, and `test/package-smoke` rather than being duplicated beside each test.
@@ -97,22 +100,34 @@ After a required source succeeds, requested independent optional sources receive
 
 ## Shared A2S profile invariants
 
-Generic A2S, Rust, Project Zomboid, and 7 Days to Die use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, Player and Rules use that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+Generic A2S, Rust, Palworld, Project Zomboid, 7 Days to Die, Don't Starve Together, DayZ, and Valheim use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, optional Player and Rules work uses that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
 
-Full mode requests Player and Rules concurrently. Summary mode records both as `not-requested` without opening optional sockets. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
+Full mode applies each profile's declared Player and Rules policy concurrently. A supported source is queried; an unavailable capability is reported as `unsupported` without opening a socket. Summary mode records both as `not-requested`. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
 
 The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline.
 
 ## Game-specific A2S merges
 
 - Generic A2S exposes portable Info facts, Player records, and untouched Rules without guessing at game-specific rule names. It requires `port` as the actual A2S query destination because there is no reliable universal default.
+- Don't Starve Together exposes portable Info facts, the full Steam game ID when present, Player records, and untouched Rules without assigning undocumented meaning to rule names. Its gameplay port defaults to UDP 10999, while the independently configured per-shard Steam A2S port defaults to UDP 27016. A custom gameplay port does not shift that query port; `queryPort` selects non-default shard configurations explicitly.
 - Rust converts Info keywords into ordered tags and Player records into `RustPlayer` values. Rules remain unchanged. Its registry ports are game 28015 and query 28017; custom game ports preserve that offset unless `queryPort` is explicit.
+- Palworld converts Info keywords into ordered tags and conditionally returned Player records into `PalworldPlayer` values. Rules remain unchanged. Its gameplay listener conventionally uses UDP 8211 while Steam A2S uses fixed UDP 27015; a custom game port does not shift that query default, and `queryPort` remains the explicit override. The public A2S profile deliberately excludes Pocketpair's Basic-Auth REST API, which is a separate LAN administration surface with richer player and settings fields.
 - Project Zomboid converts Player records and interprets lowercase `description`, numeric `pvp`, `version`, and semicolon-delimited `mods`. The Rules version overrides A2S Info's generic version when available. Its default A2S destination is UDP 16261.
 - 7 Days to Die converts Player records and interprets `ServerDescription`, `GameName`, `LevelName`, `GameMode`, `CurrentServerTime`, and `ServerWebsiteURL`. Its default A2S destination is UDP 26900. Other rule names remain available unchanged.
+- Valheim supports direct A2S only when the dedicated server uses its Steam backend. Its registry game port is UDP 2456 and query port is UDP 2457; custom game ports preserve that offset. Info supplies normalized server facts and its keyword carries `data.networkVersion`. Player is conditional and may contain connection durations with deliberately empty names. Rules is known unsupported and is never attempted. A successful result identifies `data.backend` as `steam`; PlayFab `-crossplay` servers have no direct endpoint this profile can follow.
+- DayZ splits A2S Info keywords without assigning undocumented meanings, interprets only validated direct Rules values (`island`, `platform`, `dedicated`, port, build, version, time-left, and language fields), and preserves every direct string rule unchanged. Its profile injects a DayZ-owned Rules decoder into the shared challenge flow. That decoder accepts at most 32 consistently numbered metadata pages, reverses only the protocol's three escape sequences under the 65,536-byte response ceiling, requires DayZ metadata version 2, and bounds-checks every mod, Workshop ID, name, signature, and description before exposing typed metadata. Binary page records are excluded from `rawData.rules` because they are not strings. A2S Player is declared `unsupported`, so aggregate Info counts remain available without exposing anonymous or malformed records as a player list. The registry's game port 2302 and Steam query port 2305 preserve the conventional `+3` offset for custom game ports unless `queryPort` is explicit. Server-advertised `clientPort` is informational and never redirects work outside the validated pinned target.
 
 Each game owns independent successful-source fixtures and tests for its merge semantics and port convention. Shared profile tests own common timeout, malformed-response, target-policy, summary-mode, and provenance behavior so those cases are not repeated for every game. A shared parser or orchestration module must never branch on one of these game IDs.
 
-Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
+### Don't Starve Together cluster boundary
+
+Klei's dedicated-server settings distinguish the `[NETWORK] server_port` used for player connections, the `[STEAM] master_server_port` used by Steam services, and the `[SHARD] master_port` used for internal shard coordination. QueryHost sends Valve A2S packets only to the validated Steam query destination. It does not send gameplay handshakes, contact the shard-coordination port, or use a caller-controlled HTTP URL.
+
+Every shard process requires distinct Steam and gameplay ports when it shares a machine with another shard. Consequently, one A2S response is evidence about one responding shard, not a complete cluster. The direct protocol does not provide safe sibling-shard discovery, so the profile neither follows response-directed destinations nor merges Klei lobby metadata. Operators must supply `queryPort` when the shard's Steam port differs from 27016.
+
+The port roles are documented in Klei's [Dedicated Server Settings Guide](https://forums.kleientertainment.com/forums/topic/64552-dedicated-server-settings-guide/). The packet format remains the bounded Valve [Server queries](https://developer.valvesoftware.com/wiki/Server_queries) implementation already shared by the A2S profiles. Independent GameDig registries identify DST as Valve A2S with gameplay port 10999 and query port 27016; these corroborate the protocol selection, while the Klei settings remain authoritative for the meaning and independence of the ports.
+
+Valheim's raw-data map is `never` because its Rules source is unsupported. Successful A2S profiles keep normalized values in `server` and `data`. The untouched Rules map is exposed separately as `rawData.rules`, preventing protocol strings such as `pvp: "1"` from appearing alongside their typed interpretations. `rawData` is omitted when Rules was skipped or unavailable and retained with an empty `rules` object when the server confirmed zero rules.
 
 ## TCP transport invariants
 
@@ -122,17 +137,29 @@ Connection failure, write failure, early EOF, malformed framing, byte-limit exha
 
 ## Fixed HTTP transport invariants
 
-One fixed HTTP exchange connects directly to an address already present in a pinned target. The original normalized hostname is retained only for the HTTP `Host` header and, for HTTPS DNS names, TLS SNI. Protocols provide a fixed path consisting of one safe path segment; caller URLs, authorities, query strings, fragments, and redirect destinations are not accepted.
+One fixed HTTP exchange connects directly to an address already present in a pinned target. The original normalized hostname is retained only for the HTTP `Host` header and, for HTTPS DNS names, TLS SNI. Protocols provide a fixed path consisting only of safe path segments; caller URLs, authorities, query strings, fragments, and redirect destinations are not accepted.
 
 The transport uses a non-redirecting platform request and returns every valid HTTP status to the protocol. It asks for identity encoding, caps both declared and streamed response size at the protocol's limit, rejects mismatched content lengths, and destroys the response and request exactly once on success, failure, timeout, or cancellation. A protocol receives copied bytes, status, RTT, and pinned destination facts; it remains responsible for status and body interpretation.
 
-## FiveM HTTP profile invariants
+## Cfx HTTP profile invariants
 
-FiveM resolves and pins the caller's host on TCP port 30120 by default. Full mode starts `info.json`, `dynamic.json`, and `players.json` concurrently with separate child budgets against the same selected address. If none succeeds, the complete three-source set may be retried on the next pinned address; once any endpoint succeeds, failed endpoints are not retried elsewhere, preventing one result from merging different server instances. Summary mode requests only `dynamic.json` and records the other sources as `not-requested`.
+FiveM and RedM resolve and pin the caller's host on TCP port 30120 by default. Cfx's official setup guide configures the same FXServer binary for RedM with `gamename rdr3` and binds its TCP and UDP endpoints to 30120. The shared FXServer HTTP handler owns `info.json`, `dynamic.json`, and `players.json`; the server-command documentation also defines their common `sv_requestParanoia` blocking behavior. The protocol and orchestration modules therefore contain no game-ID branches: thin profile definitions provide only the caller-facing game name and distinct source identities.
+
+Full mode starts all three endpoints concurrently with separate child budgets against the same selected address. If none succeeds, the complete three-source set may be retried on the next pinned address; once any endpoint succeeds, failed endpoints are not retried elsewhere, preventing one result from merging different server instances. Summary mode requests only `dynamic.json` and records the other sources as `not-requested`.
 
 JSON bodies have endpoint byte limits plus depth, node, collection, key, and string limits. `info.json` supplies the server software identity, resources, server-info variables, OneSync state, and enhanced-host flag. `dynamic.json` supplies the normalized name, map, game type, and player counts. `players.json` supplies bounded public player IDs, names, and pings. Unknown fields are ignored only after the complete document satisfies the shared structural budget.
 
 HTTP 404 is `unsupported`, transport and other HTTP failures retain their specific source status, and both `Nope` and the server's current `Nope.` body are explicit `blocked` outcomes. A confirmed empty resources, variables, or players collection remains empty; a failed or blocked endpoint omits its fields. Any usable endpoint produces a successful result, with warnings and `partial: true` when another requested endpoint failed. If every requested endpoint fails, the query fails after all source reports are preserved.
+
+Primary references: [Cfx vanilla FXServer setup](https://docs.fivem.net/docs/server-manual/setting-up-a-server-vanilla/), [Cfx server commands](https://docs.fivem.net/docs/server-manual/server-commands/), and the [FXServer HTTP handler](https://github.com/citizenfx/fivem/blob/master/code/components/citizen-server-impl/src/InfoHttpHandler.cpp).
+
+## Vintage Story query invariants
+
+Vintage Story sends the protocol's fixed eight-byte empty `ServerQuery` request directly to TCP 42420 by default, or to the caller's validated `port`/`queryPort`. The game and query port are the same. Every address attempt uses only the immutable addresses returned by target validation; the profile does not consult the master server, follow response-directed destinations, or accept a caller-provided URL.
+
+Responses use the game's four-byte big-endian frame length. Compressed frames, trailing bytes, non-canonical varints, duplicate known fields, invalid UTF-8, impossible player counts, and responses above 8,192 bytes fail deterministically. Unknown protobuf-compatible fields are skipped only within the validated frame and bounded wire representation.
+
+Current stock 1.22 servers return the exact protocol acknowledgement `Query complete` to an unauthenticated direct query. That response confirms protocol liveness but no metadata, so the public result sets `data.response` to `liveness` and leaves name, version, player counts, mode, MOTD, and password state omitted. Servers that implement the official `ServerQueryAnswer` schema produce `data.response: "status"`; only fields present in that answer are normalized. These behaviors were verified against the official 1.22.7 server archive and the official server configuration documentation, which specifies TCP and UDP port 42420.
 
 ## Minecraft Java SLP invariants
 
@@ -157,6 +184,29 @@ The Bedrock profile sends one 33-byte unconnected ping to UDP 19132 by default, 
 The pong must echo the request timestamp and contain the exact RakNet offline-message magic, an unsigned server GUID, and an exact 16-bit payload length. Responses are limited to 2,048 bytes. Advertisement text must be valid UTF-8 and is split into at most 32 semicolon fields of at most 1,024 bytes each. `MCPE` and `MCEE` are the only accepted edition headers. Missing later fields remain omitted, bounded extra fields are ignored, and every present numeric field must use a canonical non-negative decimal representation within its field-specific range.
 
 The primary MOTD becomes `server.name` and `data.motd`; version and player counts are normalized under `server`. Edition, numeric protocol, game mode, decimal server ID, and advertised IPv4/IPv6 ports remain under `MinecraftBedrockData`. Advertised ports are informational because following untrusted response-directed destinations would cross the validated target boundary. RakNet is the profile's single required source, so timeout, malformed data, or transport failure returns a failed query rather than partial success.
+
+## Satisfactory Dedicated Server invariants
+
+Satisfactory resolves and pins one public destination on port 7777 by default. The required source is the version-1 Lightweight Query API over UDP. Poll cookies are random unsigned 64-bit correlation values; responses must echo the cookie and match the fixed magic, message type, version, terminator, exact packet length, bounded UTF-8 server name, known lifecycle state, and bounded substate collection. The parser retains the unsigned flag word as a decimal string, interprets only the documented modded bit, and discards future unknown substate IDs as required by the shipped protocol documentation.
+
+Full mode optionally sends the fixed `HealthCheck` JSON request to HTTPS `/api/v1` on the same pinned address that answered UDP. It never performs `PasswordlessLogin`, accepts a password or token, or invokes authenticated state and management functions. When lightweight status is `loading`, HTTPS is documented unavailable and remains `not-requested`; summary mode also skips it. Health failures preserve the required UDP result as partial with source-specific warnings.
+
+The server always uses TLS and generates a self-signed certificate when the operator does not install one. Because QueryHost has no interactive certificate-trust store, the Satisfactory health request explicitly disables certificate identity validation. TLS still encrypts the exchange, and direct connection to the already validated pinned address prevents DNS rebinding, but callers must not treat the health response as cryptographic server authentication. The transport exposes this as an explicit game-neutral certificate policy and otherwise retains fixed-path, no-redirect, deadline, body-size, and cleanup rules.
+
+Source: Coffee Stain's `CommunityResources/DedicatedServerAPIDocs.md`, mirrored by the Official Satisfactory Wiki's [Lightweight Query API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/Lightweight_Query_API) and [HTTPS API](https://satisfactory.wiki.gg/wiki/Dedicated_servers/HTTPS_API) pages. The shipped document defines the same-port UDP and HTTPS protocols, port 7777 default, TLS/self-signed behavior, API availability, packet layout, and authentication requirements.
+
+## Factorio support boundary
+
+Factorio is intentionally not registered as an implemented game. As of September 2026, Wube's published interfaces do not define an unauthenticated, read-only status exchange against a dedicated server:
+
+- The [official multiplayer documentation](https://wiki.factorio.com/Multiplayer) identifies UDP 34197 as the default gameplay port and `_factorio._udp` as optional DNS SRV discovery. These are connection-routing facts; the documentation does not define a status request or response packet.
+- Wube's [server settings](https://github.com/wube/factorio-data/blob/master/server-settings.example.json) publish public games to the official matching server and require Factorio credentials for that visibility. Hidden and LAN-only servers therefore cannot be covered by the public listing.
+- The [official Matchmaking API documentation](https://wiki.factorio.com/Matchmaking_API) requires a username and token to list games. Its unauthenticated detail endpoint accepts a matching-service `game_id` obtained from that listing, so the returned name, version, player, mod, and heartbeat fields are central-service metadata rather than a direct exchange with the caller's target.
+- The dedicated-server command line exposes a separately configured [RCON port and password](https://wiki.factorio.com/Command_line_parameters). RCON is an authenticated administration surface, not a public server-status protocol, and neither its port nor its credentials can be inferred from the gameplay address.
+
+QueryHost must not treat UDP silence as reachability, reverse-engineer a gameplay connection handshake into a status protocol, send administrative RCON credentials through the public query contract, or substitute matching-service data for a live query of the requested server. Those approaches would respectively fabricate data, rely on an unstable private wire contract, expand the trust boundary, or exclude valid hidden and LAN-only servers while claiming direct support.
+
+Factorio can become a registered profile if Wube publishes a stable direct status exchange, or if QueryHost deliberately adds a separately scoped authenticated-management contract. Until then there is no `FactorioData`, registry entry, profile dispatch, CLI ID, fixture, or generated API surface to keep synchronized.
 
 ## Command-line invariants
 

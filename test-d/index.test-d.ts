@@ -3,6 +3,11 @@ import { expectAssignable, expectError, expectNotAssignable, expectType } from "
 import {
   type A2sData,
   type A2sPlayer,
+  type DayZData,
+  type DayZMod,
+  type DayZRawData,
+  type DontStarveTogetherData,
+  type DontStarveTogetherPlayer,
   canonicalGameId,
   GAME_IDS,
   getGameDefinition,
@@ -16,8 +21,12 @@ import {
   type GameId,
   type MinecraftBedrockData,
   type MinecraftJavaData,
+  type PalworldData,
+  type PalworldPlayer,
   type ProjectZomboidData,
   type ProjectZomboidPlayer,
+  type RedMData,
+  type RedMPlayer,
   type QueryError,
   type QueryInput,
   type QueryResult,
@@ -25,17 +34,29 @@ import {
   type RustPlayer,
   type SevenDaysToDieData,
   type SevenDaysToDiePlayer,
+  type SatisfactoryData,
+  type SatisfactoryRawData,
+  type VintageStoryData,
+  type ValheimData,
+  type ValheimPlayer,
 } from "queryhost";
 
 expectType<
   readonly [
     "a2s",
+    "dont-starve-together",
     "rust",
+    "palworld",
     "project-zomboid",
     "7-days-to-die",
+    "dayz",
+    "valheim",
     "minecraft-java",
     "minecraft-bedrock",
     "fivem",
+    "redm",
+    "satisfactory",
+    "vintage-story",
   ]
 >(GAME_IDS);
 
@@ -44,6 +65,12 @@ expectType<Promise<QueryResult<"a2s">>>(
 );
 expectError(query({ game: "a2s", host: "play.example.com" }));
 expectError(query({ game: "a2s", host: "play.example.com", port: 27_015, queryPort: 27_016 }));
+expectType<Promise<QueryResult<"dont-starve-together">>>(
+  query({ game: "dont-starve-together", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"dont-starve-together">>>(
+  query({ game: "dst", host: "play.example.com", port: 11_000, queryPort: 27_018 }),
+);
 
 const rustInput: QueryInput<"rust"> = {
   game: "rust",
@@ -52,12 +79,15 @@ const rustInput: QueryInput<"rust"> = {
 };
 expectType<"rust">(rustInput.game);
 expectType<Promise<QueryResult<"rust">>>(query(rustInput));
+expectType<Promise<QueryResult<"palworld">>>(query({ game: "palworld", host: "play.example.com" }));
 expectType<Promise<QueryResult<"project-zomboid">>>(
   query({ game: "project-zomboid", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7-days-to-die", host: "play.example.com" }),
 );
+expectType<Promise<QueryResult<"dayz">>>(query({ game: "dayz", host: "play.example.com" }));
+expectType<Promise<QueryResult<"valheim">>>(query({ game: "valheim", host: "play.example.com" }));
 expectType<Promise<QueryResult<"7-days-to-die">>>(
   query({ game: "7d2d", host: "play.example.com" }),
 );
@@ -72,17 +102,28 @@ expectType<Promise<QueryResult<"minecraft-bedrock">>>(
   query({ game: "mcbe", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"fivem">>>(query({ game: "five-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"redm">>>(query({ game: "red-m", host: "play.example.com" }));
+expectType<Promise<QueryResult<"redm">>>(query({ game: "rdr3", host: "play.example.com" }));
+expectType<Promise<QueryResult<"satisfactory">>>(
+  query({ game: "satisfactory", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
 expectType<Promise<QueryResult>>(query(dynamicInput));
 
 expectType<"rust">(getGameDefinition("rust").id);
+expectType<"dont-starve-together">(getGameDefinition("dst").id);
 expectType<"project-zomboid">(getGameDefinition("pz").id);
 expectType<"minecraft-java">(getGameDefinition("minecraft").id);
 expectType<"7-days-to-die">(canonicalGameId("7d2d"));
+expectType<"vintage-story">(canonicalGameId("vintagestory"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
+expectType<"offset" | "fixed" | undefined>(
+  getGameDefinition("dont-starve-together").queryPortStrategy,
+);
 expectType<number | undefined>(getGameDefinition("minecraft-java").defaultPort);
 expectType<number | undefined>(getGameDefinition("a2s").defaultPort);
 
@@ -107,14 +148,26 @@ if (dynamicResult.ok) {
     case "a2s":
       expectType<A2sData>(dynamicResult.data);
       break;
+    case "dont-starve-together":
+      expectType<DontStarveTogetherData>(dynamicResult.data);
+      break;
     case "rust":
       expectType<RustData>(dynamicResult.data);
+      break;
+    case "palworld":
+      expectType<PalworldData>(dynamicResult.data);
       break;
     case "project-zomboid":
       expectType<ProjectZomboidData>(dynamicResult.data);
       break;
     case "7-days-to-die":
       expectType<SevenDaysToDieData>(dynamicResult.data);
+      break;
+    case "dayz":
+      expectType<DayZData>(dynamicResult.data);
+      break;
+    case "valheim":
+      expectType<ValheimData>(dynamicResult.data);
       break;
     case "minecraft-java":
       expectType<MinecraftJavaData>(dynamicResult.data);
@@ -125,6 +178,16 @@ if (dynamicResult.ok) {
     case "fivem":
       expectType<FiveMData>(dynamicResult.data);
       break;
+    case "redm":
+      expectType<RedMData>(dynamicResult.data);
+      break;
+    case "satisfactory":
+      expectType<SatisfactoryData>(dynamicResult.data);
+      expectType<SatisfactoryRawData | undefined>(dynamicResult.rawData);
+      break;
+    case "vintage-story":
+      expectType<VintageStoryData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -134,14 +197,35 @@ if (dynamicResult.ok) {
 declare const dataMap: GameDataMap;
 declare const rawDataMap: GameRawDataMap;
 expectType<Readonly<Record<string, string>>>(rawDataMap["project-zomboid"].rules);
+expectType<Readonly<Record<string, string>>>(rawDataMap.palworld.rules);
 expectType<A2sData>(dataMap.a2s);
 expectType<readonly A2sPlayer[] | undefined>(dataMap.a2s.players);
+expectType<DontStarveTogetherData>(dataMap["dont-starve-together"]);
+expectType<readonly DontStarveTogetherPlayer[] | undefined>(
+  dataMap["dont-starve-together"].players,
+);
+expectType<Readonly<Record<string, string>>>(rawDataMap["dont-starve-together"].rules);
 expectType<RustData>(dataMap.rust);
 expectType<readonly RustPlayer[] | undefined>(dataMap.rust.players);
+expectType<PalworldData>(dataMap.palworld);
+expectType<readonly PalworldPlayer[] | undefined>(dataMap.palworld.players);
 expectType<readonly ProjectZomboidPlayer[] | undefined>(dataMap["project-zomboid"].players);
 expectType<readonly string[] | undefined>(dataMap["project-zomboid"].mods);
 expectType<readonly SevenDaysToDiePlayer[] | undefined>(dataMap["7-days-to-die"].players);
 expectType<string | undefined>(dataMap["7-days-to-die"].currentServerTime);
+expectType<DayZData>(dataMap.dayz);
+expectType<readonly string[] | undefined>(dataMap.dayz.tags);
+expectType<boolean | undefined>(dataMap.dayz.dedicated);
+expectType<number | undefined>(dataMap.dayz.clientPort);
+expectType<readonly DayZMod[] | undefined>(dataMap.dayz.mods);
+expectType<string | undefined>(dataMap.dayz.mods?.[0]?.workshopId);
+expectType<Readonly<Record<string, string>>>(rawDataMap.dayz.rules);
+expectType<DayZRawData>(rawDataMap.dayz);
+expectType<ValheimData>(dataMap.valheim);
+expectType<"steam">(dataMap.valheim.backend);
+expectType<string | undefined>(dataMap.valheim.networkVersion);
+expectType<readonly ValheimPlayer[] | undefined>(dataMap.valheim.players);
+expectType<never>(rawDataMap.valheim);
 expectType<MinecraftJavaData>(dataMap["minecraft-java"]);
 expectType<string | undefined>(dataMap["minecraft-java"].motd?.plain);
 expectType<number | undefined>(dataMap["minecraft-java"].protocolVersion);
@@ -163,6 +247,21 @@ expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables
 expectType<readonly FiveMPlayer[] | undefined>(dataMap.fivem.players);
 expectType<string | undefined>(dataMap.fivem.gameType);
 expectType<boolean | undefined>(dataMap.fivem.oneSyncEnabled);
+expectType<RedMData>(dataMap.redm);
+expectType<readonly RedMPlayer[] | undefined>(dataMap.redm.players);
+expectType<readonly string[] | undefined>(dataMap.redm.resources);
+expectType<Readonly<Record<string, string>> | undefined>(dataMap.redm.variables);
+expectType<SatisfactoryData>(dataMap.satisfactory);
+expectType<"idle" | "loading" | "playing">(dataMap.satisfactory.state);
+expectType<number>(dataMap.satisfactory.serverNetCl);
+expectType<boolean>(dataMap.satisfactory.modded);
+expectType<"healthy" | "slow" | undefined>(dataMap.satisfactory.health);
+expectType<string>(rawDataMap.satisfactory.serverFlags);
+expectType<number | undefined>(rawDataMap.satisfactory.subStates[0]?.version);
+expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData);
+expectType<VintageStoryData>(dataMap["vintage-story"]);
+expectType<"liveness" | "status">(dataMap["vintage-story"].response);
+expectType<string | undefined>(dataMap["vintage-story"].motd);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);
@@ -172,3 +271,8 @@ expectType<number | undefined>(fivemPlayer.ping);
 declare const rustPlayer: RustPlayer;
 expectType<string>(rustPlayer.name);
 expectType<number>(rustPlayer.durationSeconds);
+
+declare const redmPlayer: RedMPlayer;
+expectType<number>(redmPlayer.id);
+expectType<string>(redmPlayer.name);
+expectType<number | undefined>(redmPlayer.ping);

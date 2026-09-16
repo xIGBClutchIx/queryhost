@@ -47,12 +47,23 @@ describe("query command arguments", (): void => {
     });
   });
 
+  it("accepts the canonical Satisfactory profile and optional custom port", (): void => {
+    expect(parseQueryArguments(["satisfactory", "play.example.com", "17777"])).toEqual({
+      kind: "query",
+      options: { game: "satisfactory", host: "play.example.com", port: 17_777 },
+    });
+  });
+
   it.each([
+    ["dst", "dont-starve-together"],
     ["zomboid", "project-zomboid"],
     ["7dtd", "7-days-to-die"],
     ["minecraft", "minecraft-java"],
     ["mcbe", "minecraft-bedrock"],
     ["five-m", "fivem"],
+    ["red-m", "redm"],
+    ["rdr3", "redm"],
+    ["vs", "vintage-story"],
   ] as const)("normalizes the %s alias", (alias, game): void => {
     expect(parseQueryArguments([alias, "play.example.com"])).toEqual({
       kind: "query",

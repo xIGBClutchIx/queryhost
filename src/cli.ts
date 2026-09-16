@@ -19,8 +19,15 @@ Options:
 
 Examples:
   queryhost a2s play.example.com 27015
+  queryhost dst play.example.com 10999 --query-port 27016
   queryhost rust play.example.com 28015
+  queryhost redm play.example.com 30120
+  queryhost palworld play.example.com 8211
+  queryhost dayz play.example.com 2302
+  queryhost valheim play.example.com 2456
   queryhost mc play.example.com 25565
+  queryhost satisfactory play.example.com 7777
+  queryhost vs play.example.com 42420
   queryhost rust play.example.com --mode summary
   npm run query -- rust play.example.com 28015 --timeout 3000
 

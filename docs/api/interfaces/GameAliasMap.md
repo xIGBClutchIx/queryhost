@@ -34,6 +34,18 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### dontstarvetogether
+
+> `readonly` **dontstarvetogether**: `"dont-starve-together"`
+
+***
+
+### dst
+
+> `readonly` **dst**: `"dont-starve-together"`
+
+***
+
 ### five-m
 
 > `readonly` **five-m**: `"fivem"`
@@ -94,9 +106,33 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### rdr3
+
+> `readonly` **rdr3**: `"redm"`
+
+***
+
+### red-m
+
+> `readonly` **red-m**: `"redm"`
+
+***
+
 ### seven-days-to-die
 
 > `readonly` **seven-days-to-die**: `"7-days-to-die"`
+
+***
+
+### vintagestory
+
+> `readonly` **vintagestory**: `"vintage-story"`
+
+***
+
+### vs
+
+> `readonly` **vs**: `"vintage-story"`
 
 ***
 

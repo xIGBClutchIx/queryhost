@@ -3,12 +3,21 @@
 import type {
   A2sData,
   A2sRawData,
+  DayZData,
+  DayZRawData,
+  DontStarveTogetherData,
   FiveMData,
   MinecraftBedrockData,
   MinecraftJavaData,
+  PalworldData,
   ProjectZomboidData,
+  RedMData,
   RustData,
   SevenDaysToDieData,
+  SatisfactoryData,
+  SatisfactoryRawData,
+  VintageStoryData,
+  ValheimData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -19,23 +28,37 @@ import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } fro
  */
 export interface GameDataMap {
   readonly a2s: A2sData;
+  readonly "dont-starve-together": DontStarveTogetherData;
   readonly rust: RustData;
+  readonly palworld: PalworldData;
   readonly "project-zomboid": ProjectZomboidData;
   readonly "7-days-to-die": SevenDaysToDieData;
+  readonly dayz: DayZData;
+  readonly valheim: ValheimData;
   readonly "minecraft-java": MinecraftJavaData;
   readonly "minecraft-bedrock": MinecraftBedrockData;
   readonly fivem: FiveMData;
+  readonly redm: RedMData;
+  readonly satisfactory: SatisfactoryData;
+  readonly "vintage-story": VintageStoryData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
 export interface GameRawDataMap {
   readonly a2s: A2sRawData;
+  readonly "dont-starve-together": A2sRawData;
   readonly rust: A2sRawData;
+  readonly palworld: A2sRawData;
   readonly "project-zomboid": A2sRawData;
   readonly "7-days-to-die": A2sRawData;
+  readonly dayz: DayZRawData;
+  readonly valheim: never;
   readonly "minecraft-java": never;
   readonly "minecraft-bedrock": never;
   readonly fivem: never;
+  readonly redm: never;
+  readonly satisfactory: SatisfactoryRawData;
+  readonly "vintage-story": never;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -43,6 +66,8 @@ export type GameId = keyof GameDataMap;
 
 /** Alternate input spellings mapped to one stable game identity. */
 export interface GameAliasMap {
+  readonly dst: "dont-starve-together";
+  readonly dontstarvetogether: "dont-starve-together";
   readonly zomboid: "project-zomboid";
   readonly pz: "project-zomboid";
   readonly projectzomboid: "project-zomboid";
@@ -59,6 +84,10 @@ export interface GameAliasMap {
   readonly "mc-bedrock": "minecraft-bedrock";
   readonly "minecraft-bedrock-edition": "minecraft-bedrock";
   readonly "five-m": "fivem";
+  readonly "red-m": "redm";
+  readonly rdr3: "redm";
+  readonly vintagestory: "vintage-story";
+  readonly vs: "vintage-story";
 }
 
 /** Accepted non-canonical game identifier. */

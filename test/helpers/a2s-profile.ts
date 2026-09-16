@@ -9,7 +9,14 @@ import type { A2sExchangeDependencies } from "../../src/protocols/a2s/network.js
 import type { QueryDependencies } from "../../src/runtime/client.js";
 import type { UdpCollectionOptions, UdpCollectionResult } from "../../src/transports/udp.js";
 
-type A2sFixtureGame = "project-zomboid" | "rust" | "seven-days-to-die";
+type A2sFixtureGame =
+  | "dont-starve-together"
+  | "valheim"
+  | "dayz"
+  | "palworld"
+  | "project-zomboid"
+  | "rust"
+  | "seven-days-to-die";
 
 const PUBLIC_ADDRESS: DnsAddressRecord = Object.freeze({
   address: "93.184.216.34",
@@ -58,11 +65,8 @@ function response(
 }
 
 export async function fixtureA2s(game: A2sFixtureGame): Promise<A2sExchangeDependencies> {
-  const [info, players, rules] = await Promise.all([
-    fixture(game, "info"),
-    fixture(game, "players"),
-    fixture(game, "rules"),
-  ]);
+  const [info, players] = await Promise.all([fixture(game, "info"), fixture(game, "players")]);
+  const rules = game === "valheim" ? undefined : await fixture(game, "rules");
   return {
     collect(options): Promise<UdpCollectionResult> {
       switch (packetType(options)) {
@@ -71,7 +75,9 @@ export async function fixtureA2s(game: A2sFixtureGame): Promise<A2sExchangeDepen
         case 0x55:
           return Promise.resolve(response(options, players, 5));
         case 0x56:
-          return Promise.resolve(response(options, rules, 6));
+          return rules === undefined
+            ? Promise.reject(new Error("Valheim Rules must not be queried."))
+            : Promise.resolve(response(options, rules, 6));
         default:
           return Promise.reject(new Error("Unexpected A2S request type."));
       }
