@@ -58,8 +58,8 @@ export function createSatisfactoryCookie(random: () => number): bigint {
   return (randomWord(random) << 32n) | randomWord(random);
 }
 
-function rootTermination(scope: ExecutionScope): UdpTransportError {
-  return new UdpTransportError(scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED");
+function terminationCode(scope: ExecutionScope): "TIMEOUT" | "ABORTED" {
+  return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
 }
 
 async function lightweight(
@@ -84,7 +84,7 @@ async function lightweight(
       options.observer.onSourceCompleted(report);
       return Object.freeze({ result, address });
     } catch (error) {
-      if (options.scope.signal.aborted) throw rootTermination(options.scope);
+      if (options.scope.signal.aborted) throw new UdpTransportError(terminationCode(options.scope));
       lastError = error instanceof Error ? error : new Error("Satisfactory query failed.");
     } finally {
       operation.close();
@@ -142,7 +142,7 @@ async function health(
       report: Object.freeze({ source: "satisfactory-health", status: "ok", rttMs: result.rttMs }),
     });
   } catch (error) {
-    if (options.scope.signal.aborted) throw rootTermination(options.scope);
+    if (options.scope.signal.aborted) throw new HttpTransportError(terminationCode(options.scope));
     const stable = error instanceof Error ? error : new Error("Satisfactory health check failed.");
     return Object.freeze({
       report: Object.freeze({ source: "satisfactory-health", status: optionalStatus(stable) }),

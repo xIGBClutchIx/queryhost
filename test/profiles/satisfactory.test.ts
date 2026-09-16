@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { DnsAddressRecord, DnsResolver } from "../../src/network/target.js";
 import type { SatisfactoryQueryDependencies } from "../../src/protocols/satisfactory/query.js";
+import { querySatisfactoryProfile } from "../../src/profiles/satisfactory.js";
 import { queryWithDependencies, type QueryDependencies } from "../../src/runtime/client.js";
+import { createExecutionContext } from "../../src/runtime/execution.js";
 import { HttpTransportError } from "../../src/transports/http.js";
 import { UdpTransportError } from "../../src/transports/udp.js";
 
@@ -86,6 +88,53 @@ function successful(): SatisfactoryQueryDependencies {
 }
 
 describe("Satisfactory game profile", (): void => {
+  it.each(["ABORTED", "TIMEOUT"] as const)(
+    "preserves HTTPS transport attribution when health is interrupted by %s",
+    async (code): Promise<void> => {
+      vi.useFakeTimers();
+      const controller = new AbortController();
+      const scope = createExecutionContext({ timeoutMs: 50, signal: controller.signal });
+      const completed = vi.fn();
+      const words = [0x0102_0304, 0x0506_0708];
+      let nextWord = 0;
+      try {
+        const result = querySatisfactoryProfile({
+          scope,
+          target: { hostname: "play.example.com", port: 7777, addresses: [ADDRESS] },
+          mode: "full",
+          random: () => (words[nextWord++] ?? 0) / 0x1_0000_0000,
+          observer: { onSourceStarted: vi.fn(), onSourceCompleted: completed },
+          query: {
+            udpExchange(options) {
+              return Promise.resolve({
+                data: LIGHTWEIGHT,
+                rttMs: 7,
+                address: options.address,
+                port: options.target.port,
+              });
+            },
+            httpExchange() {
+              if (code === "ABORTED") controller.abort();
+              else vi.advanceTimersByTime(50);
+              return Promise.reject(new HttpTransportError(code));
+            },
+          },
+        });
+        await expect(result).rejects.toMatchObject({
+          name: "HttpTransportError",
+          code,
+          message: new HttpTransportError(code).message,
+        });
+        expect(completed.mock.calls).toEqual([
+          [{ source: "satisfactory-lightweight", status: "ok", rttMs: 7 }],
+        ]);
+      } finally {
+        scope.close();
+        vi.useRealTimers();
+      }
+    },
+  );
+
   it("merges the required lightweight state with optional credential-free health", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "satisfactory", host: "play.example.com" },
