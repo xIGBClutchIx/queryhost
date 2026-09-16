@@ -2,11 +2,12 @@
 
 QueryHost records user-visible package changes in this file.
 
-## Unreleased
+## [1.2.0] - 2026-09-15
 
 ### Added
 
 - RedM queries through the shared Cfx FXServer HTTP endpoints, with typed server data, player lists, and game-specific source provenance.
+- Palworld dedicated-server queries through Steam A2S, with typed server and Player data plus unchanged Rules output.
 - Satisfactory dedicated-server queries using the authentication-free lightweight UDP state and optional HTTPS health APIs.
 - Direct Vintage Story server queries with stock-server liveness detection and typed richer status data when the server provides it.
 - DayZ dedicated-server queries with typed Info and Rules data, an explicit unsupported Player source, and separate game/query-port defaults.
@@ -32,5 +33,6 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.2.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.2.0
 [1.1.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.1.0
 [1.0.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.0.0
