@@ -59,6 +59,7 @@ export type {
   EnshroudedData,
   InsurgencySandstormData,
   ArkSurvivalEvolvedData,
+  ArkSurvivalEvolvedMod,
   ConanExilesData,
   KillingFloor2Data,
   DayOfDragonsData,

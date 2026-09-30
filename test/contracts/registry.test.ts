@@ -217,23 +217,26 @@ describe("game registry", () => {
   });
 
   it.each([
-    ["ark-survival-evolved", "ARK: Survival Evolved", 7777, 27_015, "conditional"],
-    ["conan-exiles", "Conan Exiles", 7777, 27_015, "unsupported"],
-    ["killing-floor-2", "Killing Floor 2", 7777, 27_015, "conditional"],
-    ["day-of-dragons", "Day of Dragons", 7777, 27_015, "conditional"],
-    ["soulmask", "Soulmask", 8777, 27_015, "conditional"],
-    ["sons-of-the-forest", "Sons of the Forest", 8766, 27_016, "conditional"],
-    ["icarus", "Icarus", 17_777, 27_015, "conditional"],
-    ["abiotic-factor", "Abiotic Factor", 7777, 27_015, "conditional"],
-  ] as const)("keeps %s on a fixed Steam query port", (game, name, port, queryPort, players) => {
-    expect(getGameDefinition(game)).toMatchObject({
-      name,
-      defaultPort: port,
-      defaultQueryPort: queryPort,
-      queryPortStrategy: "fixed",
-      capabilities: { summary: "supported", players, rules: "conditional", mods: "unsupported" },
-    });
-  });
+    ["ark-survival-evolved", "ARK: Survival Evolved", 7777, 27_015, "conditional", "conditional"],
+    ["conan-exiles", "Conan Exiles", 7777, 27_015, "unsupported", "unsupported"],
+    ["killing-floor-2", "Killing Floor 2", 7777, 27_015, "conditional", "unsupported"],
+    ["day-of-dragons", "Day of Dragons", 7777, 27_015, "conditional", "unsupported"],
+    ["soulmask", "Soulmask", 8777, 27_015, "conditional", "unsupported"],
+    ["sons-of-the-forest", "Sons of the Forest", 8766, 27_016, "conditional", "unsupported"],
+    ["icarus", "Icarus", 17_777, 27_015, "conditional", "unsupported"],
+    ["abiotic-factor", "Abiotic Factor", 7777, 27_015, "conditional", "unsupported"],
+  ] as const)(
+    "keeps %s on a fixed Steam query port",
+    (game, name, port, queryPort, players, mods) => {
+      expect(getGameDefinition(game)).toMatchObject({
+        name,
+        defaultPort: port,
+        defaultQueryPort: queryPort,
+        queryPortStrategy: "fixed",
+        capabilities: { summary: "supported", players, rules: "conditional", mods },
+      });
+    },
+  );
 
   it.each([
     ["arma-3", "Arma 3", 2302, 2303, undefined, "conditional", "conditional"],

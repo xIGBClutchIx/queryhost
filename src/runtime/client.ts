@@ -62,6 +62,7 @@ import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
 import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
+import { queryArkSurvivalEvolvedProfile } from "../profiles/ark-survival-evolved.js";
 import { queryArma3Profile } from "../profiles/arma-3.js";
 import { queryUnturnedProfile } from "../profiles/unturned.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
@@ -325,9 +326,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "ark-survival-evolved": createProfileRunner(
     "ark-survival-evolved",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["ark-survival-evolved"].name }),
-    ),
+    a2sProfileRunner(queryArkSurvivalEvolvedProfile),
   ),
   "conan-exiles": createProfileRunner(
     "conan-exiles",

@@ -266,8 +266,32 @@ export interface Left4Dead2Data extends SteamA2sData {}
 /** Garry's Mod data collected from its game-port A2S endpoint. */
 export interface GarrysModData extends SteamA2sData {}
 
+/** One Steam Workshop mod advertised in an ARK server's `MODn_s` Rules. */
+export interface ArkSurvivalEvolvedMod {
+  readonly workshopId: string;
+  /** Hexadecimal content hash advertised beside the Workshop ID. */
+  readonly hash: string;
+}
+
 /** ARK: Survival Evolved data collected from its Steam A2S query port. */
-export interface ArkSurvivalEvolvedData extends SteamA2sData {}
+export interface ArkSurvivalEvolvedData extends SteamA2sData {
+  /** Untruncated server name from `CUSTOMSERVERNAME_s`; ARK sends it lowercased. */
+  readonly customServerName?: string;
+  readonly pve?: boolean;
+  readonly battlEye?: boolean;
+  /** Whether Studio Wildcard runs the server. */
+  readonly official?: boolean;
+  /** Cluster that shares character and item transfers between servers. */
+  readonly clusterId?: string;
+  /** Game mode class, such as `TestGameMode_C` or a total-conversion mod's mode. */
+  readonly gameMode?: string;
+  /** In-game time or day count exactly as advertised; its format changed between builds. */
+  readonly dayTime?: string;
+  readonly allowDownloadCharacters?: boolean;
+  readonly allowDownloadItems?: boolean;
+  /** Omitted when Rules are unavailable; empty means the server confirmed no active mods. */
+  readonly mods?: readonly ArkSurvivalEvolvedMod[];
+}
 
 /** Conan Exiles data collected from its Steam A2S query port. */
 export interface ConanExilesData extends SteamA2sData {}

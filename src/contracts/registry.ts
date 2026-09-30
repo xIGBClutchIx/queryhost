@@ -423,7 +423,7 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, mods: "conditional" }),
   },
   "conan-exiles": {
     id: "conan-exiles",
