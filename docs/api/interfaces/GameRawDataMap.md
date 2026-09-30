@@ -42,7 +42,7 @@ Associates implemented games with their untouched protocol payloads.
 
 ### arma-3
 
-> `readonly` **arma-3**: `never`
+> `readonly` **arma-3**: [`Arma3RawData`](Arma3RawData.md)
 
 ***
 

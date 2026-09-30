@@ -423,7 +423,7 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, mods: "conditional" }),
   },
   "conan-exiles": {
     id: "conan-exiles",
@@ -497,8 +497,8 @@ export const GAME_REGISTRY: GameRegistry = {
     capabilities: {
       summary: "supported",
       players: "conditional",
-      rules: "unsupported",
-      mods: "unsupported",
+      rules: "conditional",
+      mods: "conditional",
       plugins: "unsupported",
       resources: "unsupported",
       srv: "unsupported",
@@ -532,7 +532,11 @@ export const GAME_REGISTRY: GameRegistry = {
     id: "unturned",
     name: "Unturned",
     defaultPort: 27_015,
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({
+      ...STEAM_A2S_CAPABILITIES,
+      mods: "conditional",
+      plugins: "conditional",
+    }),
   },
   enshrouded: {
     id: "enshrouded",
@@ -546,7 +550,7 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 27_102,
     defaultQueryPort: 27_131,
     queryPortStrategy: "fixed",
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, mods: "conditional" }),
   },
 };
 

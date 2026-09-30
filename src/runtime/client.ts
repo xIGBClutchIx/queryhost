@@ -62,6 +62,16 @@ import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
 import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
+import { queryArkSurvivalEvolvedProfile } from "../profiles/ark-survival-evolved.js";
+import { queryArma3Profile } from "../profiles/arma-3.js";
+import { queryGarrysModProfile } from "../profiles/garrys-mod.js";
+import { queryInsurgencySandstormProfile } from "../profiles/insurgency-sandstorm.js";
+import { queryKillingFloor2Profile } from "../profiles/killing-floor-2.js";
+import { queryTeamFortress2Profile } from "../profiles/team-fortress-2.js";
+import { queryUnturnedProfile } from "../profiles/unturned.js";
+import { queryUnrealSteamProfile } from "../profiles/unreal.js";
+import { queryConanExilesProfile } from "../profiles/conan-exiles.js";
+import { queryAbioticFactorProfile } from "../profiles/abiotic-factor.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
@@ -295,9 +305,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "team-fortress-2": createProfileRunner(
     "team-fortress-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["team-fortress-2"].name }),
-    ),
+    a2sProfileRunner(queryTeamFortress2Profile),
   ),
   "left-4-dead": createProfileRunner(
     "left-4-dead",
@@ -316,41 +324,28 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "garrys-mod": createProfileRunner(
     "garrys-mod",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["garrys-mod"].name }),
-    ),
+    a2sProfileRunner(queryGarrysModProfile),
   ),
   "ark-survival-evolved": createProfileRunner(
     "ark-survival-evolved",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["ark-survival-evolved"].name }),
-    ),
+    a2sProfileRunner(queryArkSurvivalEvolvedProfile),
   ),
   "conan-exiles": createProfileRunner(
     "conan-exiles",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["conan-exiles"].name,
-        // Conan Exiles never answers A2S Player, so querying it would only add a timeout.
-        playerPolicy: "unsupported",
-      }),
-    ),
+    a2sProfileRunner(queryConanExilesProfile),
   ),
   "killing-floor-2": createProfileRunner(
     "killing-floor-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["killing-floor-2"].name }),
-    ),
+    a2sProfileRunner(queryKillingFloor2Profile),
   ),
   "day-of-dragons": createProfileRunner(
     "day-of-dragons",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["day-of-dragons"].name }),
+      queryUnrealSteamProfile(options, GAME_REGISTRY["day-of-dragons"].name),
     ),
   ),
   soulmask: createProfileRunner(
@@ -368,34 +363,17 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   icarus: createProfileRunner(
     "icarus",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["icarus"].name }),
-    ),
+    a2sProfileRunner((options) => queryUnrealSteamProfile(options, GAME_REGISTRY.icarus.name)),
   ),
   "abiotic-factor": createProfileRunner(
     "abiotic-factor",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["abiotic-factor"].name }),
-    ),
+    a2sProfileRunner(queryAbioticFactorProfile),
   ),
   "arma-3": createProfileRunner(
     "arma-3",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["arma-3"].name,
-        // Arma 3 Rules carry binary server-browser pages; the string Rules decoder cannot read them.
-        rulesPolicy: "unsupported",
-      }).then(({ server, data, sources, warnings, partial }) => ({
-        server,
-        data,
-        sources,
-        warnings,
-        partial,
-      })),
-    ),
+    a2sProfileRunner(queryArma3Profile),
   ),
   "american-truck-simulator": createProfileRunner(
     "american-truck-simulator",
@@ -424,9 +402,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   unturned: createProfileRunner(
     "unturned",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["unturned"].name }),
-    ),
+    a2sProfileRunner(queryUnturnedProfile),
   ),
   enshrouded: createProfileRunner(
     "enshrouded",
@@ -438,9 +414,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "insurgency-sandstorm": createProfileRunner(
     "insurgency-sandstorm",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["insurgency-sandstorm"].name }),
-    ),
+    a2sProfileRunner(queryInsurgencySandstormProfile),
   ),
 });
 

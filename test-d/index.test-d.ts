@@ -1,7 +1,12 @@
 import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
+  type ArkSurvivalEvolvedMod,
   type Arma3Data,
+  type UnrealSessionData,
+  type UnrealSessionFlags,
+  type Arma3Difficulty,
+  type Arma3Mod,
   type AmericanTruckSimulatorData,
   type EuroTruckSimulator2Data,
   type TheForestData,
@@ -447,8 +452,21 @@ expectAssignable<SteamA2sData>(dataMap["the-forest"]);
 expectAssignable<SteamA2sData>(dataMap["unturned"]);
 expectAssignable<SteamA2sData>(dataMap["enshrouded"]);
 expectAssignable<SteamA2sData>(dataMap["insurgency-sandstorm"]);
-expectType<never>(rawDataMap["arma-3"]);
+expectType<Readonly<Record<string, string>>>(rawDataMap["arma-3"].rules);
+expectType<readonly Arma3Mod[] | undefined>(dataMap["arma-3"].mods);
+expectType<Arma3Difficulty | undefined>(dataMap["arma-3"].difficulty);
 expectType<Readonly<Record<string, string>>>(rawDataMap.unturned.rules);
+expectAssignable<UnrealSessionData>(dataMap["ark-survival-evolved"]);
+expectAssignable<UnrealSessionData>(dataMap["conan-exiles"]);
+expectType<UnrealSessionFlags | undefined>(dataMap["abiotic-factor"].sessionFlags);
+expectType<string | undefined>(dataMap["abiotic-factor"].joinCode);
+expectType<readonly string[] | undefined>(dataMap["insurgency-sandstorm"].modIds);
+expectType<"easy" | "normal" | "hard" | undefined>(dataMap.unturned.difficulty);
+expectType<string | undefined>(dataMap["garrys-mod"].gamemode);
+expectType<number | undefined>(dataMap["killing-floor-2"].currentWave);
+expectType<readonly ArkSurvivalEvolvedMod[] | undefined>(dataMap["ark-survival-evolved"].mods);
+expectType<string>(dataMap["the-forest"].game);
+expectType<string | undefined>(dataMap["the-forest"].serverSteamId);
 expectType<number | undefined>(getGameDefinition("sotf").defaultQueryPort);
 
 declare const fivemPlayer: FiveMPlayer;

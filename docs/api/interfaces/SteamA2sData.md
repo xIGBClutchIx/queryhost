@@ -38,7 +38,8 @@ Facts shared by games whose direct Steam A2S endpoint needs no game-specific int
 
 > `readonly` `optional` **appId?**: `number`
 
-Present only for modern Source-style Info responses.
+Steam App ID for modern Source-style Info responses. It comes from the 64-bit game ID when
+the server sends one, because the base Info field is 16 bits and truncates larger IDs.
 
 ***
 
@@ -62,11 +63,35 @@ Game content directory, such as `tf` or `garrysmod`, which also identifies Sourc
 
 ***
 
+### game
+
+> `readonly` **game**: `string`
+
+Game description advertised by the server, such as a mode, mission, or product name.
+
+***
+
+### gamePort?
+
+> `readonly` `optional` **gamePort?**: `number`
+
+Game port the server advertises, which may differ from the queried Steam port.
+
+***
+
 ### players?
 
 > `readonly` `optional` **players?**: readonly [`SteamA2sPlayer`](SteamA2sPlayer.md)[]
 
 Omitted when Player is skipped or unavailable; empty means the server confirmed no players.
+
+***
+
+### serverSteamId?
+
+> `readonly` `optional` **serverSteamId?**: `string`
+
+Server's 64-bit Steam ID as decimal text, when advertised.
 
 ***
 

@@ -19,13 +19,16 @@ const EXPECTED_SERVER = {
 };
 
 const EXPECTED_INFO_DATA = {
+  game: "ARK: Survival Evolved",
   folder: "ark_survival_evolved",
   bots: 0,
   serverType: "dedicated",
   environment: "windows",
   vac: false,
-  // The Info App ID field is 16 bits wide, so ARK's 346110 arrives truncated.
-  appId: 18_430,
+  // The 16-bit Info App ID field carries 18430; the 64-bit game ID restores ARK's 346110.
+  appId: 346_110,
+  gamePort: 7777,
+  serverSteamId: "90000000000000001",
   tags: ["pve", "crossplay"],
 };
 
@@ -36,14 +39,33 @@ const EXPECTED_PLAYERS = [
 
 const EXPECTED_RULES = { SESSIONFLAGS: "683", ServerPassword_b: "false" };
 
-/** Canonical ID, one accepted alias or the ID itself, game port, and fixed Steam query port. */
+// 683 sets bits 0, 1, 3, 5, 7, and 9 of Unreal Engine's session flag field.
+const EXPECTED_SESSION = {
+  sessionFlags: {
+    advertised: true,
+    joinInProgress: true,
+    lan: false,
+    dedicated: true,
+    usesStats: false,
+    invites: true,
+    usesPresence: false,
+    joinViaPresence: true,
+    joinViaPresenceFriendsOnly: false,
+    antiCheatProtected: true,
+  },
+};
+
+/**
+ * Canonical ID, one accepted alias or the ID itself, game port, fixed Steam query port, and
+ * whether the profile decodes Unreal Engine 4 session values.
+ */
 const PLAYER_GAMES = [
-  ["ark-survival-evolved", "ark", 7777, 27_015],
-  ["killing-floor-2", "kf2", 7777, 27_015],
-  ["day-of-dragons", "dayofdragons", 7777, 27_015],
-  ["sons-of-the-forest", "sotf", 8766, 27_016],
-  ["icarus", "icarus", 17_777, 27_015],
-  ["abiotic-factor", "abioticfactor", 7777, 27_015],
+  ["ark-survival-evolved", "ark", 7777, 27_015, true],
+  ["killing-floor-2", "kf2", 7777, 27_015, false],
+  ["day-of-dragons", "dayofdragons", 7777, 27_015, true],
+  ["sons-of-the-forest", "sotf", 8766, 27_016, false],
+  ["icarus", "icarus", 17_777, 27_015, true],
+  ["abiotic-factor", "abioticfactor", 7777, 27_015, true],
 ] as const;
 
 async function recordPorts(
@@ -63,7 +85,7 @@ async function recordPorts(
   return ports;
 }
 
-describe.each(PLAYER_GAMES)("%s game profile", (game, alias, gamePort, queryPort): void => {
+describe.each(PLAYER_GAMES)("%s game profile", (game, alias, gamePort, queryPort, unreal): void => {
   it("merges Info, Player, and raw Rules from the Steam query port", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: alias, host: "play.example.com" },
@@ -74,7 +96,11 @@ describe.each(PLAYER_GAMES)("%s game profile", (game, alias, gamePort, queryPort
       ok: true,
       game,
       server: EXPECTED_SERVER,
-      data: { ...EXPECTED_INFO_DATA, players: EXPECTED_PLAYERS },
+      data: {
+        ...EXPECTED_INFO_DATA,
+        ...(unreal ? EXPECTED_SESSION : {}),
+        players: EXPECTED_PLAYERS,
+      },
       rawData: { rules: EXPECTED_RULES },
       sources: [
         { source: "a2s-info", status: "ok", rttMs: 8 },
@@ -111,7 +137,7 @@ describe("conan-exiles game profile", (): void => {
       ok: true,
       game: "conan-exiles",
       server: EXPECTED_SERVER,
-      data: EXPECTED_INFO_DATA,
+      data: { ...EXPECTED_INFO_DATA, ...EXPECTED_SESSION },
       rawData: { rules: EXPECTED_RULES },
       sources: [
         { source: "a2s-info", status: "ok", rttMs: 8 },

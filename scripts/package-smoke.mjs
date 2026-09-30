@@ -85,7 +85,7 @@ try {
     `Unpacked package is too large: ${String(packed.unpackedSize)} bytes.`,
   );
   assert(
-    packed.entryCount <= 400,
+    packed.entryCount <= 600,
     `Packed package has too many files: ${String(packed.entryCount)}.`,
   );
 

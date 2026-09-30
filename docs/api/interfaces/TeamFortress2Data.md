@@ -6,7 +6,8 @@
 
 # Interface: TeamFortress2Data
 
-Team Fortress 2 data collected from its game-port A2S endpoint.
+Team Fortress 2 data collected from its game-port A2S endpoint. The game adds a tag whenever
+one of these cvars differs from its default, so with tags present an absent tag means default.
 
 ## Extends
 
@@ -18,7 +19,8 @@ Team Fortress 2 data collected from its game-port A2S endpoint.
 
 > `readonly` `optional` **appId?**: `number`
 
-Present only for modern Source-style Info responses.
+Steam App ID for modern Source-style Info responses. It comes from the 64-bit game ID when
+the server sends one, because the base Info field is 16 bits and truncates larger IDs.
 
 #### Inherited from
 
@@ -58,6 +60,56 @@ Game content directory, such as `tf` or `garrysmod`, which also identifies Sourc
 
 ***
 
+### friendlyFire?
+
+> `readonly` `optional` **friendlyFire?**: `boolean`
+
+***
+
+### game
+
+> `readonly` **game**: `string`
+
+Game description advertised by the server, such as a mode, mission, or product name.
+
+#### Inherited from
+
+[`SteamA2sData`](SteamA2sData.md).[`game`](SteamA2sData.md#game)
+
+***
+
+### gameModes?
+
+> `readonly` `optional` **gameModes?**: readonly [`TeamFortress2GameMode`](../type-aliases/TeamFortress2GameMode.md)[]
+
+Game modes of the current map; `cp` also covers King of the Hill and attack/defend maps.
+
+***
+
+### gamePort?
+
+> `readonly` `optional` **gamePort?**: `number`
+
+Game port the server advertises, which may differ from the queried Steam port.
+
+#### Inherited from
+
+[`SteamA2sData`](SteamA2sData.md).[`gamePort`](SteamA2sData.md#gameport)
+
+***
+
+### highlander?
+
+> `readonly` `optional` **highlander?**: `boolean`
+
+***
+
+### medieval?
+
+> `readonly` `optional` **medieval?**: `boolean`
+
+***
+
 ### players?
 
 > `readonly` `optional` **players?**: readonly [`SteamA2sPlayer`](SteamA2sPlayer.md)[]
@@ -67,6 +119,26 @@ Omitted when Player is skipped or unavailable; empty means the server confirmed 
 #### Inherited from
 
 [`SteamA2sData`](SteamA2sData.md).[`players`](SteamA2sData.md#players)
+
+***
+
+### randomCrits?
+
+> `readonly` `optional` **randomCrits?**: `boolean`
+
+`false` when `tf_weapon_criticals` disables random critical hits.
+
+***
+
+### serverSteamId?
+
+> `readonly` `optional` **serverSteamId?**: `string`
+
+Server's 64-bit Steam ID as decimal text, when advertised.
+
+#### Inherited from
+
+[`SteamA2sData`](SteamA2sData.md).[`serverSteamId`](SteamA2sData.md#serversteamid)
 
 ***
 
