@@ -256,7 +256,7 @@ describe("game registry", () => {
       "unsupported",
     ],
     ["the-forest", "The Forest", 27_015, 27_016, "fixed", "conditional", "unsupported"],
-    ["unturned", "Unturned", 27_015, undefined, undefined, "conditional", "unsupported"],
+    ["unturned", "Unturned", 27_015, undefined, undefined, "conditional", "conditional"],
     ["enshrouded", "Enshrouded", 15_637, undefined, undefined, "conditional", "unsupported"],
     [
       "insurgency-sandstorm",

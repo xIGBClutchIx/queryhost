@@ -63,6 +63,7 @@ import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js"
 import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 import { queryArma3Profile } from "../profiles/arma-3.js";
+import { queryUnturnedProfile } from "../profiles/unturned.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
@@ -412,9 +413,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   unturned: createProfileRunner(
     "unturned",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["unturned"].name }),
-    ),
+    a2sProfileRunner(queryUnturnedProfile),
   ),
   enshrouded: createProfileRunner(
     "enshrouded",

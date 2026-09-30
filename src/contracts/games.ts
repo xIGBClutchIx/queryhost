@@ -395,8 +395,51 @@ export interface EuroTruckSimulator2Data extends SteamA2sData {}
 /** The Forest data collected from its Steam A2S query port. */
 export interface TheForestData extends SteamA2sData {}
 
+/** One server-browser link advertised by an Unturned server. */
+export interface UnturnedLink {
+  readonly message: string;
+  readonly url: string;
+}
+
 /** Unturned data collected from its Steam A2S query port. */
-export interface UnturnedData extends SteamA2sData {}
+export interface UnturnedData extends SteamA2sData {
+  /** Whether players can damage each other; `false` means PvE. */
+  readonly pvp?: boolean;
+  readonly cheats?: boolean;
+  readonly difficulty?: "easy" | "normal" | "hard";
+  readonly cameraMode?: "first-person" | "both" | "third-person" | "vehicle";
+  /** Whether the server requires Steam Workshop content. */
+  readonly workshop?: boolean;
+  /** Whether only Unturned Gold players may join. */
+  readonly goldOnly?: boolean;
+  /** Whether the host declares an anycast proxy in front of the server. */
+  readonly anycastProxy?: boolean;
+  readonly battlEye?: boolean;
+  /** Host-declared monetization; omitted when the server leaves it unspecified. */
+  readonly monetization?: "none" | "non-gameplay" | "monetized";
+  readonly thumbnailUrl?: string;
+  /** Network transport tag, such as `def`, `sys`, or `sns`. */
+  readonly networkTransport?: string;
+  readonly pluginFramework?: "rocketmod" | "openmod";
+  /** Unturned build the server runs, from the `GameVersion` rule. */
+  readonly gameVersion?: string;
+  /** Name and version of a server-side mod module, when one is loaded. */
+  readonly modName?: string;
+  readonly modVersion?: string;
+  readonly iconUrl?: string;
+  /** Short hint shown beside the server-list description. */
+  readonly descriptionHint?: string;
+  readonly bookmarkHost?: string;
+  /** Full server-browser description, decoded from its Base64 chunks. */
+  readonly description?: string;
+  /** Required Steam Workshop item IDs; omitted when Rules are unavailable or list none. */
+  readonly workshopIds?: readonly string[];
+  readonly links?: readonly UnturnedLink[];
+  /** Gameplay settings changed from the mode defaults, keyed `Section.Field`. */
+  readonly config?: Readonly<Record<string, boolean | number>>;
+  /** Loaded RocketMod plugin names. */
+  readonly plugins?: readonly string[];
+}
 
 /** Enshrouded data collected from its Steam A2S query port. */
 export interface EnshroudedData extends SteamA2sData {}

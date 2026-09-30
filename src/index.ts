@@ -55,6 +55,7 @@ export type {
   EuroTruckSimulator2Data,
   TheForestData,
   UnturnedData,
+  UnturnedLink,
   EnshroudedData,
   InsurgencySandstormData,
   ArkSurvivalEvolvedData,

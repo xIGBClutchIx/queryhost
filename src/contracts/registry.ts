@@ -532,7 +532,11 @@ export const GAME_REGISTRY: GameRegistry = {
     id: "unturned",
     name: "Unturned",
     defaultPort: 27_015,
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({
+      ...STEAM_A2S_CAPABILITIES,
+      mods: "conditional",
+      plugins: "conditional",
+    }),
   },
   enshrouded: {
     id: "enshrouded",

@@ -5,6 +5,7 @@ import { GAME_REGISTRY } from "../contracts/registry.js";
 import type { A2sRules } from "../protocols/a2s/rules.js";
 import { arma3RuleMetadata, queryArma3Rules } from "../protocols/arma3/rules.js";
 import type { A2sProfileOptions } from "./a2s.js";
+import { booleanValue, optionalField, textValue, unsignedValue } from "./values.js";
 import { querySteamA2sGame, type SteamA2sProfileResult } from "./steam-a2s.js";
 
 interface KnownDlc {
@@ -45,26 +46,8 @@ const PLATFORMS: ReadonlyMap<string, "linux" | "macos" | "windows"> = new Map([
   ["w", "windows"],
 ]);
 
-function flag(value: string): boolean | undefined {
-  if (value === "t" || value === "1") {
-    return true;
-  }
-  if (value === "f" || value === "0") {
-    return false;
-  }
-  return undefined;
-}
-
-function unsigned(value: string, maximum: number): number | undefined {
-  if (!/^(?:0|[1-9]\d*)$/u.test(value)) {
-    return undefined;
-  }
-  const parsed = Number(value);
-  return parsed <= maximum ? parsed : undefined;
-}
-
-function text(value: string): string | undefined {
-  return value.length === 0 ? undefined : value;
+function flag(value: string | undefined): boolean | undefined {
+  return booleanValue(value, ["t", "1"], ["f", "0"]);
 }
 
 // Bohemia's server-browser keywords use the first character as the key and the rest as its value.
@@ -80,34 +63,25 @@ function keywordValues(tags: readonly string[]): ReadonlyMap<string, string> {
   return values;
 }
 
-function optional<K extends keyof Arma3Data>(
-  key: K,
-  value: Arma3Data[K] | undefined,
-): Partial<Pick<Arma3Data, K>> {
-  return value === undefined ? {} : ({ [key]: value } as Pick<Arma3Data, K>);
-}
-
 function keywordData(tags: readonly string[] | undefined): Partial<Arma3Data> {
   const values = keywordValues(tags ?? []);
-  const read = (key: string): string => values.get(key) ?? "";
-  const uint32 = (key: string): number | undefined => unsigned(read(key), 4_294_967_295);
   return {
-    ...optional("battlEye", flag(read("b"))),
-    ...optional("requiredVersion", uint32("r")),
-    ...optional("requiredBuild", uint32("n")),
-    ...optional("serverState", unsigned(read("s"), 9)),
-    ...optional("gameType", text(read("t"))),
-    ...optional("equalModsRequired", flag(read("m"))),
-    ...optional("locked", flag(read("l"))),
-    ...optional("verifySignatures", flag(read("v"))),
-    ...optional("dedicated", flag(read("d"))),
-    ...optional("filePatching", flag(read("f"))),
-    ...optional("platform", PLATFORMS.get(read("p"))),
-    ...optional("language", uint32("g")),
-    ...optional("country", text(read("o"))),
-    ...optional("timeLeftMinutes", uint32("e")),
-    ...optional("island", text(read("y"))),
-    ...optional("loadedContentHash", text(read("h"))),
+    ...optionalField("battlEye", flag(values.get("b"))),
+    ...optionalField("requiredVersion", unsignedValue(values.get("r"))),
+    ...optionalField("requiredBuild", unsignedValue(values.get("n"))),
+    ...optionalField("serverState", unsignedValue(values.get("s"), 9)),
+    ...optionalField("gameType", textValue(values.get("t"))),
+    ...optionalField("equalModsRequired", flag(values.get("m"))),
+    ...optionalField("locked", flag(values.get("l"))),
+    ...optionalField("verifySignatures", flag(values.get("v"))),
+    ...optionalField("dedicated", flag(values.get("d"))),
+    ...optionalField("filePatching", flag(values.get("f"))),
+    ...optionalField("platform", PLATFORMS.get(values.get("p") ?? "")),
+    ...optionalField("language", unsignedValue(values.get("g"))),
+    ...optionalField("country", textValue(values.get("o"))),
+    ...optionalField("timeLeftMinutes", unsignedValue(values.get("e"))),
+    ...optionalField("island", textValue(values.get("y"))),
+    ...optionalField("loadedContentHash", textValue(values.get("h"))),
   };
 }
 
