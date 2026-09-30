@@ -64,6 +64,7 @@ import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/q
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 import { queryArkSurvivalEvolvedProfile } from "../profiles/ark-survival-evolved.js";
 import { queryArma3Profile } from "../profiles/arma-3.js";
+import { queryGarrysModProfile } from "../profiles/garrys-mod.js";
 import { queryKillingFloor2Profile } from "../profiles/killing-floor-2.js";
 import { queryUnturnedProfile } from "../profiles/unturned.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
@@ -320,9 +321,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "garrys-mod": createProfileRunner(
     "garrys-mod",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["garrys-mod"].name }),
-    ),
+    a2sProfileRunner(queryGarrysModProfile),
   ),
   "ark-survival-evolved": createProfileRunner(
     "ark-survival-evolved",

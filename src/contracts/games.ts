@@ -263,8 +263,22 @@ export interface Left4DeadData extends SteamA2sData {}
 /** Left 4 Dead 2 data collected from its game-port A2S endpoint. */
 export interface Left4Dead2Data extends SteamA2sData {}
 
-/** Garry's Mod data collected from its game-port A2S endpoint. */
-export interface GarrysModData extends SteamA2sData {}
+/**
+ * Garry's Mod data collected from its game-port A2S endpoint. Its keywords are space-separated
+ * `key:value` pairs, so `tags` splits on spaces as well as commas.
+ */
+export interface GarrysModData extends SteamA2sData {
+  /** Active gamemode folder name, such as `sandbox` or `darkrp`, from the `gm` keyword. */
+  readonly gamemode?: string;
+  /** Steam Workshop item ID of the gamemode, from the `gmws` keyword. */
+  readonly gamemodeWorkshopId?: string;
+  /** Server-browser category, such as `rp` or `pvp`, from the `gmc` keyword. */
+  readonly gamemodeCategory?: string;
+  /** Operator-set location code from the `loc` keyword (`sv_location`). */
+  readonly location?: string;
+  /** Game build date as `YYMMDD`, from the `ver` keyword. */
+  readonly build?: string;
+}
 
 /** One Steam Workshop mod advertised in an ARK server's `MODn_s` Rules. */
 export interface ArkSurvivalEvolvedMod {
