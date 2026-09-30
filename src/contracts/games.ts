@@ -248,6 +248,32 @@ export interface SteamA2sData {
   readonly players?: readonly SteamA2sPlayer[];
 }
 
+/** Unreal Engine online-session flags decoded from the `SESSIONFLAGS` bit field. */
+export interface UnrealSessionFlags {
+  readonly advertised: boolean;
+  readonly joinInProgress: boolean;
+  readonly lan: boolean;
+  readonly dedicated: boolean;
+  readonly usesStats: boolean;
+  readonly invites: boolean;
+  readonly usesPresence: boolean;
+  readonly joinViaPresence: boolean;
+  readonly joinViaPresenceFriendsOnly: boolean;
+  readonly antiCheatProtected: boolean;
+}
+
+/**
+ * Session facts Unreal Engine's Steam integration advertises in A2S keywords and Rules. Each is
+ * present only when the server sends it; Rules take precedence over keywords.
+ */
+export interface UnrealSessionData {
+  /** Build compatibility ID from `BUILDID`; clients must match it to join. */
+  readonly buildId?: number;
+  /** Open public connection slots from `NUMOPENPUBCONN`. */
+  readonly openPublicSlots?: number;
+  readonly sessionFlags?: UnrealSessionFlags;
+}
+
 /** Counter-Strike 2 data collected from its game-port A2S endpoint. */
 export interface CounterStrike2Data extends SteamA2sData {}
 
@@ -288,7 +314,7 @@ export interface ArkSurvivalEvolvedMod {
 }
 
 /** ARK: Survival Evolved data collected from its Steam A2S query port. */
-export interface ArkSurvivalEvolvedData extends SteamA2sData {
+export interface ArkSurvivalEvolvedData extends SteamA2sData, UnrealSessionData {
   /** Untruncated server name from `CUSTOMSERVERNAME_s`; ARK sends it lowercased. */
   readonly customServerName?: string;
   readonly pve?: boolean;
@@ -308,7 +334,10 @@ export interface ArkSurvivalEvolvedData extends SteamA2sData {
 }
 
 /** Conan Exiles data collected from its Steam A2S query port. */
-export interface ConanExilesData extends SteamA2sData {}
+export interface ConanExilesData extends SteamA2sData, UnrealSessionData {
+  /** Full server name from the `OWNINGNAME` session value. */
+  readonly fullServerName?: string;
+}
 
 /** Killing Floor 2 data collected from its Steam A2S query port. */
 export interface KillingFloor2Data extends SteamA2sData {
@@ -328,19 +357,24 @@ export interface KillingFloor2Data extends SteamA2sData {
 }
 
 /** Day of Dragons data collected from its Steam A2S query port. */
-export interface DayOfDragonsData extends SteamA2sData {}
+export interface DayOfDragonsData extends SteamA2sData, UnrealSessionData {}
 
 /** Soulmask data collected from its Steam A2S query port. */
-export interface SoulmaskData extends SteamA2sData {}
+export interface SoulmaskData extends SteamA2sData, UnrealSessionData {}
 
 /** Sons of the Forest data collected from its Steam A2S query port. */
 export interface SonsOfTheForestData extends SteamA2sData {}
 
 /** Icarus data collected from its Steam A2S query port. */
-export interface IcarusData extends SteamA2sData {}
+export interface IcarusData extends SteamA2sData, UnrealSessionData {}
 
 /** Abiotic Factor data collected from its Steam A2S query port. */
-export interface AbioticFactorData extends SteamA2sData {}
+export interface AbioticFactorData extends SteamA2sData, UnrealSessionData {
+  /** Short invite code players can enter to join, from `ShortCode_s`. */
+  readonly joinCode?: string;
+  /** Whether a join password is set, from `Locked_b`. */
+  readonly locked?: boolean;
+}
 
 /** Arma 3 difficulty settings advertised in its paged server-browser Rules metadata. */
 export interface Arma3Difficulty {
@@ -497,7 +531,7 @@ export interface UnturnedData extends SteamA2sData {
 export interface EnshroudedData extends SteamA2sData {}
 
 /** Insurgency: Sandstorm data collected from its Steam A2S query port. */
-export interface InsurgencySandstormData extends SteamA2sData {
+export interface InsurgencySandstormData extends SteamA2sData, UnrealSessionData {
   /** Game mode name from `GameMode_s`, such as `Push` or `Checkpoint`. */
   readonly gameMode?: string;
   /** `true` for cooperative play against bots, `false` for versus. */

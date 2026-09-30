@@ -54,6 +54,8 @@ export type {
   AmericanTruckSimulatorData,
   EuroTruckSimulator2Data,
   TheForestData,
+  UnrealSessionData,
+  UnrealSessionFlags,
   UnturnedData,
   UnturnedLink,
   EnshroudedData,

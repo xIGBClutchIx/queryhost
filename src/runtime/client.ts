@@ -68,6 +68,9 @@ import { queryGarrysModProfile } from "../profiles/garrys-mod.js";
 import { queryInsurgencySandstormProfile } from "../profiles/insurgency-sandstorm.js";
 import { queryKillingFloor2Profile } from "../profiles/killing-floor-2.js";
 import { queryUnturnedProfile } from "../profiles/unturned.js";
+import { queryUnrealSteamProfile } from "../profiles/unreal.js";
+import { queryConanExilesProfile } from "../profiles/conan-exiles.js";
+import { queryAbioticFactorProfile } from "../profiles/abiotic-factor.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
@@ -332,14 +335,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "conan-exiles": createProfileRunner(
     "conan-exiles",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["conan-exiles"].name,
-        // Conan Exiles never answers A2S Player, so querying it would only add a timeout.
-        playerPolicy: "unsupported",
-      }),
-    ),
+    a2sProfileRunner(queryConanExilesProfile),
   ),
   "killing-floor-2": createProfileRunner(
     "killing-floor-2",
@@ -350,7 +346,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "day-of-dragons",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["day-of-dragons"].name }),
+      queryUnrealSteamProfile(options, GAME_REGISTRY["day-of-dragons"].name),
     ),
   ),
   soulmask: createProfileRunner(
@@ -368,16 +364,12 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   icarus: createProfileRunner(
     "icarus",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["icarus"].name }),
-    ),
+    a2sProfileRunner((options) => queryUnrealSteamProfile(options, GAME_REGISTRY.icarus.name)),
   ),
   "abiotic-factor": createProfileRunner(
     "abiotic-factor",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["abiotic-factor"].name }),
-    ),
+    a2sProfileRunner(queryAbioticFactorProfile),
   ),
   "arma-3": createProfileRunner(
     "arma-3",

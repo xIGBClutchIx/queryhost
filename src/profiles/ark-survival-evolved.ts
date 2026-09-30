@@ -6,6 +6,7 @@ import { GAME_REGISTRY } from "../contracts/registry.js";
 import type { A2sRules } from "../protocols/a2s/rules.js";
 import type { A2sProfileOptions } from "./a2s.js";
 import { querySteamA2sGame, type SteamA2sProfileResult } from "./steam-a2s.js";
+import { unrealSessionData, unrealSessionValues } from "./unreal.js";
 import { booleanValue, optionalField, textValue } from "./values.js";
 
 // ARK can advertise hundreds of mods; this bounds how many `MODn_s` keys are read.
@@ -70,7 +71,11 @@ export async function queryArkSurvivalEvolvedProfile(
     { ...options, gameName: GAME_REGISTRY["ark-survival-evolved"].name },
     (facts) => ({
       server: server(facts.server),
-      data: { ...facts.data, ...rulesData(facts.rules) },
+      data: {
+        ...facts.data,
+        ...unrealSessionData(unrealSessionValues(facts.keywords, facts.rules)),
+        ...rulesData(facts.rules),
+      },
     }),
   );
 }

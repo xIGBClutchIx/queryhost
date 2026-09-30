@@ -10,6 +10,7 @@ QueryHost records user-visible package changes in this file.
 - ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor queries through their fixed Steam query ports, with the same typed A2S data, Soulmask's real build version, and an explicit unsupported Player source for Conan Exiles.
 - Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm queries through Steam A2S, with each game's documented query-port rule, plus Arma 3's decoded difficulty, DLC, Creator DLC, mods, and signatures from its binary Rules pages and its typed server-browser keyword fields.
 - Garry's Mod gamemode, gamemode Workshop ID, category, location, and build from its space-separated keywords.
+- Unreal Engine 4 build ID, open public slots, and session flags for ARK, Conan Exiles, Day of Dragons, Soulmask, Icarus, Abiotic Factor, and Insurgency: Sandstorm, plus Conan's full server name and Abiotic Factor's join code and lock.
 - ARK: Survival Evolved session Rules, Workshop mods, and its real build from the server name suffix.
 - Insurgency: Sandstorm game mode, coop, lighting, ranked status, mutators, and mod IDs from its Rules.
 - Killing Floor 2 game mode, difficulty, wave progress, and match state from its Rules.
