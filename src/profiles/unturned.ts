@@ -151,7 +151,13 @@ function config(rules: A2sRules): Readonly<Record<string, boolean | number>> | u
     const key = entry.slice(0, separator);
     const raw = entry.slice(separator + 1);
     const value = raw === "T" ? true : raw === "F" ? false : decimalValue(raw);
-    if (separator > 0 && /^\w+\.\w+$/u.test(key) && value !== undefined) {
+    // The first entry for a key wins; a repeated key cannot silently replace it.
+    if (
+      separator > 0 &&
+      /^\w+\.\w+$/u.test(key) &&
+      value !== undefined &&
+      !Object.hasOwn(values, key)
+    ) {
       Object.defineProperty(values, key, { value, enumerable: true });
     }
   }

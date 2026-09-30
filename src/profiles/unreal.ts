@@ -84,8 +84,8 @@ function sessionFlags(value: string | undefined): UnrealSessionFlags | undefined
 /** Types the session facts every Unreal Engine Steam server shares. */
 export function unrealSessionData(values: ReadonlyMap<string, string>): UnrealSessionData {
   return {
-    // Some games also publish the build as a typed `BUILDID_i` rule.
-    ...optionalField("buildId", integerValue(values.get("BUILDID") ?? values.get("BUILDID_i"))),
+    // A typed `BUILDID_i` rule comes only from Rules, so it takes precedence like other Rules.
+    ...optionalField("buildId", integerValue(values.get("BUILDID_i") ?? values.get("BUILDID"))),
     ...optionalField("openPublicSlots", unsignedValue(values.get("NUMOPENPUBCONN"), 65_535)),
     ...optionalField("sessionFlags", sessionFlags(values.get("SESSIONFLAGS"))),
   };

@@ -109,6 +109,25 @@ describe("Arma 3 Rules metadata", (): void => {
     expect(parse(pages).metadata?.mods).toHaveLength(40);
   });
 
+  it("keeps printable two-byte rule names as direct rules", (): void => {
+    const payload = new MetadataWriter()
+      .uint8(3)
+      .uint8(0)
+      .uint16(0)
+      .uint8(0)
+      .uint8(0)
+      .uint8(0)
+      .uint8(0)
+      .build();
+    const withPages = parse([["AB", "direct"], ...metadataPages(payload)]);
+    const withoutPages = parse([["AB", "direct"]]);
+
+    expect(withPages.rules).toEqual({ AB: "direct" });
+    expect(withPages.metadata?.protocol).toBe(3);
+    expect(withoutPages.rules).toEqual({ AB: "direct" });
+    expect(withoutPages.metadata).toBeUndefined();
+  });
+
   it.each([
     ["DayZ's protocol version", new MetadataWriter().uint8(2).uint8(0).uint16(0).uint8(0).uint8(0)],
     [

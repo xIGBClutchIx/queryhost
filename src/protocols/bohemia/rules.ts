@@ -15,6 +15,8 @@ const MAX_RULES = 4_096;
 const MAX_RULE_NAME_BYTES = 1_024;
 const MAX_RULE_VALUE_BYTES = 8_192;
 const MAX_METADATA_BYTES = 65_536;
+// Page indexes below this byte are control characters, which never start a text rule name.
+const FIRST_PRINTABLE_BYTE = 0x20;
 
 /** Format-specific decoding applied to the unescaped metadata pages. */
 export interface BohemiaPagedRulesFormat<T> {
@@ -117,35 +119,50 @@ export function parseBohemiaRulesPacket<T>(
   }
   const direct: Record<string, string> = {};
   const pages = new Map<number, Uint8Array>();
+  // Printable two-byte names such as `AB` could be ordinary rules or late pages; decide later.
+  const ambiguous: { readonly name: Uint8Array; readonly value: Uint8Array }[] = [];
   let pageCount: number | undefined;
+  const addDirect = (nameBytes: Uint8Array, valueBytes: Uint8Array): void => {
+    const name = decodeA2sUtf8(nameBytes);
+    const value = decodeA2sUtf8(valueBytes);
+    if (name.length === 0 || Object.hasOwn(direct, name)) {
+      failA2s("MALFORMED_RESPONSE");
+    }
+    Object.defineProperty(direct, name, { value, enumerable: true });
+  };
   for (let position = 0; position < count; position += 1) {
     const nameBytes = reader.readStringBytes(MAX_RULE_NAME_BYTES);
     const valueBytes = reader.readStringBytes(MAX_RULE_VALUE_BYTES);
     const page = nameBytes[0];
     const total = nameBytes[1];
     if (
-      nameBytes.length === 2 &&
-      page !== undefined &&
-      total !== undefined &&
-      page >= 1 &&
-      page <= format.maxPages &&
-      total >= 1 &&
-      total <= format.maxPages
+      nameBytes.length !== 2 ||
+      page === undefined ||
+      total === undefined ||
+      page < 1 ||
+      page > format.maxPages ||
+      total < 1 ||
+      total > format.maxPages
     ) {
+      addDirect(nameBytes, valueBytes);
+    } else if (page >= FIRST_PRINTABLE_BYTE) {
+      ambiguous.push({ name: nameBytes, value: valueBytes });
+    } else {
+      // A control-character page index cannot be a text rule name, so validate it strictly.
       if (page > total || (pageCount !== undefined && pageCount !== total) || pages.has(page)) {
         return failA2s("MALFORMED_RESPONSE");
       }
       pageCount = total;
       pages.set(page, valueBytes);
-      continue;
     }
-
-    const name = decodeA2sUtf8(nameBytes);
-    const value = decodeA2sUtf8(valueBytes);
-    if (name.length === 0 || Object.hasOwn(direct, name)) {
-      return failA2s("MALFORMED_RESPONSE");
+  }
+  for (const entry of ambiguous) {
+    const page = entry.name[0] ?? 0;
+    if (entry.name[1] === pageCount && page <= (pageCount ?? 0) && !pages.has(page)) {
+      pages.set(page, entry.value);
+    } else {
+      addDirect(entry.name, entry.value);
     }
-    Object.defineProperty(direct, name, { value, enumerable: true });
   }
   reader.expectEnd();
 

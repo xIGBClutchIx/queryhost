@@ -57,10 +57,14 @@ describe("Unreal Engine session values", (): void => {
   });
 
   it("lets Rules override keywords and accepts a typed build rule", async (): Promise<void> => {
-    const result = await query("insurgency-sandstorm", ",NUMOPENPUBCONN:4,SESSIONFLAGS:2048", [
-      ["BUILDID_i", "12345"],
-      ["NUMOPENPUBCONN", "9"],
-    ]);
+    const result = await query(
+      "insurgency-sandstorm",
+      "BUILDID:1,NUMOPENPUBCONN:4,SESSIONFLAGS:2048",
+      [
+        ["BUILDID_i", "12345"],
+        ["NUMOPENPUBCONN", "9"],
+      ],
+    );
 
     if (!result.ok || result.game !== "insurgency-sandstorm") {
       throw new Error("Expected an Insurgency: Sandstorm result.");

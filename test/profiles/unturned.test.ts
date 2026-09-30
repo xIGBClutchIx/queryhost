@@ -93,10 +93,11 @@ describe("unturned game profile", (): void => {
       ["Custom_Links_Count", "2"],
       ["Custom_Link_Message_0", base64("Discord")],
       ["Custom_Link_Url_0", base64("https://discord.example.com")],
-      ["Cfg_Count", "3"],
+      ["Cfg_Count", "4"],
       ["Cfg_0", "Items.Spawn_Chance=0.5"],
       ["Cfg_1", "Gameplay.Can_Suicide=F"],
       ["Cfg_2", "broken"],
+      ["Cfg_3", "Items.Spawn_Chance=0.9"],
       ["rocketplugins", "Kits, Uconomy"],
     ]);
 
