@@ -62,6 +62,7 @@ import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 import { VintageStoryProtocolError } from "../protocols/vintage-story/errors.js";
 import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/query.js";
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
+import { queryArma3Profile } from "../profiles/arma-3.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
@@ -382,20 +383,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "arma-3": createProfileRunner(
     "arma-3",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["arma-3"].name,
-        // Arma 3 Rules carry binary server-browser pages; the string Rules decoder cannot read them.
-        rulesPolicy: "unsupported",
-      }).then(({ server, data, sources, warnings, partial }) => ({
-        server,
-        data,
-        sources,
-        warnings,
-        partial,
-      })),
-    ),
+    a2sProfileRunner(queryArma3Profile),
   ),
   "american-truck-simulator": createProfileRunner(
     "american-truck-simulator",

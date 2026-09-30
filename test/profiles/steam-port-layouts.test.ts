@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { A2sExchangeDependencies } from "../../src/protocols/a2s/network.js";
 import { queryWithDependencies } from "../../src/runtime/client.js";
-import type { UdpCollectionOptions, UdpCollectionResult } from "../../src/transports/udp.js";
-import { dependencies, fixtureA2s, packetType } from "../helpers/a2s-profile.js";
+import type { UdpCollectionResult } from "../../src/transports/udp.js";
+import { dependencies, fixtureA2s } from "../helpers/a2s-profile.js";
+import { packetA2s, playersPacket, rulesPacket, sourceInfoPacket } from "../helpers/a2s-packets.js";
+import { MetadataWriter, metadataPages } from "../helpers/bohemia-pages.js";
 
 /**
  * Canonical ID, accepted input, then the query destinations for the default port, a custom game
@@ -52,7 +54,7 @@ describe.each(PORT_LAYOUTS)("%s game profile", (game, alias, customPort, expecte
   });
 });
 
-describe.each(PORT_LAYOUTS.filter(([game]) => game !== "arma-3"))("%s full query", (game): void => {
+describe.each(PORT_LAYOUTS)("%s full query", (game): void => {
   it("merges Player and raw Rules", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game, host: "play.example.com" },
@@ -70,30 +72,89 @@ describe.each(PORT_LAYOUTS.filter(([game]) => game !== "arma-3"))("%s full query
 });
 
 describe("arma-3 full query", (): void => {
-  it("reports binary Rules as unsupported without querying them", async (): Promise<void> => {
-    const base = await fixtureA2s("steam-query-port");
-    const collect = vi.fn((options: UdpCollectionOptions) => base.collect(options));
+  it("decodes paged Rules metadata into mods, DLC, and difficulty", async (): Promise<void> => {
+    const metadata = new MetadataWriter()
+      .uint8(3)
+      .uint8(0)
+      .uint16(0x0400)
+      .uint8(0b0000_1001)
+      .uint8(0)
+      .uint32(12)
+      .uint8(2)
+      .uint32(5)
+      .uint8(4)
+      .uint32(450_814_997)
+      .string("CBA_A3")
+      .uint32(6)
+      .uint8(19)
+      .uint32(9_999_999)
+      .uint8(1)
+      .string("a3")
+      .build();
     const result = await queryWithDependencies(
       { game: "arma-3", host: "play.example.com" },
-      dependencies({ collect }),
+      dependencies(
+        packetA2s({
+          info: sourceInfoPacket({ game: "Antistasi", map: "Altis", gameId: 107_410n }),
+          players: playersPacket([]),
+          rules: rulesPacket(metadataPages(metadata)),
+        }),
+      ),
     );
 
     expect(result).toMatchObject({
       ok: true,
       game: "arma-3",
-      data: { players: [{ name: "Survivor" }, { name: "" }] },
+      data: {
+        game: "Antistasi",
+        appId: 107_410,
+        players: [],
+        rulesProtocol: 3,
+        difficulty: {
+          level: 1,
+          aiLevel: 1,
+          advancedFlightModel: true,
+          thirdPerson: false,
+          crosshair: false,
+        },
+        dlc: [{ flag: 0x400, name: "Contact", appId: 1_021_790, hash: 12 }],
+        creatorDlc: [{ appId: 9_999_999, hash: 6 }],
+        mods: [{ name: "CBA_A3", workshopId: "450814997", hash: 5 }],
+        signatures: ["a3"],
+      },
+      rawData: { rules: {} },
       sources: [
         { source: "a2s-info", status: "ok" },
         { source: "a2s-player", status: "ok" },
-        { source: "a2s-rules", status: "unsupported" },
+        { source: "a2s-rules", status: "ok" },
       ],
       partial: false,
-      warnings: [],
     });
-    expect(collect.mock.calls.map(([options]) => packetType(options))).toEqual([0x54, 0x55]);
-    if (!result.ok) {
-      throw new Error("Expected a successful Arma 3 result.");
-    }
-    expect(result.rawData).toBeUndefined();
+  });
+
+  it("names known Creator DLC", async (): Promise<void> => {
+    const metadata = new MetadataWriter()
+      .uint8(3)
+      .uint8(0)
+      .uint16(0)
+      .uint8(0)
+      .uint8(0)
+      .uint8(1)
+      .uint32(6)
+      .uint8(19)
+      .uint32(1_175_380)
+      .uint8(0)
+      .build();
+    const result = await queryWithDependencies(
+      { game: "arma-3", host: "play.example.com" },
+      dependencies(
+        packetA2s({ info: sourceInfoPacket(), rules: rulesPacket(metadataPages(metadata)) }),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { creatorDlc: [{ appId: 1_175_380, name: "Spearhead 1944", hash: 6 }], mods: [] },
+    });
   });
 });

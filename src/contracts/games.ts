@@ -290,8 +290,69 @@ export interface IcarusData extends SteamA2sData {}
 /** Abiotic Factor data collected from its Steam A2S query port. */
 export interface AbioticFactorData extends SteamA2sData {}
 
+/** Arma 3 difficulty settings advertised in its paged server-browser Rules metadata. */
+export interface Arma3Difficulty {
+  /** Difficulty preset: 0 Recruit, 1 Regular, 2 Veteran, 3 Custom. */
+  readonly level: number;
+  /** AI skill preset on the same 0 to 3 scale as `level`. */
+  readonly aiLevel: number;
+  readonly advancedFlightModel: boolean;
+  readonly thirdPerson: boolean;
+  readonly crosshair: boolean;
+}
+
+/** One official Arma 3 DLC the server advertises as required content. */
+export interface Arma3Dlc {
+  /** Bit set in the server's 16-bit DLC mask. */
+  readonly flag: number;
+  /** Known DLC name; omitted for a mask bit QueryHost does not recognize. */
+  readonly name?: string;
+  /** Steam App ID of a recognized DLC. */
+  readonly appId?: number;
+  /** Unsigned 32-bit short hash advertised by the server. */
+  readonly hash: number;
+}
+
+/** One Arma 3 Creator DLC loaded by the server. */
+export interface Arma3CreatorDlc {
+  readonly appId: number;
+  /** Known Creator DLC name; omitted for an unrecognized App ID. */
+  readonly name?: string;
+  readonly hash: number;
+}
+
+/** One Arma 3 mod decoded from the paged server-browser Rules metadata. */
+export interface Arma3Mod {
+  readonly name: string;
+  /** Decimal Steam Workshop item ID; omitted for a local mod, which advertises zero. */
+  readonly workshopId?: string;
+  /** Unsigned 32-bit short hash advertised by the server. */
+  readonly hash: number;
+}
+
+/** Raw direct Arma 3 Rules retained separately from decoded paged metadata. */
+export interface Arma3RawData {
+  /** Direct string-valued pairs; binary metadata pages are decoded under {@link Arma3Data}. */
+  readonly rules: GameRuleMap;
+}
+
 /** Arma 3 data collected from its Steam A2S query port. */
-export interface Arma3Data extends SteamA2sData {}
+export interface Arma3Data extends SteamA2sData {
+  /** Server-browser metadata format version, when paged Rules metadata is available. */
+  readonly rulesProtocol?: number;
+  /** Omitted when Rules metadata is unavailable or the server advertises no difficulty. */
+  readonly difficulty?: Arma3Difficulty;
+  /** Omitted when Rules metadata is unavailable; empty means the server requires no DLC. */
+  readonly dlc?: readonly Arma3Dlc[];
+  /** Omitted when Rules metadata is unavailable; empty means no Creator DLC is loaded. */
+  readonly creatorDlc?: readonly Arma3CreatorDlc[];
+  /** Omitted when Rules metadata is unavailable; empty means the server confirmed no mods. */
+  readonly mods?: readonly Arma3Mod[];
+  /** Accepted signature key names; empty means the server confirmed none. */
+  readonly signatures?: readonly string[];
+  /** Optional description appended to the metadata by some server builds. */
+  readonly description?: string;
+}
 
 /** American Truck Simulator data collected from its Steam A2S query port. */
 export interface AmericanTruckSimulatorData extends SteamA2sData {}

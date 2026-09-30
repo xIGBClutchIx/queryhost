@@ -2,6 +2,8 @@ import { expectAssignable, expectError, expectNotAssignable, expectType } from "
 
 import {
   type Arma3Data,
+  type Arma3Difficulty,
+  type Arma3Mod,
   type AmericanTruckSimulatorData,
   type EuroTruckSimulator2Data,
   type TheForestData,
@@ -447,7 +449,9 @@ expectAssignable<SteamA2sData>(dataMap["the-forest"]);
 expectAssignable<SteamA2sData>(dataMap["unturned"]);
 expectAssignable<SteamA2sData>(dataMap["enshrouded"]);
 expectAssignable<SteamA2sData>(dataMap["insurgency-sandstorm"]);
-expectType<never>(rawDataMap["arma-3"]);
+expectType<Readonly<Record<string, string>>>(rawDataMap["arma-3"].rules);
+expectType<readonly Arma3Mod[] | undefined>(dataMap["arma-3"].mods);
+expectType<Arma3Difficulty | undefined>(dataMap["arma-3"].difficulty);
 expectType<Readonly<Record<string, string>>>(rawDataMap.unturned.rules);
 expectType<number | undefined>(getGameDefinition("sotf").defaultQueryPort);
 

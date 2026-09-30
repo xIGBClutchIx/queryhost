@@ -236,7 +236,7 @@ describe("game registry", () => {
   });
 
   it.each([
-    ["arma-3", "Arma 3", 2302, 2303, undefined, "unsupported"],
+    ["arma-3", "Arma 3", 2302, 2303, undefined, "conditional", "conditional"],
     [
       "american-truck-simulator",
       "American Truck Simulator",
@@ -244,21 +244,38 @@ describe("game registry", () => {
       27_016,
       "fixed",
       "conditional",
+      "unsupported",
     ],
-    ["euro-truck-simulator-2", "Euro Truck Simulator 2", 27_015, 27_016, "fixed", "conditional"],
-    ["the-forest", "The Forest", 27_015, 27_016, "fixed", "conditional"],
-    ["unturned", "Unturned", 27_015, undefined, undefined, "conditional"],
-    ["enshrouded", "Enshrouded", 15_637, undefined, undefined, "conditional"],
-    ["insurgency-sandstorm", "Insurgency: Sandstorm", 27_102, 27_131, "fixed", "conditional"],
+    [
+      "euro-truck-simulator-2",
+      "Euro Truck Simulator 2",
+      27_015,
+      27_016,
+      "fixed",
+      "conditional",
+      "unsupported",
+    ],
+    ["the-forest", "The Forest", 27_015, 27_016, "fixed", "conditional", "unsupported"],
+    ["unturned", "Unturned", 27_015, undefined, undefined, "conditional", "unsupported"],
+    ["enshrouded", "Enshrouded", 15_637, undefined, undefined, "conditional", "unsupported"],
+    [
+      "insurgency-sandstorm",
+      "Insurgency: Sandstorm",
+      27_102,
+      27_131,
+      "fixed",
+      "conditional",
+      "unsupported",
+    ],
   ] as const)(
     "describes %s's Steam query-port layout",
-    (game, name, port, queryPort, strategy, rules) => {
+    (game, name, port, queryPort, strategy, rules, mods) => {
       const definition = getGameDefinition(game);
 
       expect(definition).toMatchObject({
         name,
         defaultPort: port,
-        capabilities: { summary: "supported", players: "conditional", rules, mods: "unsupported" },
+        capabilities: { summary: "supported", players: "conditional", rules, mods },
       });
       expect(definition.defaultQueryPort).toBe(queryPort);
       expect(definition.queryPortStrategy).toBe(strategy);

@@ -45,7 +45,12 @@ export type {
 } from "./contracts/shared.js";
 export type {
   A2sData,
+  Arma3CreatorDlc,
   Arma3Data,
+  Arma3Difficulty,
+  Arma3Dlc,
+  Arma3Mod,
+  Arma3RawData,
   AmericanTruckSimulatorData,
   EuroTruckSimulator2Data,
   TheForestData,

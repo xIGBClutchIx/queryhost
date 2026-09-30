@@ -2,6 +2,7 @@
 
 import type {
   Arma3Data,
+  Arma3RawData,
   AmericanTruckSimulatorData,
   EuroTruckSimulator2Data,
   TheForestData,
@@ -115,7 +116,7 @@ export interface GameRawDataMap {
   readonly "sons-of-the-forest": A2sRawData;
   readonly icarus: A2sRawData;
   readonly "abiotic-factor": A2sRawData;
-  readonly "arma-3": never;
+  readonly "arma-3": Arma3RawData;
   readonly "american-truck-simulator": A2sRawData;
   readonly "euro-truck-simulator-2": A2sRawData;
   readonly "the-forest": A2sRawData;
