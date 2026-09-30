@@ -2,14 +2,10 @@
 
 import type { Arma3CreatorDlc, Arma3Data, Arma3Dlc, Arma3Mod } from "../contracts/games.js";
 import { GAME_REGISTRY } from "../contracts/registry.js";
+import type { A2sRules } from "../protocols/a2s/rules.js";
 import { arma3RuleMetadata, queryArma3Rules } from "../protocols/arma3/rules.js";
 import type { A2sProfileOptions } from "./a2s.js";
-import { querySteamA2sProfile, type SteamA2sProfileResult } from "./steam-a2s.js";
-
-/** Fully merged Arma 3 result before the public query envelope is added. */
-export interface Arma3ProfileResult extends Omit<SteamA2sProfileResult, "data"> {
-  readonly data: Arma3Data;
-}
+import { querySteamA2sGame, type SteamA2sProfileResult } from "./steam-a2s.js";
 
 interface KnownDlc {
   readonly name: string;
@@ -115,9 +111,8 @@ function keywordData(tags: readonly string[] | undefined): Partial<Arma3Data> {
   };
 }
 
-function rulesData(result: SteamA2sProfileResult): Partial<Arma3Data> {
-  const metadata =
-    result.rawData === undefined ? undefined : arma3RuleMetadata(result.rawData.rules);
+function rulesData(rules: A2sRules | undefined): Partial<Arma3Data> {
+  const metadata = rules === undefined ? undefined : arma3RuleMetadata(rules);
   if (metadata === undefined) {
     return {};
   }
@@ -159,14 +154,14 @@ function rulesData(result: SteamA2sProfileResult): Partial<Arma3Data> {
 }
 
 /** Queries Arma 3 and decodes its paged Rules metadata into mods, DLC, and difficulty. */
-export async function queryArma3Profile(options: A2sProfileOptions): Promise<Arma3ProfileResult> {
-  const result = await querySteamA2sProfile({
-    ...options,
-    gameName: GAME_REGISTRY["arma-3"].name,
-    queryRules: queryArma3Rules,
-  });
-  return Object.freeze({
-    ...result,
-    data: Object.freeze({ ...result.data, ...keywordData(result.data.tags), ...rulesData(result) }),
-  });
+export async function queryArma3Profile(
+  options: A2sProfileOptions,
+): Promise<SteamA2sProfileResult<Arma3Data>> {
+  return querySteamA2sGame(
+    { ...options, gameName: GAME_REGISTRY["arma-3"].name, queryRules: queryArma3Rules },
+    ({ server, data, rules }) => ({
+      server,
+      data: { ...data, ...keywordData(data.tags), ...rulesData(rules) },
+    }),
+  );
 }

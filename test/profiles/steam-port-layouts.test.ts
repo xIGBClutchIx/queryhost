@@ -187,7 +187,7 @@ describe("arma-3 full query", (): void => {
       island: "Altis",
       loadedContentHash: "285fa806",
     });
-    expect(result.data.tags).toContain("x1");
+    expect(result.game === "arma-3" ? result.data.tags : undefined).toContain("x1");
   });
 
   it("omits keyword fields whose values are not valid", async (): Promise<void> => {
