@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / SoulmaskData
 
-# Interface: GarrysModData
+# Interface: SoulmaskData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Soulmask data collected from its Steam A2S query port.
 
 ## Extends
 

@@ -1,6 +1,14 @@
 /** Public query inputs and discriminated game-specific result contracts. */
 
 import type {
+  ArkSurvivalEvolvedData,
+  ConanExilesData,
+  KillingFloor2Data,
+  DayOfDragonsData,
+  SoulmaskData,
+  SonsOfTheForestData,
+  IcarusData,
+  AbioticFactorData,
   A2sData,
   A2sRawData,
   CounterStrike2Data,
@@ -53,6 +61,14 @@ export interface GameDataMap {
   readonly "left-4-dead": Left4DeadData;
   readonly "left-4-dead-2": Left4Dead2Data;
   readonly "garrys-mod": GarrysModData;
+  readonly "ark-survival-evolved": ArkSurvivalEvolvedData;
+  readonly "conan-exiles": ConanExilesData;
+  readonly "killing-floor-2": KillingFloor2Data;
+  readonly "day-of-dragons": DayOfDragonsData;
+  readonly soulmask: SoulmaskData;
+  readonly "sons-of-the-forest": SonsOfTheForestData;
+  readonly icarus: IcarusData;
+  readonly "abiotic-factor": AbioticFactorData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -77,6 +93,14 @@ export interface GameRawDataMap {
   readonly "left-4-dead": A2sRawData;
   readonly "left-4-dead-2": A2sRawData;
   readonly "garrys-mod": A2sRawData;
+  readonly "ark-survival-evolved": A2sRawData;
+  readonly "conan-exiles": A2sRawData;
+  readonly "killing-floor-2": A2sRawData;
+  readonly "day-of-dragons": A2sRawData;
+  readonly soulmask: A2sRawData;
+  readonly "sons-of-the-forest": A2sRawData;
+  readonly icarus: A2sRawData;
+  readonly "abiotic-factor": A2sRawData;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -119,6 +143,17 @@ export interface GameAliasMap {
   readonly left4dead2: "left-4-dead-2";
   readonly gmod: "garrys-mod";
   readonly garrysmod: "garrys-mod";
+  readonly ark: "ark-survival-evolved";
+  readonly arkse: "ark-survival-evolved";
+  readonly ase: "ark-survival-evolved";
+  readonly conan: "conan-exiles";
+  readonly conanexiles: "conan-exiles";
+  readonly kf2: "killing-floor-2";
+  readonly killingfloor2: "killing-floor-2";
+  readonly dayofdragons: "day-of-dragons";
+  readonly sotf: "sons-of-the-forest";
+  readonly sonsoftheforest: "sons-of-the-forest";
+  readonly abioticfactor: "abiotic-factor";
 }
 
 /** Accepted non-canonical game identifier. */

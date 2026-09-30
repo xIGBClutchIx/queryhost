@@ -46,6 +46,14 @@ describe("game registry", () => {
       "left-4-dead",
       "left-4-dead-2",
       "garrys-mod",
+      "ark-survival-evolved",
+      "conan-exiles",
+      "killing-floor-2",
+      "day-of-dragons",
+      "soulmask",
+      "sons-of-the-forest",
+      "icarus",
+      "abiotic-factor",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -201,6 +209,25 @@ describe("game registry", () => {
     expect(definition.queryPortStrategy).toBeUndefined();
   });
 
+  it.each([
+    ["ark-survival-evolved", "ARK: Survival Evolved", 7777, 27_015, "conditional"],
+    ["conan-exiles", "Conan Exiles", 7777, 27_015, "unsupported"],
+    ["killing-floor-2", "Killing Floor 2", 7777, 27_015, "conditional"],
+    ["day-of-dragons", "Day of Dragons", 7777, 27_015, "conditional"],
+    ["soulmask", "Soulmask", 8777, 27_015, "conditional"],
+    ["sons-of-the-forest", "Sons of the Forest", 8766, 27_016, "conditional"],
+    ["icarus", "Icarus", 17_777, 27_015, "conditional"],
+    ["abiotic-factor", "Abiotic Factor", 7777, 27_015, "conditional"],
+  ] as const)("keeps %s on a fixed Steam query port", (game, name, port, queryPort, players) => {
+    expect(getGameDefinition(game)).toMatchObject({
+      name,
+      defaultPort: port,
+      defaultQueryPort: queryPort,
+      queryPortStrategy: "fixed",
+      capabilities: { summary: "supported", players, rules: "conditional", mods: "unsupported" },
+    });
+  });
+
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
     expect(isGameId("redm")).toBe(true);
@@ -246,6 +273,17 @@ describe("game registry", () => {
       left4dead2: "left-4-dead-2",
       gmod: "garrys-mod",
       garrysmod: "garrys-mod",
+      ark: "ark-survival-evolved",
+      arkse: "ark-survival-evolved",
+      ase: "ark-survival-evolved",
+      conan: "conan-exiles",
+      conanexiles: "conan-exiles",
+      kf2: "killing-floor-2",
+      killingfloor2: "killing-floor-2",
+      dayofdragons: "day-of-dragons",
+      sotf: "sons-of-the-forest",
+      sonsoftheforest: "sons-of-the-forest",
+      abioticfactor: "abiotic-factor",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);
@@ -271,6 +309,8 @@ describe("game registry", () => {
     expect(getGameDefinition("vs")).toBe(GAME_REGISTRY["vintage-story"]);
     expect(getGameDefinition("tf2")).toBe(GAME_REGISTRY["team-fortress-2"]);
     expect(getGameDefinition("gmod")).toBe(GAME_REGISTRY["garrys-mod"]);
+    expect(getGameDefinition("ark")).toBe(GAME_REGISTRY["ark-survival-evolved"]);
+    expect(getGameDefinition("sotf")).toBe(GAME_REGISTRY["sons-of-the-forest"]);
   });
 
   it("lists games in the documented registry order", () => {

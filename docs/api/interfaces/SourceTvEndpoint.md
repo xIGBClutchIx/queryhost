@@ -6,7 +6,7 @@
 
 # Interface: SourceTvEndpoint
 
-SourceTV relay advertised by a Source-engine server.
+SourceTV relay advertised through a Source-style A2S Info response.
 
 ## Properties
 

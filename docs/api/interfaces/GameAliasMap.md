@@ -28,9 +28,45 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### abioticfactor
+
+> `readonly` **abioticfactor**: `"abiotic-factor"`
+
+***
+
+### ark
+
+> `readonly` **ark**: `"ark-survival-evolved"`
+
+***
+
+### arkse
+
+> `readonly` **arkse**: `"ark-survival-evolved"`
+
+***
+
+### ase
+
+> `readonly` **ase**: `"ark-survival-evolved"`
+
+***
+
 ### bedrock
 
 > `readonly` **bedrock**: `"minecraft-bedrock"`
+
+***
+
+### conan
+
+> `readonly` **conan**: `"conan-exiles"`
+
+***
+
+### conanexiles
+
+> `readonly` **conanexiles**: `"conan-exiles"`
 
 ***
 
@@ -61,6 +97,12 @@ Alternate input spellings mapped to one stable game identity.
 ### css
 
 > `readonly` **css**: `"counter-strike-source"`
+
+***
+
+### dayofdragons
+
+> `readonly` **dayofdragons**: `"day-of-dragons"`
 
 ***
 
@@ -97,6 +139,18 @@ Alternate input spellings mapped to one stable game identity.
 ### java
 
 > `readonly` **java**: `"minecraft-java"`
+
+***
+
+### kf2
+
+> `readonly` **kf2**: `"killing-floor-2"`
+
+***
+
+### killingfloor2
+
+> `readonly` **killingfloor2**: `"killing-floor-2"`
 
 ***
 
@@ -187,6 +241,18 @@ Alternate input spellings mapped to one stable game identity.
 ### seven-days-to-die
 
 > `readonly` **seven-days-to-die**: `"7-days-to-die"`
+
+***
+
+### sonsoftheforest
+
+> `readonly` **sonsoftheforest**: `"sons-of-the-forest"`
+
+***
+
+### sotf
+
+> `readonly` **sotf**: `"sons-of-the-forest"`
 
 ***
 

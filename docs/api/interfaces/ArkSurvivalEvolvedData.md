@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / ArkSurvivalEvolvedData
 
-# Interface: GarrysModData
+# Interface: ArkSurvivalEvolvedData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+ARK: Survival Evolved data collected from its Steam A2S query port.
 
 ## Extends
 

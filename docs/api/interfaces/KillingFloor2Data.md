@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / KillingFloor2Data
 
-# Interface: GarrysModData
+# Interface: KillingFloor2Data
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Killing Floor 2 data collected from its Steam A2S query port.
 
 ## Extends
 

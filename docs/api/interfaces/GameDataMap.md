@@ -24,6 +24,24 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### abiotic-factor
+
+> `readonly` **abiotic-factor**: [`AbioticFactorData`](AbioticFactorData.md)
+
+***
+
+### ark-survival-evolved
+
+> `readonly` **ark-survival-evolved**: [`ArkSurvivalEvolvedData`](ArkSurvivalEvolvedData.md)
+
+***
+
+### conan-exiles
+
+> `readonly` **conan-exiles**: [`ConanExilesData`](ConanExilesData.md)
+
+***
+
 ### counter-strike-2
 
 > `readonly` **counter-strike-2**: [`CounterStrike2Data`](CounterStrike2Data.md)
@@ -33,6 +51,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### counter-strike-source
 
 > `readonly` **counter-strike-source**: [`CounterStrikeSourceData`](CounterStrikeSourceData.md)
+
+***
+
+### day-of-dragons
+
+> `readonly` **day-of-dragons**: [`DayOfDragonsData`](DayOfDragonsData.md)
 
 ***
 
@@ -57,6 +81,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### garrys-mod
 
 > `readonly` **garrys-mod**: [`GarrysModData`](GarrysModData.md)
+
+***
+
+### icarus
+
+> `readonly` **icarus**: [`IcarusData`](IcarusData.md)
+
+***
+
+### killing-floor-2
+
+> `readonly` **killing-floor-2**: [`KillingFloor2Data`](KillingFloor2Data.md)
 
 ***
 
@@ -111,6 +147,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### satisfactory
 
 > `readonly` **satisfactory**: [`SatisfactoryData`](SatisfactoryData.md)
+
+***
+
+### sons-of-the-forest
+
+> `readonly` **sons-of-the-forest**: [`SonsOfTheForestData`](SonsOfTheForestData.md)
+
+***
+
+### soulmask
+
+> `readonly` **soulmask**: [`SoulmaskData`](SoulmaskData.md)
 
 ***
 

@@ -64,7 +64,8 @@ import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/q
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
-import { querySourceEngineProfile } from "../profiles/source-engine.js";
+import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
+import { querySoulmaskProfile } from "../profiles/soulmask.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -113,7 +114,15 @@ type ImplementedGame =
   | "team-fortress-2"
   | "left-4-dead"
   | "left-4-dead-2"
-  | "garrys-mod";
+  | "garrys-mod"
+  | "ark-survival-evolved"
+  | "conan-exiles"
+  | "killing-floor-2"
+  | "day-of-dragons"
+  | "soulmask"
+  | "sons-of-the-forest"
+  | "icarus"
+  | "abiotic-factor";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -263,14 +272,14 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "counter-strike-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["counter-strike-2"].name }),
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["counter-strike-2"].name }),
     ),
   ),
   "counter-strike-source": createProfileRunner(
     "counter-strike-source",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({
+      querySteamA2sProfile({
         ...options,
         gameName: GAME_REGISTRY["counter-strike-source"].name,
       }),
@@ -280,28 +289,87 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "team-fortress-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["team-fortress-2"].name }),
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["team-fortress-2"].name }),
     ),
   ),
   "left-4-dead": createProfileRunner(
     "left-4-dead",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead"].name }),
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead"].name }),
     ),
   ),
   "left-4-dead-2": createProfileRunner(
     "left-4-dead-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead-2"].name }),
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead-2"].name }),
     ),
   ),
   "garrys-mod": createProfileRunner(
     "garrys-mod",
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
-      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["garrys-mod"].name }),
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["garrys-mod"].name }),
+    ),
+  ),
+  "ark-survival-evolved": createProfileRunner(
+    "ark-survival-evolved",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["ark-survival-evolved"].name }),
+    ),
+  ),
+  "conan-exiles": createProfileRunner(
+    "conan-exiles",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({
+        ...options,
+        gameName: GAME_REGISTRY["conan-exiles"].name,
+        // Conan Exiles never answers A2S Player, so querying it would only add a timeout.
+        playerPolicy: "unsupported",
+      }),
+    ),
+  ),
+  "killing-floor-2": createProfileRunner(
+    "killing-floor-2",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["killing-floor-2"].name }),
+    ),
+  ),
+  "day-of-dragons": createProfileRunner(
+    "day-of-dragons",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["day-of-dragons"].name }),
+    ),
+  ),
+  soulmask: createProfileRunner(
+    "soulmask",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner(querySoulmaskProfile),
+  ),
+  "sons-of-the-forest": createProfileRunner(
+    "sons-of-the-forest",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["sons-of-the-forest"].name }),
+    ),
+  ),
+  icarus: createProfileRunner(
+    "icarus",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["icarus"].name }),
+    ),
+  ),
+  "abiotic-factor": createProfileRunner(
+    "abiotic-factor",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["abiotic-factor"].name }),
     ),
   ),
 });

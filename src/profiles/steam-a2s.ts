@@ -1,6 +1,6 @@
-/** Shared interpretation for Valve Source-engine games over their game-port A2S endpoint. */
+/** Shared interpretation for games whose direct Steam A2S endpoint needs no game-specific rules. */
 
-import type { GameRuleMap, SourceEngineData, SourceEnginePlayer } from "../contracts/games.js";
+import type { GameRuleMap, SteamA2sData, SteamA2sPlayer } from "../contracts/games.js";
 import type { QuerySource, QueryWarning, ServerInfo } from "../contracts/shared.js";
 import type { A2sInfo } from "../protocols/a2s/info.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
@@ -11,15 +11,15 @@ import {
   type A2sProfileOptions,
 } from "./a2s.js";
 
-/** Inputs for one Source-engine game; the caller-facing name only labels warnings. */
-export interface SourceEngineProfileOptions extends A2sProfileOptions {
+/** Inputs for one Steam A2S game; the caller-facing name only labels warnings. */
+export interface SteamA2sProfileOptions extends A2sProfileOptions {
   readonly gameName: string;
 }
 
-/** Fully merged Source-engine profile result before the public query envelope is added. */
-export interface SourceEngineProfileResult {
+/** Fully merged Steam A2S profile result before the public query envelope is added. */
+export interface SteamA2sProfileResult {
   readonly server: ServerInfo;
-  readonly data: SourceEngineData;
+  readonly data: SteamA2sData;
   readonly rawData?: { readonly rules: GameRuleMap };
   readonly sources: readonly [QuerySource, QuerySource, QuerySource];
   readonly warnings: readonly QueryWarning[];
@@ -35,7 +35,7 @@ function tags(keywords: string): readonly string[] {
   );
 }
 
-function players(values: readonly A2sPlayer[]): readonly SourceEnginePlayer[] {
+function players(values: readonly A2sPlayer[]): readonly SteamA2sPlayer[] {
   return Object.freeze(
     values.map((player) =>
       Object.freeze({
@@ -48,10 +48,10 @@ function players(values: readonly A2sPlayer[]): readonly SourceEnginePlayer[] {
   );
 }
 
-function sourceEngineData(
+function steamA2sData(
   info: A2sInfo,
   optionalPlayers: readonly A2sPlayer[] | undefined,
-): SourceEngineData {
+): SteamA2sData {
   return Object.freeze({
     folder: info.folder,
     bots: info.bots,
@@ -70,15 +70,15 @@ function sourceEngineData(
   });
 }
 
-/** Queries required Info and optional Player and Rules for one Source-engine game server. */
-export async function querySourceEngineProfile(
-  options: SourceEngineProfileOptions,
-): Promise<SourceEngineProfileResult> {
+/** Queries required Info and the profile's optional Player and Rules for one Steam game server. */
+export async function querySteamA2sProfile(
+  options: SteamA2sProfileOptions,
+): Promise<SteamA2sProfileResult> {
   const result = await queryA2sProfile(options);
   const optionalWarnings = a2sProfileWarnings(options.gameName, result.optional.sources);
   return Object.freeze({
     server: a2sServerInfo(result.info),
-    data: sourceEngineData(result.info.info, result.optional.players),
+    data: steamA2sData(result.info.info, result.optional.players),
     ...(result.optional.rules === undefined
       ? {}
       : { rawData: Object.freeze({ rules: result.optional.rules }) }),

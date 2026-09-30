@@ -2,14 +2,22 @@
 
 ***
 
-[queryhost](../README.md) / SourceEngineData
+[queryhost](../README.md) / SteamA2sData
 
-# Interface: SourceEngineData
+# Interface: SteamA2sData
 
-Facts shared by Valve Source-engine multiplayer games through their game-port A2S endpoint.
+Facts shared by games whose direct Steam A2S endpoint needs no game-specific interpretation.
 
 ## Extended by
 
+- [`ArkSurvivalEvolvedData`](ArkSurvivalEvolvedData.md)
+- [`ConanExilesData`](ConanExilesData.md)
+- [`KillingFloor2Data`](KillingFloor2Data.md)
+- [`DayOfDragonsData`](DayOfDragonsData.md)
+- [`SoulmaskData`](SoulmaskData.md)
+- [`SonsOfTheForestData`](SonsOfTheForestData.md)
+- [`IcarusData`](IcarusData.md)
+- [`AbioticFactorData`](AbioticFactorData.md)
 - [`CounterStrike2Data`](CounterStrike2Data.md)
 - [`CounterStrikeSourceData`](CounterStrikeSourceData.md)
 - [`GarrysModData`](GarrysModData.md)
@@ -43,13 +51,13 @@ Present only for modern Source-style Info responses.
 
 > `readonly` **folder**: `string`
 
-Game content directory, such as `tf` or `garrysmod`, which also identifies server mods.
+Game content directory, such as `tf` or `garrysmod`, which also identifies Source mods.
 
 ***
 
 ### players?
 
-> `readonly` `optional` **players?**: readonly [`SourceEnginePlayer`](SourceEnginePlayer.md)[]
+> `readonly` `optional` **players?**: readonly [`SteamA2sPlayer`](SteamA2sPlayer.md)[]
 
 Omitted when Player is skipped or unavailable; empty means the server confirmed no players.
 
@@ -73,7 +81,7 @@ SourceTV relay advertised by the server; never followed as a query destination.
 
 > `readonly` `optional` **tags?**: readonly `string`[]
 
-Server-advertised `sv_tags`, when present.
+Comma-delimited A2S Info keywords split in server order, when present.
 
 ***
 

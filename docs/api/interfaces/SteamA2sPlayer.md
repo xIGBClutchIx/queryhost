@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / SourceEnginePlayer
+[queryhost](../README.md) / SteamA2sPlayer
 
-# Interface: SourceEnginePlayer
+# Interface: SteamA2sPlayer
 
-One player reported by a Valve Source-engine server's optional A2S Player source.
+One player reported by a Steam game server's optional A2S Player source.
 
 ## Properties
 
@@ -26,7 +26,7 @@ One player reported by a Valve Source-engine server's optional A2S Player source
 
 > `readonly` **name**: `string`
 
-Counter-Strike 2 servers commonly leave names empty unless a server plugin restores them.
+Some games, such as Counter-Strike 2, commonly leave names empty for privacy.
 
 ***
 
