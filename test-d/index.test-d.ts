@@ -1,6 +1,14 @@
 import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
+  type ArkSurvivalEvolvedData,
+  type ConanExilesData,
+  type KillingFloor2Data,
+  type DayOfDragonsData,
+  type SoulmaskData,
+  type SonsOfTheForestData,
+  type IcarusData,
+  type AbioticFactorData,
   type A2sData,
   type A2sPlayer,
   type CounterStrike2Data,
@@ -41,8 +49,8 @@ import {
   type SevenDaysToDiePlayer,
   type SatisfactoryData,
   type SatisfactoryRawData,
-  type SourceEngineData,
-  type SourceEnginePlayer,
+  type SteamA2sData,
+  type SteamA2sPlayer,
   type TeamFortress2Data,
   type VintageStoryData,
   type ValheimData,
@@ -71,6 +79,14 @@ expectType<
     "left-4-dead",
     "left-4-dead-2",
     "garrys-mod",
+    "ark-survival-evolved",
+    "conan-exiles",
+    "killing-floor-2",
+    "day-of-dragons",
+    "soulmask",
+    "sons-of-the-forest",
+    "icarus",
+    "abiotic-factor",
   ]
 >(GAME_IDS);
 
@@ -137,6 +153,26 @@ expectType<Promise<QueryResult<"left-4-dead-2">>>(
 );
 expectType<Promise<QueryResult<"garrys-mod">>>(
   query({ game: "gmod", host: "play.example.com", queryPort: 27_016 }),
+);
+expectType<Promise<QueryResult<"ark-survival-evolved">>>(
+  query({ game: "ark", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"conan-exiles">>>(
+  query({ game: "conan", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"killing-floor-2">>>(
+  query({ game: "kf2", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"day-of-dragons">>>(
+  query({ game: "dayofdragons", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"soulmask">>>(query({ game: "soulmask", host: "play.example.com" }));
+expectType<Promise<QueryResult<"sons-of-the-forest">>>(
+  query({ game: "sotf", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"icarus">>>(query({ game: "icarus", host: "play.example.com" }));
+expectType<Promise<QueryResult<"abiotic-factor">>>(
+  query({ game: "abioticfactor", host: "play.example.com" }),
 );
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
@@ -236,6 +272,30 @@ if (dynamicResult.ok) {
     case "garrys-mod":
       expectType<GarrysModData>(dynamicResult.data);
       break;
+    case "ark-survival-evolved":
+      expectType<ArkSurvivalEvolvedData>(dynamicResult.data);
+      break;
+    case "conan-exiles":
+      expectType<ConanExilesData>(dynamicResult.data);
+      break;
+    case "killing-floor-2":
+      expectType<KillingFloor2Data>(dynamicResult.data);
+      break;
+    case "day-of-dragons":
+      expectType<DayOfDragonsData>(dynamicResult.data);
+      break;
+    case "soulmask":
+      expectType<SoulmaskData>(dynamicResult.data);
+      break;
+    case "sons-of-the-forest":
+      expectType<SonsOfTheForestData>(dynamicResult.data);
+      break;
+    case "icarus":
+      expectType<IcarusData>(dynamicResult.data);
+      break;
+    case "abiotic-factor":
+      expectType<AbioticFactorData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -310,14 +370,25 @@ expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData)
 expectType<VintageStoryData>(dataMap["vintage-story"]);
 expectType<"liveness" | "status">(dataMap["vintage-story"].response);
 expectType<string | undefined>(dataMap["vintage-story"].motd);
-expectAssignable<SourceEngineData>(dataMap["counter-strike-2"]);
-expectAssignable<SourceEngineData>(dataMap["garrys-mod"]);
+expectAssignable<SteamA2sData>(dataMap["counter-strike-2"]);
+expectAssignable<SteamA2sData>(dataMap["garrys-mod"]);
 expectType<string>(dataMap["team-fortress-2"].folder);
 expectType<number | undefined>(dataMap["team-fortress-2"].appId);
 expectType<readonly string[] | undefined>(dataMap["counter-strike-2"].tags);
 expectType<number | undefined>(dataMap["counter-strike-source"].sourceTv?.port);
-expectType<readonly SourceEnginePlayer[] | undefined>(dataMap["left-4-dead-2"].players);
+expectType<readonly SteamA2sPlayer[] | undefined>(dataMap["left-4-dead-2"].players);
 expectType<Readonly<Record<string, string>>>(rawDataMap["left-4-dead"].rules);
+expectAssignable<SteamA2sData>(dataMap["ark-survival-evolved"]);
+expectAssignable<SteamA2sData>(dataMap["conan-exiles"]);
+expectAssignable<SteamA2sData>(dataMap["killing-floor-2"]);
+expectAssignable<SteamA2sData>(dataMap["day-of-dragons"]);
+expectAssignable<SteamA2sData>(dataMap["soulmask"]);
+expectAssignable<SteamA2sData>(dataMap["sons-of-the-forest"]);
+expectAssignable<SteamA2sData>(dataMap["icarus"]);
+expectAssignable<SteamA2sData>(dataMap["abiotic-factor"]);
+expectType<readonly SteamA2sPlayer[] | undefined>(dataMap["conan-exiles"].players);
+expectType<Readonly<Record<string, string>>>(rawDataMap.soulmask.rules);
+expectType<number | undefined>(getGameDefinition("sotf").defaultQueryPort);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);

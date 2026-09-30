@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / SonsOfTheForestData
 
-# Interface: GarrysModData
+# Interface: SonsOfTheForestData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Sons of the Forest data collected from its Steam A2S query port.
 
 ## Extends
 

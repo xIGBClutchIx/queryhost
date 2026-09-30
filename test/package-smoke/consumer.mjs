@@ -34,6 +34,12 @@ if (
 ) {
   throw new Error("The packed JavaScript entry point omitted Source-engine metadata.");
 }
+if (
+  GAME_REGISTRY["sons-of-the-forest"].defaultQueryPort !== 27_016 ||
+  canonicalGameId("ark") !== "ark-survival-evolved"
+) {
+  throw new Error("The packed JavaScript entry point omitted Steam query-port metadata.");
+}
 if (GAME_REGISTRY["minecraft-java"].defaultPort !== 25_565) {
   throw new Error("The packed registry returned the wrong Minecraft Java port.");
 }

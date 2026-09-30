@@ -23,6 +23,7 @@ Examples:
   queryhost rust play.example.com 28015
   queryhost cs2 play.example.com 27015
   queryhost gmod play.example.com 27015
+  queryhost ark play.example.com 7777
   queryhost redm play.example.com 30120
   queryhost palworld play.example.com 8211
   queryhost dayz play.example.com 2302

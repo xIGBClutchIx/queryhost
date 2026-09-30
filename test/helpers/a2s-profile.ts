@@ -17,7 +17,9 @@ type A2sFixtureGame =
   | "project-zomboid"
   | "rust"
   | "seven-days-to-die"
-  | "source-engine";
+  | "source-engine"
+  | "soulmask"
+  | "steam-query-port";
 
 const PUBLIC_ADDRESS: DnsAddressRecord = Object.freeze({
   address: "93.184.216.34",

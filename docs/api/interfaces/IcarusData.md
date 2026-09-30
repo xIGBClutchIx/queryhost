@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / IcarusData
 
-# Interface: GarrysModData
+# Interface: IcarusData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Icarus data collected from its Steam A2S query port.
 
 ## Extends
 

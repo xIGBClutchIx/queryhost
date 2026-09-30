@@ -10,7 +10,7 @@ Left 4 Dead data collected from its game-port A2S endpoint.
 
 ## Extends
 
-- [`SourceEngineData`](SourceEngineData.md)
+- [`SteamA2sData`](SteamA2sData.md)
 
 ## Properties
 
@@ -22,7 +22,7 @@ Present only for modern Source-style Info responses.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`appId`](SourceEngineData.md#appid)
+[`SteamA2sData`](SteamA2sData.md).[`appId`](SteamA2sData.md#appid)
 
 ***
 
@@ -32,7 +32,7 @@ Present only for modern Source-style Info responses.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`bots`](SourceEngineData.md#bots)
+[`SteamA2sData`](SteamA2sData.md).[`bots`](SteamA2sData.md#bots)
 
 ***
 
@@ -42,7 +42,7 @@ Present only for modern Source-style Info responses.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`environment`](SourceEngineData.md#environment)
+[`SteamA2sData`](SteamA2sData.md).[`environment`](SteamA2sData.md#environment)
 
 ***
 
@@ -50,23 +50,23 @@ Present only for modern Source-style Info responses.
 
 > `readonly` **folder**: `string`
 
-Game content directory, such as `tf` or `garrysmod`, which also identifies server mods.
+Game content directory, such as `tf` or `garrysmod`, which also identifies Source mods.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`folder`](SourceEngineData.md#folder)
+[`SteamA2sData`](SteamA2sData.md).[`folder`](SteamA2sData.md#folder)
 
 ***
 
 ### players?
 
-> `readonly` `optional` **players?**: readonly [`SourceEnginePlayer`](SourceEnginePlayer.md)[]
+> `readonly` `optional` **players?**: readonly [`SteamA2sPlayer`](SteamA2sPlayer.md)[]
 
 Omitted when Player is skipped or unavailable; empty means the server confirmed no players.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`players`](SourceEngineData.md#players)
+[`SteamA2sData`](SteamA2sData.md).[`players`](SteamA2sData.md#players)
 
 ***
 
@@ -76,7 +76,7 @@ Omitted when Player is skipped or unavailable; empty means the server confirmed 
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`serverType`](SourceEngineData.md#servertype)
+[`SteamA2sData`](SteamA2sData.md).[`serverType`](SteamA2sData.md#servertype)
 
 ***
 
@@ -88,7 +88,7 @@ SourceTV relay advertised by the server; never followed as a query destination.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`sourceTv`](SourceEngineData.md#sourcetv)
+[`SteamA2sData`](SteamA2sData.md).[`sourceTv`](SteamA2sData.md#sourcetv)
 
 ***
 
@@ -96,11 +96,11 @@ SourceTV relay advertised by the server; never followed as a query destination.
 
 > `readonly` `optional` **tags?**: readonly `string`[]
 
-Server-advertised `sv_tags`, when present.
+Comma-delimited A2S Info keywords split in server order, when present.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`tags`](SourceEngineData.md#tags)
+[`SteamA2sData`](SteamA2sData.md).[`tags`](SteamA2sData.md#tags)
 
 ***
 
@@ -110,4 +110,4 @@ Server-advertised `sv_tags`, when present.
 
 #### Inherited from
 
-[`SourceEngineData`](SourceEngineData.md).[`vac`](SourceEngineData.md#vac)
+[`SteamA2sData`](SteamA2sData.md).[`vac`](SteamA2sData.md#vac)

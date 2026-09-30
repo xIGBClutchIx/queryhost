@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / AbioticFactorData
 
-# Interface: GarrysModData
+# Interface: AbioticFactorData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Abiotic Factor data collected from its Steam A2S query port.
 
 ## Extends
 

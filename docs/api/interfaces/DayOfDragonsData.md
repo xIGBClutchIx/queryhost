@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / DayOfDragonsData
 
-# Interface: GarrysModData
+# Interface: DayOfDragonsData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Day of Dragons data collected from its Steam A2S query port.
 
 ## Extends
 

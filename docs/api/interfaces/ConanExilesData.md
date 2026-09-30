@@ -2,11 +2,11 @@
 
 ***
 
-[queryhost](../README.md) / GarrysModData
+[queryhost](../README.md) / ConanExilesData
 
-# Interface: GarrysModData
+# Interface: ConanExilesData
 
-Garry's Mod data collected from its game-port A2S endpoint.
+Conan Exiles data collected from its Steam A2S query port.
 
 ## Extends
 
