@@ -111,6 +111,7 @@ export type {
   SteamA2sPlayer,
   SourceTvEndpoint,
   TeamFortress2Data,
+  TeamFortress2GameMode,
   VintageStoryData,
   ValheimData,
   ValheimPlayer,

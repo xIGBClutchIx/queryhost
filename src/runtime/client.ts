@@ -67,6 +67,7 @@ import { queryArma3Profile } from "../profiles/arma-3.js";
 import { queryGarrysModProfile } from "../profiles/garrys-mod.js";
 import { queryInsurgencySandstormProfile } from "../profiles/insurgency-sandstorm.js";
 import { queryKillingFloor2Profile } from "../profiles/killing-floor-2.js";
+import { queryTeamFortress2Profile } from "../profiles/team-fortress-2.js";
 import { queryUnturnedProfile } from "../profiles/unturned.js";
 import { queryUnrealSteamProfile } from "../profiles/unreal.js";
 import { queryConanExilesProfile } from "../profiles/conan-exiles.js";
@@ -304,9 +305,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "team-fortress-2": createProfileRunner(
     "team-fortress-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["team-fortress-2"].name }),
-    ),
+    a2sProfileRunner(queryTeamFortress2Profile),
   ),
   "left-4-dead": createProfileRunner(
     "left-4-dead",

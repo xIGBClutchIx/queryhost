@@ -280,8 +280,23 @@ export interface CounterStrike2Data extends SteamA2sData {}
 /** Counter-Strike: Source data collected from its game-port A2S endpoint. */
 export interface CounterStrikeSourceData extends SteamA2sData {}
 
-/** Team Fortress 2 data collected from its game-port A2S endpoint. */
-export interface TeamFortress2Data extends SteamA2sData {}
+/** Team Fortress 2 game mode the server tags automatically from its `tf_gamemode_*` cvars. */
+export type TeamFortress2GameMode =
+  "arena" | "cp" | "ctf" | "sd" | "mvm" | "payload" | "rd" | "pd" | "tc" | "passtime" | "misc";
+
+/**
+ * Team Fortress 2 data collected from its game-port A2S endpoint. The game adds a tag whenever
+ * one of these cvars differs from its default, so with tags present an absent tag means default.
+ */
+export interface TeamFortress2Data extends SteamA2sData {
+  /** Game modes of the current map; `cp` also covers King of the Hill and attack/defend maps. */
+  readonly gameModes?: readonly TeamFortress2GameMode[];
+  readonly friendlyFire?: boolean;
+  /** `false` when `tf_weapon_criticals` disables random critical hits. */
+  readonly randomCrits?: boolean;
+  readonly highlander?: boolean;
+  readonly medieval?: boolean;
+}
 
 /** Left 4 Dead data collected from its game-port A2S endpoint. */
 export interface Left4DeadData extends SteamA2sData {}

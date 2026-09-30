@@ -43,6 +43,15 @@ describe.each(SOURCE_ENGINE_GAMES)("%s game profile", (game, alias, gameName): v
         gamePort: 27_015,
         tags: ["alltalk", "payload", "increased_maxplayers"],
         sourceTv: { port: 27_020, name: "QueryHost TV" },
+        ...(game === "team-fortress-2"
+          ? {
+              gameModes: ["payload"],
+              friendlyFire: false,
+              randomCrits: true,
+              highlander: false,
+              medieval: false,
+            }
+          : {}),
         players: [
           { index: 0, name: "Alice", score: 12, durationSeconds: 640.5 },
           { index: 1, name: "Bob", score: 0, durationSeconds: 31.25 },
