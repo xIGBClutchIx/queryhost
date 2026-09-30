@@ -33,12 +33,14 @@ describe.each(SOURCE_ENGINE_GAMES)("%s game profile", (game, alias, gameName): v
         queryRttMs: 8,
       },
       data: {
+        game: "Team Fortress",
         folder: "tf",
         bots: 1,
         serverType: "dedicated",
         environment: "linux",
         vac: true,
         appId: 440,
+        gamePort: 27_015,
         tags: ["alltalk", "payload", "increased_maxplayers"],
         sourceTv: { port: 27_020, name: "QueryHost TV" },
         players: [

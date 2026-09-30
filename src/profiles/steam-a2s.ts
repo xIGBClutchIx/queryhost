@@ -2,7 +2,7 @@
 
 import type { GameRuleMap, SteamA2sData, SteamA2sPlayer } from "../contracts/games.js";
 import type { QuerySource, QueryWarning, ServerInfo } from "../contracts/shared.js";
-import type { A2sInfo } from "../protocols/a2s/info.js";
+import type { A2sInfo, A2sSourceInfo } from "../protocols/a2s/info.js";
 import type { A2sPlayer } from "../protocols/a2s/player.js";
 import {
   a2sProfileWarnings,
@@ -35,6 +35,13 @@ function tags(keywords: string): readonly string[] {
   );
 }
 
+/** Steam game IDs keep the App ID in their low 24 bits. */
+const GAME_ID_APP_MASK = 0xff_ffffn;
+
+function appId(info: A2sSourceInfo): number {
+  return info.gameId === undefined ? info.appId : Number(info.gameId & GAME_ID_APP_MASK);
+}
+
 function players(values: readonly A2sPlayer[]): readonly SteamA2sPlayer[] {
   return Object.freeze(
     values.map((player) =>
@@ -53,12 +60,17 @@ function steamA2sData(
   optionalPlayers: readonly A2sPlayer[] | undefined,
 ): SteamA2sData {
   return Object.freeze({
+    game: info.game,
     folder: info.folder,
     bots: info.bots,
     serverType: info.serverType,
     environment: info.environment,
     vac: info.vac,
-    ...(info.format === "source" ? { appId: info.appId } : {}),
+    ...(info.format === "source" ? { appId: appId(info) } : {}),
+    ...(info.format === "source" && info.port !== undefined ? { gamePort: info.port } : {}),
+    ...(info.format === "source" && info.steamId !== undefined
+      ? { serverSteamId: info.steamId.toString() }
+      : {}),
     ...(info.format === "source" && info.keywords !== undefined
       ? { tags: tags(info.keywords) }
       : {}),

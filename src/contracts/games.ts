@@ -223,14 +223,23 @@ export interface SourceTvEndpoint {
 
 /** Facts shared by games whose direct Steam A2S endpoint needs no game-specific interpretation. */
 export interface SteamA2sData {
+  /** Game description advertised by the server, such as a mode, mission, or product name. */
+  readonly game: string;
   /** Game content directory, such as `tf` or `garrysmod`, which also identifies Source mods. */
   readonly folder: string;
   readonly bots: number;
   readonly serverType: "dedicated" | "listen" | "proxy";
   readonly environment: "linux" | "macos" | "windows";
   readonly vac: boolean;
-  /** Present only for modern Source-style Info responses. */
+  /**
+   * Steam App ID for modern Source-style Info responses. It comes from the 64-bit game ID when
+   * the server sends one, because the base Info field is 16 bits and truncates larger IDs.
+   */
   readonly appId?: number;
+  /** Game port the server advertises, which may differ from the queried Steam port. */
+  readonly gamePort?: number;
+  /** Server's 64-bit Steam ID as decimal text, when advertised. */
+  readonly serverSteamId?: string;
   /** Comma-delimited A2S Info keywords split in server order, when present. */
   readonly tags?: readonly string[];
   /** SourceTV relay advertised by the server; never followed as a query destination. */

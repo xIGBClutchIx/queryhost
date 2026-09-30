@@ -19,13 +19,16 @@ const EXPECTED_SERVER = {
 };
 
 const EXPECTED_INFO_DATA = {
+  game: "ARK: Survival Evolved",
   folder: "ark_survival_evolved",
   bots: 0,
   serverType: "dedicated",
   environment: "windows",
   vac: false,
-  // The Info App ID field is 16 bits wide, so ARK's 346110 arrives truncated.
-  appId: 18_430,
+  // The 16-bit Info App ID field carries 18430; the 64-bit game ID restores ARK's 346110.
+  appId: 346_110,
+  gamePort: 7777,
+  serverSteamId: "90000000000000001",
   tags: ["pve", "crossplay"],
 };
 
