@@ -36,7 +36,8 @@ if (
 }
 if (
   GAME_REGISTRY["sons-of-the-forest"].defaultQueryPort !== 27_016 ||
-  canonicalGameId("ark") !== "ark-survival-evolved"
+  canonicalGameId("ark") !== "ark-survival-evolved" ||
+  GAME_REGISTRY["arma-3"].defaultQueryPort !== 2_303
 ) {
   throw new Error("The packed JavaScript entry point omitted Steam query-port metadata.");
 }

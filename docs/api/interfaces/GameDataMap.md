@@ -30,9 +30,21 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### american-truck-simulator
+
+> `readonly` **american-truck-simulator**: [`AmericanTruckSimulatorData`](AmericanTruckSimulatorData.md)
+
+***
+
 ### ark-survival-evolved
 
 > `readonly` **ark-survival-evolved**: [`ArkSurvivalEvolvedData`](ArkSurvivalEvolvedData.md)
+
+***
+
+### arma-3
+
+> `readonly` **arma-3**: [`Arma3Data`](Arma3Data.md)
 
 ***
 
@@ -72,6 +84,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### enshrouded
+
+> `readonly` **enshrouded**: [`EnshroudedData`](EnshroudedData.md)
+
+***
+
+### euro-truck-simulator-2
+
+> `readonly` **euro-truck-simulator-2**: [`EuroTruckSimulator2Data`](EuroTruckSimulator2Data.md)
+
+***
+
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)
@@ -87,6 +111,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### icarus
 
 > `readonly` **icarus**: [`IcarusData`](IcarusData.md)
+
+***
+
+### insurgency-sandstorm
+
+> `readonly` **insurgency-sandstorm**: [`InsurgencySandstormData`](InsurgencySandstormData.md)
 
 ***
 
@@ -165,6 +195,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### team-fortress-2
 
 > `readonly` **team-fortress-2**: [`TeamFortress2Data`](TeamFortress2Data.md)
+
+***
+
+### the-forest
+
+> `readonly` **the-forest**: [`TheForestData`](TheForestData.md)
+
+***
+
+### unturned
+
+> `readonly` **unturned**: [`UnturnedData`](UnturnedData.md)
 
 ***
 

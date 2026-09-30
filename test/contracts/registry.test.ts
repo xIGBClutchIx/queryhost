@@ -54,6 +54,13 @@ describe("game registry", () => {
       "sons-of-the-forest",
       "icarus",
       "abiotic-factor",
+      "arma-3",
+      "american-truck-simulator",
+      "euro-truck-simulator-2",
+      "the-forest",
+      "unturned",
+      "enshrouded",
+      "insurgency-sandstorm",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -228,6 +235,36 @@ describe("game registry", () => {
     });
   });
 
+  it.each([
+    ["arma-3", "Arma 3", 2302, 2303, undefined, "unsupported"],
+    [
+      "american-truck-simulator",
+      "American Truck Simulator",
+      27_015,
+      27_016,
+      "fixed",
+      "conditional",
+    ],
+    ["euro-truck-simulator-2", "Euro Truck Simulator 2", 27_015, 27_016, "fixed", "conditional"],
+    ["the-forest", "The Forest", 27_015, 27_016, "fixed", "conditional"],
+    ["unturned", "Unturned", 27_015, undefined, undefined, "conditional"],
+    ["enshrouded", "Enshrouded", 15_637, undefined, undefined, "conditional"],
+    ["insurgency-sandstorm", "Insurgency: Sandstorm", 27_102, 27_131, "fixed", "conditional"],
+  ] as const)(
+    "describes %s's Steam query-port layout",
+    (game, name, port, queryPort, strategy, rules) => {
+      const definition = getGameDefinition(game);
+
+      expect(definition).toMatchObject({
+        name,
+        defaultPort: port,
+        capabilities: { summary: "supported", players: "conditional", rules, mods: "unsupported" },
+      });
+      expect(definition.defaultQueryPort).toBe(queryPort);
+      expect(definition.queryPortStrategy).toBe(strategy);
+    },
+  );
+
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
     expect(isGameId("redm")).toBe(true);
@@ -284,6 +321,15 @@ describe("game registry", () => {
       sotf: "sons-of-the-forest",
       sonsoftheforest: "sons-of-the-forest",
       abioticfactor: "abiotic-factor",
+      arma3: "arma-3",
+      a3: "arma-3",
+      ats: "american-truck-simulator",
+      americantrucksimulator: "american-truck-simulator",
+      ets2: "euro-truck-simulator-2",
+      eurotrucksimulator2: "euro-truck-simulator-2",
+      theforest: "the-forest",
+      sandstorm: "insurgency-sandstorm",
+      insurgencysandstorm: "insurgency-sandstorm",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);

@@ -19,6 +19,7 @@ The current source tree contains the package foundation and supported profiles:
 - the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, DayZ, and Steam-backend Valheim profiles over bounded A2S sources
 - Counter-Strike 2, Counter-Strike: Source, Team Fortress 2, Left 4 Dead, Left 4 Dead 2, and Garry's Mod profiles over their game-port A2S endpoint
 - ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor profiles over their fixed Steam query port
+- Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm profiles over their Steam A2S endpoint
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -76,6 +77,8 @@ Counter-Strike 2, Counter-Strike: Source, Team Fortress 2, Left 4 Dead, Left 4 D
 
 ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor answer A2S on a separately configured Steam query port. Their data has the same shape as the Source-engine games. Conan Exiles never answers A2S Player, so its Player source is reported as `unsupported` without network work. Soulmask advertises a placeholder `1.0.0.0` Info version; when Rules includes its `NO_s` build, `server.version` uses that instead.
 
+Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm use the same Steam A2S data shape. Arma 3's Rules are binary server-browser pages rather than strings, so its Rules source is reported as `unsupported` for now; Info and Player still work.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -86,42 +89,49 @@ Vintage Story uses its normal TCP game port, 42420 by default. Current stock ser
 
 Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
 
-`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Don't Starve Together keeps its independently configured query port at 27016 even when `port` changes. The same fixed rule applies to Steam query port 27015 for ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, and Abiotic Factor (game port 7777), Soulmask (8777), and Icarus (17777), and to 27016 for Sons of the Forest (8766). Project Zomboid uses UDP 16261, 7 Days to Die uses UDP 26900, and the Source-engine games use UDP 27015 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
+`port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Don't Starve Together keeps its independently configured query port at 27016 even when `port` changes. The same fixed rule applies to Steam query port 27015 for ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, and Abiotic Factor (game port 7777), Soulmask (8777), and Icarus (17777), and to 27016 for Sons of the Forest (8766). American Truck Simulator, Euro Truck Simulator 2, and The Forest default to game port 27015 with fixed query port 27016, and Insurgency: Sandstorm to 27102 with fixed query port 27131. Arma 3 derives its query port as game port `+1` (2302 and 2303 by default). Unturned (27015) and Enshrouded (15637) answer A2S on the port players connect to, so a custom `port` is also the query destination. Project Zomboid uses UDP 16261, 7 Days to Die uses UDP 26900, and the Source-engine games use UDP 27015 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
 
 Minecraft Java looks up `_minecraft._tcp.<host>` only when `host` is a DNS name and `port` is omitted. Valid SRV targets are tried by ascending priority and RFC-weighted order; no record falls back to the original host on port 25565. Supplying `port` or an IP literal bypasses SRV. `queryPort` changes only the optional UDP Query destination and does not replace the SLP game port.
 
 Game inputs accept documented aliases while results always use the canonical ID. `minecraft` and `mc` resolve to Java Edition; Bedrock remains explicit.
 
-| Canonical ID            | Accepted aliases                                             |
-| ----------------------- | ------------------------------------------------------------ |
-| `a2s`                   | —                                                            |
-| `rust`                  | —                                                            |
-| `palworld`              | —                                                            |
-| `project-zomboid`       | `projectzomboid`, `zomboid`, `pz`                            |
-| `7-days-to-die`         | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
-| `dayz`                  | —                                                            |
-| `valheim`               | —                                                            |
-| `minecraft-java`        | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
-| `minecraft-bedrock`     | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
-| `fivem`                 | `five-m`                                                     |
-| `redm`                  | `red-m`, `rdr3`                                              |
-| `satisfactory`          | —                                                            |
-| `vintage-story`         | `vintagestory`, `vs`                                         |
-| `dont-starve-together`  | `dst`, `dontstarvetogether`                                  |
-| `counter-strike-2`      | `cs2`, `counterstrike2`                                      |
-| `counter-strike-source` | `css`, `cs-source`, `counterstrikesource`                    |
-| `team-fortress-2`       | `tf2`, `teamfortress2`                                       |
-| `left-4-dead`           | `l4d`, `left4dead`                                           |
-| `left-4-dead-2`         | `l4d2`, `left4dead2`                                         |
-| `garrys-mod`            | `gmod`, `garrysmod`                                          |
-| `ark-survival-evolved`  | `ark`, `arkse`, `ase`                                        |
-| `conan-exiles`          | `conan`, `conanexiles`                                       |
-| `killing-floor-2`       | `kf2`, `killingfloor2`                                       |
-| `day-of-dragons`        | `dayofdragons`                                               |
-| `soulmask`              | —                                                            |
-| `sons-of-the-forest`    | `sotf`, `sonsoftheforest`                                    |
-| `icarus`                | —                                                            |
-| `abiotic-factor`        | `abioticfactor`                                              |
+| Canonical ID               | Accepted aliases                                             |
+| -------------------------- | ------------------------------------------------------------ |
+| `a2s`                      | —                                                            |
+| `rust`                     | —                                                            |
+| `palworld`                 | —                                                            |
+| `project-zomboid`          | `projectzomboid`, `zomboid`, `pz`                            |
+| `7-days-to-die`            | `seven-days-to-die`, `7days-to-die`, `7d2d`, `7dtd`          |
+| `dayz`                     | —                                                            |
+| `valheim`                  | —                                                            |
+| `minecraft-java`           | `minecraft`, `mc`, `java`, `minecraft-java-edition`          |
+| `minecraft-bedrock`        | `bedrock`, `mcbe`, `mc-bedrock`, `minecraft-bedrock-edition` |
+| `fivem`                    | `five-m`                                                     |
+| `redm`                     | `red-m`, `rdr3`                                              |
+| `satisfactory`             | —                                                            |
+| `vintage-story`            | `vintagestory`, `vs`                                         |
+| `dont-starve-together`     | `dst`, `dontstarvetogether`                                  |
+| `counter-strike-2`         | `cs2`, `counterstrike2`                                      |
+| `counter-strike-source`    | `css`, `cs-source`, `counterstrikesource`                    |
+| `team-fortress-2`          | `tf2`, `teamfortress2`                                       |
+| `left-4-dead`              | `l4d`, `left4dead`                                           |
+| `left-4-dead-2`            | `l4d2`, `left4dead2`                                         |
+| `garrys-mod`               | `gmod`, `garrysmod`                                          |
+| `ark-survival-evolved`     | `ark`, `arkse`, `ase`                                        |
+| `conan-exiles`             | `conan`, `conanexiles`                                       |
+| `killing-floor-2`          | `kf2`, `killingfloor2`                                       |
+| `day-of-dragons`           | `dayofdragons`                                               |
+| `soulmask`                 | —                                                            |
+| `sons-of-the-forest`       | `sotf`, `sonsoftheforest`                                    |
+| `icarus`                   | —                                                            |
+| `abiotic-factor`           | `abioticfactor`                                              |
+| `arma-3`                   | `arma3`, `a3`                                                |
+| `american-truck-simulator` | `ats`, `americantrucksimulator`                              |
+| `euro-truck-simulator-2`   | `ets2`, `eurotrucksimulator2`                                |
+| `the-forest`               | `theforest`                                                  |
+| `unturned`                 | —                                                            |
+| `enshrouded`               | —                                                            |
+| `insurgency-sandstorm`     | `sandstorm`, `insurgencysandstorm`                           |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
 
@@ -155,6 +165,8 @@ queryhost tf2 play.example.com 27015
 queryhost gmod play.example.com 27015
 queryhost ark play.example.com 7777
 queryhost sotf play.example.com 8766
+queryhost arma3 play.example.com 2302
+queryhost ets2 play.example.com 27015
 queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120

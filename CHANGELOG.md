@@ -8,6 +8,7 @@ QueryHost records user-visible package changes in this file.
 
 - Counter-Strike 2, Counter-Strike: Source, Team Fortress 2, Left 4 Dead, Left 4 Dead 2, and Garry's Mod queries through a shared Source-engine A2S profile on the game port, with typed server, SourceTV, tag, and Player data plus unchanged Rules output.
 - ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor queries through their fixed Steam query ports, with the same typed A2S data, Soulmask's real build version, and an explicit unsupported Player source for Conan Exiles.
+- Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm queries through Steam A2S, with each game's documented query-port rule and an explicit unsupported Rules source for Arma 3.
 
 ## [1.2.1] - 2026-09-15
 

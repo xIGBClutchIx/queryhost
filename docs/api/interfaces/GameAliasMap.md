@@ -28,9 +28,21 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### a3
+
+> `readonly` **a3**: `"arma-3"`
+
+***
+
 ### abioticfactor
 
 > `readonly` **abioticfactor**: `"abiotic-factor"`
+
+***
+
+### americantrucksimulator
+
+> `readonly` **americantrucksimulator**: `"american-truck-simulator"`
 
 ***
 
@@ -46,9 +58,21 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### arma3
+
+> `readonly` **arma3**: `"arma-3"`
+
+***
+
 ### ase
 
 > `readonly` **ase**: `"ark-survival-evolved"`
+
+***
+
+### ats
+
+> `readonly` **ats**: `"american-truck-simulator"`
 
 ***
 
@@ -118,6 +142,18 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### ets2
+
+> `readonly` **ets2**: `"euro-truck-simulator-2"`
+
+***
+
+### eurotrucksimulator2
+
+> `readonly` **eurotrucksimulator2**: `"euro-truck-simulator-2"`
+
+***
+
 ### five-m
 
 > `readonly` **five-m**: `"fivem"`
@@ -133,6 +169,12 @@ Alternate input spellings mapped to one stable game identity.
 ### gmod
 
 > `readonly` **gmod**: `"garrys-mod"`
+
+***
+
+### insurgencysandstorm
+
+> `readonly` **insurgencysandstorm**: `"insurgency-sandstorm"`
 
 ***
 
@@ -238,6 +280,12 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### sandstorm
+
+> `readonly` **sandstorm**: `"insurgency-sandstorm"`
+
+***
+
 ### seven-days-to-die
 
 > `readonly` **seven-days-to-die**: `"7-days-to-die"`
@@ -265,6 +313,12 @@ Alternate input spellings mapped to one stable game identity.
 ### tf2
 
 > `readonly` **tf2**: `"team-fortress-2"`
+
+***
+
+### theforest
+
+> `readonly` **theforest**: `"the-forest"`
 
 ***
 

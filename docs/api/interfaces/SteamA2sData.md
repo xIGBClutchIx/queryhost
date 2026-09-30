@@ -10,6 +10,13 @@ Facts shared by games whose direct Steam A2S endpoint needs no game-specific int
 
 ## Extended by
 
+- [`Arma3Data`](Arma3Data.md)
+- [`AmericanTruckSimulatorData`](AmericanTruckSimulatorData.md)
+- [`EuroTruckSimulator2Data`](EuroTruckSimulator2Data.md)
+- [`TheForestData`](TheForestData.md)
+- [`UnturnedData`](UnturnedData.md)
+- [`EnshroudedData`](EnshroudedData.md)
+- [`InsurgencySandstormData`](InsurgencySandstormData.md)
 - [`ArkSurvivalEvolvedData`](ArkSurvivalEvolvedData.md)
 - [`ConanExilesData`](ConanExilesData.md)
 - [`KillingFloor2Data`](KillingFloor2Data.md)
