@@ -497,7 +497,18 @@ export interface UnturnedData extends SteamA2sData {
 export interface EnshroudedData extends SteamA2sData {}
 
 /** Insurgency: Sandstorm data collected from its Steam A2S query port. */
-export interface InsurgencySandstormData extends SteamA2sData {}
+export interface InsurgencySandstormData extends SteamA2sData {
+  /** Game mode name from `GameMode_s`, such as `Push` or `Checkpoint`. */
+  readonly gameMode?: string;
+  /** `true` for cooperative play against bots, `false` for versus. */
+  readonly coop?: boolean;
+  readonly lighting?: "day" | "night";
+  readonly ranked?: boolean;
+  /** Active mutator names; empty means the server confirmed none. */
+  readonly mutators?: readonly string[];
+  /** Loaded mod.io mod IDs; empty means the server confirmed none. */
+  readonly modIds?: readonly string[];
+}
 
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {

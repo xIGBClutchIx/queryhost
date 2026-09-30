@@ -11,6 +11,7 @@ QueryHost records user-visible package changes in this file.
 - Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm queries through Steam A2S, with each game's documented query-port rule, plus Arma 3's decoded difficulty, DLC, Creator DLC, mods, and signatures from its binary Rules pages and its typed server-browser keyword fields.
 - Garry's Mod gamemode, gamemode Workshop ID, category, location, and build from its space-separated keywords.
 - ARK: Survival Evolved session Rules, Workshop mods, and its real build from the server name suffix.
+- Insurgency: Sandstorm game mode, coop, lighting, ranked status, mutators, and mod IDs from its Rules.
 - Killing Floor 2 game mode, difficulty, wave progress, and match state from its Rules.
 - Unturned server-browser flags, full description, Workshop IDs, links, changed gameplay config, and RocketMod plugins from its keywords and chunked Rules.
 - Game description, advertised game port, server Steam ID, and the full App ID from the 64-bit game ID in the data of every game above.

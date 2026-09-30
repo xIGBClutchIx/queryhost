@@ -268,7 +268,7 @@ describe("game registry", () => {
       27_131,
       "fixed",
       "conditional",
-      "unsupported",
+      "conditional",
     ],
   ] as const)(
     "describes %s's Steam query-port layout",

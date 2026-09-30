@@ -550,7 +550,7 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 27_102,
     defaultQueryPort: 27_131,
     queryPortStrategy: "fixed",
-    capabilities: STEAM_A2S_CAPABILITIES,
+    capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, mods: "conditional" }),
   },
 };
 
