@@ -79,13 +79,13 @@ try {
   const packOutput = run(npmCommand, ["pack", "--json", "--pack-destination", temporary]);
   const packed = packResult(packOutput);
   assert(packed !== undefined, "npm pack did not report an artifact.");
-  assert(packed.size <= 250_000, `Packed package is too large: ${String(packed.size)} bytes.`);
+  assert(packed.size <= 512_000, `Packed package is too large: ${String(packed.size)} bytes.`);
   assert(
     packed.unpackedSize <= 1_500_000,
     `Unpacked package is too large: ${String(packed.unpackedSize)} bytes.`,
   );
   assert(
-    packed.entryCount <= 300,
+    packed.entryCount <= 400,
     `Packed package has too many files: ${String(packed.entryCount)}.`,
   );
 

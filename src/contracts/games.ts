@@ -205,6 +205,58 @@ export interface ValheimData {
   readonly players?: readonly ValheimPlayer[];
 }
 
+/** One player reported by a Valve Source-engine server's optional A2S Player source. */
+export interface SourceEnginePlayer {
+  readonly index: number;
+  /** Counter-Strike 2 servers commonly leave names empty unless a server plugin restores them. */
+  readonly name: string;
+  readonly score: number;
+  readonly durationSeconds: number;
+}
+
+/** SourceTV relay advertised by a Source-engine server. */
+export interface SourceTvEndpoint {
+  /** Port advertised by the server; it may differ from the queried destination. */
+  readonly port: number;
+  readonly name: string;
+}
+
+/** Facts shared by Valve Source-engine multiplayer games through their game-port A2S endpoint. */
+export interface SourceEngineData {
+  /** Game content directory, such as `tf` or `garrysmod`, which also identifies server mods. */
+  readonly folder: string;
+  readonly bots: number;
+  readonly serverType: "dedicated" | "listen" | "proxy";
+  readonly environment: "linux" | "macos" | "windows";
+  readonly vac: boolean;
+  /** Present only for modern Source-style Info responses. */
+  readonly appId?: number;
+  /** Server-advertised `sv_tags`, when present. */
+  readonly tags?: readonly string[];
+  /** SourceTV relay advertised by the server; never followed as a query destination. */
+  readonly sourceTv?: SourceTvEndpoint;
+  /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */
+  readonly players?: readonly SourceEnginePlayer[];
+}
+
+/** Counter-Strike 2 data collected from its game-port A2S endpoint. */
+export interface CounterStrike2Data extends SourceEngineData {}
+
+/** Counter-Strike: Source data collected from its game-port A2S endpoint. */
+export interface CounterStrikeSourceData extends SourceEngineData {}
+
+/** Team Fortress 2 data collected from its game-port A2S endpoint. */
+export interface TeamFortress2Data extends SourceEngineData {}
+
+/** Left 4 Dead data collected from its game-port A2S endpoint. */
+export interface Left4DeadData extends SourceEngineData {}
+
+/** Left 4 Dead 2 data collected from its game-port A2S endpoint. */
+export interface Left4Dead2Data extends SourceEngineData {}
+
+/** Garry's Mod data collected from its game-port A2S endpoint. */
+export interface GarrysModData extends SourceEngineData {}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */

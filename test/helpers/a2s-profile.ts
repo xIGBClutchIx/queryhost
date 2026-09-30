@@ -16,7 +16,8 @@ type A2sFixtureGame =
   | "palworld"
   | "project-zomboid"
   | "rust"
-  | "seven-days-to-die";
+  | "seven-days-to-die"
+  | "source-engine";
 
 const PUBLIC_ADDRESS: DnsAddressRecord = Object.freeze({
   address: "93.184.216.34",

@@ -64,6 +64,12 @@ describe("query command arguments", (): void => {
     ["red-m", "redm"],
     ["rdr3", "redm"],
     ["vs", "vintage-story"],
+    ["cs2", "counter-strike-2"],
+    ["css", "counter-strike-source"],
+    ["tf2", "team-fortress-2"],
+    ["l4d", "left-4-dead"],
+    ["l4d2", "left-4-dead-2"],
+    ["gmod", "garrys-mod"],
   ] as const)("normalizes the %s alias", (alias, game): void => {
     expect(parseQueryArguments([alias, "play.example.com"])).toEqual({
       kind: "query",
