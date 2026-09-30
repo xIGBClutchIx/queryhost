@@ -1,6 +1,13 @@
 import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
 
 import {
+  type Arma3Data,
+  type AmericanTruckSimulatorData,
+  type EuroTruckSimulator2Data,
+  type TheForestData,
+  type UnturnedData,
+  type EnshroudedData,
+  type InsurgencySandstormData,
   type ArkSurvivalEvolvedData,
   type ConanExilesData,
   type KillingFloor2Data,
@@ -87,6 +94,13 @@ expectType<
     "sons-of-the-forest",
     "icarus",
     "abiotic-factor",
+    "arma-3",
+    "american-truck-simulator",
+    "euro-truck-simulator-2",
+    "the-forest",
+    "unturned",
+    "enshrouded",
+    "insurgency-sandstorm",
   ]
 >(GAME_IDS);
 
@@ -173,6 +187,23 @@ expectType<Promise<QueryResult<"sons-of-the-forest">>>(
 expectType<Promise<QueryResult<"icarus">>>(query({ game: "icarus", host: "play.example.com" }));
 expectType<Promise<QueryResult<"abiotic-factor">>>(
   query({ game: "abioticfactor", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"arma-3">>>(query({ game: "arma3", host: "play.example.com" }));
+expectType<Promise<QueryResult<"american-truck-simulator">>>(
+  query({ game: "ats", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"euro-truck-simulator-2">>>(
+  query({ game: "ets2", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"the-forest">>>(
+  query({ game: "theforest", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"unturned">>>(query({ game: "unturned", host: "play.example.com" }));
+expectType<Promise<QueryResult<"enshrouded">>>(
+  query({ game: "enshrouded", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"insurgency-sandstorm">>>(
+  query({ game: "sandstorm", host: "play.example.com" }),
 );
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
@@ -296,6 +327,27 @@ if (dynamicResult.ok) {
     case "abiotic-factor":
       expectType<AbioticFactorData>(dynamicResult.data);
       break;
+    case "arma-3":
+      expectType<Arma3Data>(dynamicResult.data);
+      break;
+    case "american-truck-simulator":
+      expectType<AmericanTruckSimulatorData>(dynamicResult.data);
+      break;
+    case "euro-truck-simulator-2":
+      expectType<EuroTruckSimulator2Data>(dynamicResult.data);
+      break;
+    case "the-forest":
+      expectType<TheForestData>(dynamicResult.data);
+      break;
+    case "unturned":
+      expectType<UnturnedData>(dynamicResult.data);
+      break;
+    case "enshrouded":
+      expectType<EnshroudedData>(dynamicResult.data);
+      break;
+    case "insurgency-sandstorm":
+      expectType<InsurgencySandstormData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -388,6 +440,15 @@ expectAssignable<SteamA2sData>(dataMap["icarus"]);
 expectAssignable<SteamA2sData>(dataMap["abiotic-factor"]);
 expectType<readonly SteamA2sPlayer[] | undefined>(dataMap["conan-exiles"].players);
 expectType<Readonly<Record<string, string>>>(rawDataMap.soulmask.rules);
+expectAssignable<SteamA2sData>(dataMap["arma-3"]);
+expectAssignable<SteamA2sData>(dataMap["american-truck-simulator"]);
+expectAssignable<SteamA2sData>(dataMap["euro-truck-simulator-2"]);
+expectAssignable<SteamA2sData>(dataMap["the-forest"]);
+expectAssignable<SteamA2sData>(dataMap["unturned"]);
+expectAssignable<SteamA2sData>(dataMap["enshrouded"]);
+expectAssignable<SteamA2sData>(dataMap["insurgency-sandstorm"]);
+expectType<never>(rawDataMap["arma-3"]);
+expectType<Readonly<Record<string, string>>>(rawDataMap.unturned.rules);
 expectType<number | undefined>(getGameDefinition("sotf").defaultQueryPort);
 
 declare const fivemPlayer: FiveMPlayer;

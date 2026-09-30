@@ -281,6 +281,27 @@ export interface IcarusData extends SteamA2sData {}
 /** Abiotic Factor data collected from its Steam A2S query port. */
 export interface AbioticFactorData extends SteamA2sData {}
 
+/** Arma 3 data collected from its Steam A2S query port. */
+export interface Arma3Data extends SteamA2sData {}
+
+/** American Truck Simulator data collected from its Steam A2S query port. */
+export interface AmericanTruckSimulatorData extends SteamA2sData {}
+
+/** Euro Truck Simulator 2 data collected from its Steam A2S query port. */
+export interface EuroTruckSimulator2Data extends SteamA2sData {}
+
+/** The Forest data collected from its Steam A2S query port. */
+export interface TheForestData extends SteamA2sData {}
+
+/** Unturned data collected from its Steam A2S query port. */
+export interface UnturnedData extends SteamA2sData {}
+
+/** Enshrouded data collected from its Steam A2S query port. */
+export interface EnshroudedData extends SteamA2sData {}
+
+/** Insurgency: Sandstorm data collected from its Steam A2S query port. */
+export interface InsurgencySandstormData extends SteamA2sData {}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */

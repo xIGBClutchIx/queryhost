@@ -16,20 +16,21 @@ QueryHost has one direct runtime dependency: `@foxglove/wasm-bz2` for bounded de
 
 ## Supported-profile acceptance
 
-| Profile                | Required source           | Full-mode optional sources                                                          | Successful named fixtures                                  |
-| ---------------------- | ------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Rust                   | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/rust`                                       |
-| Project Zomboid        | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/project-zomboid`                            |
-| 7 Days to Die          | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/seven-days-to-die`                          |
-| DayZ                   | A2S Info                  | A2S Rules; A2S Player is explicitly unsupported                                     | `test/fixtures/dayz`                                       |
-| Minecraft Java         | Server List Ping          | DNS SRV discovery when applicable, UDP Query in full mode                           | `test/fixtures/minecraft-java`                             |
-| Minecraft Bedrock      | RakNet unconnected ping   | None                                                                                | `test/fixtures/minecraft-bedrock`                          |
-| FiveM                  | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/fivem`                                      |
-| RedM                   | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/redm`                                       |
-| Satisfactory           | Lightweight UDP state     | HTTPS `HealthCheck` in full mode except while loading                               | `test/fixtures/satisfactory`                               |
-| Don't Starve Together  | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/dont-starve-together`                       |
-| Source-engine games    | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/source-engine`                              |
-| Steam query-port games | A2S Info                  | A2S Player (unsupported for Conan Exiles), A2S Rules                                | `test/fixtures/steam-query-port`, `test/fixtures/soulmask` |
+| Profile                 | Required source           | Full-mode optional sources                                                          | Successful named fixtures                                  |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Rust                    | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/rust`                                       |
+| Project Zomboid         | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/project-zomboid`                            |
+| 7 Days to Die           | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/seven-days-to-die`                          |
+| DayZ                    | A2S Info                  | A2S Rules; A2S Player is explicitly unsupported                                     | `test/fixtures/dayz`                                       |
+| Minecraft Java          | Server List Ping          | DNS SRV discovery when applicable, UDP Query in full mode                           | `test/fixtures/minecraft-java`                             |
+| Minecraft Bedrock       | RakNet unconnected ping   | None                                                                                | `test/fixtures/minecraft-bedrock`                          |
+| FiveM                   | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/fivem`                                      |
+| RedM                    | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/redm`                                       |
+| Satisfactory            | Lightweight UDP state     | HTTPS `HealthCheck` in full mode except while loading                               | `test/fixtures/satisfactory`                               |
+| Don't Starve Together   | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/dont-starve-together`                       |
+| Source-engine games     | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/source-engine`                              |
+| Steam query-port games  | A2S Info                  | A2S Player (unsupported for Conan Exiles), A2S Rules                                | `test/fixtures/steam-query-port`, `test/fixtures/soulmask` |
+| Steam port-layout games | A2S Info                  | A2S Player, A2S Rules (unsupported for Arma 3)                                      | `test/fixtures/steam-query-port`                           |
 
 Each advertised profile has typed public data, explicit registry capabilities and ports, deterministic merge tests, source provenance, bounded parser and transport behavior, target-safety coverage, successful source fixtures, and failure coverage for its applicable malformed, timeout, blocked, unsupported, skipped, and partial-result paths. Fixture READMEs identify synthetic or redacted provenance. Repository tests run profiles against fake transports and servers; the separately packed consumers verify the public package without adding a target-safety bypass.
 

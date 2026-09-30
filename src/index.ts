@@ -45,6 +45,13 @@ export type {
 } from "./contracts/shared.js";
 export type {
   A2sData,
+  Arma3Data,
+  AmericanTruckSimulatorData,
+  EuroTruckSimulator2Data,
+  TheForestData,
+  UnturnedData,
+  EnshroudedData,
+  InsurgencySandstormData,
   ArkSurvivalEvolvedData,
   ConanExilesData,
   KillingFloor2Data,

@@ -75,6 +75,10 @@ describe("query command arguments", (): void => {
     ["kf2", "killing-floor-2"],
     ["sotf", "sons-of-the-forest"],
     ["abioticfactor", "abiotic-factor"],
+    ["a3", "arma-3"],
+    ["ats", "american-truck-simulator"],
+    ["ets2", "euro-truck-simulator-2"],
+    ["sandstorm", "insurgency-sandstorm"],
   ] as const)("normalizes the %s alias", (alias, game): void => {
     expect(parseQueryArguments([alias, "play.example.com"])).toEqual({
       kind: "query",

@@ -122,7 +122,14 @@ type ImplementedGame =
   | "soulmask"
   | "sons-of-the-forest"
   | "icarus"
-  | "abiotic-factor";
+  | "abiotic-factor"
+  | "arma-3"
+  | "american-truck-simulator"
+  | "euro-truck-simulator-2"
+  | "the-forest"
+  | "unturned"
+  | "enshrouded"
+  | "insurgency-sandstorm";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -370,6 +377,69 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     ["a2s-info", "a2s-player", "a2s-rules"],
     a2sProfileRunner((options) =>
       querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["abiotic-factor"].name }),
+    ),
+  ),
+  "arma-3": createProfileRunner(
+    "arma-3",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({
+        ...options,
+        gameName: GAME_REGISTRY["arma-3"].name,
+        // Arma 3 Rules carry binary server-browser pages; the string Rules decoder cannot read them.
+        rulesPolicy: "unsupported",
+      }).then(({ server, data, sources, warnings, partial }) => ({
+        server,
+        data,
+        sources,
+        warnings,
+        partial,
+      })),
+    ),
+  ),
+  "american-truck-simulator": createProfileRunner(
+    "american-truck-simulator",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({
+        ...options,
+        gameName: GAME_REGISTRY["american-truck-simulator"].name,
+      }),
+    ),
+  ),
+  "euro-truck-simulator-2": createProfileRunner(
+    "euro-truck-simulator-2",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["euro-truck-simulator-2"].name }),
+    ),
+  ),
+  "the-forest": createProfileRunner(
+    "the-forest",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["the-forest"].name }),
+    ),
+  ),
+  unturned: createProfileRunner(
+    "unturned",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["unturned"].name }),
+    ),
+  ),
+  enshrouded: createProfileRunner(
+    "enshrouded",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["enshrouded"].name }),
+    ),
+  ),
+  "insurgency-sandstorm": createProfileRunner(
+    "insurgency-sandstorm",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["insurgency-sandstorm"].name }),
     ),
   ),
 });

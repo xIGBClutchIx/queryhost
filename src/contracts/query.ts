@@ -1,6 +1,13 @@
 /** Public query inputs and discriminated game-specific result contracts. */
 
 import type {
+  Arma3Data,
+  AmericanTruckSimulatorData,
+  EuroTruckSimulator2Data,
+  TheForestData,
+  UnturnedData,
+  EnshroudedData,
+  InsurgencySandstormData,
   ArkSurvivalEvolvedData,
   ConanExilesData,
   KillingFloor2Data,
@@ -69,6 +76,13 @@ export interface GameDataMap {
   readonly "sons-of-the-forest": SonsOfTheForestData;
   readonly icarus: IcarusData;
   readonly "abiotic-factor": AbioticFactorData;
+  readonly "arma-3": Arma3Data;
+  readonly "american-truck-simulator": AmericanTruckSimulatorData;
+  readonly "euro-truck-simulator-2": EuroTruckSimulator2Data;
+  readonly "the-forest": TheForestData;
+  readonly unturned: UnturnedData;
+  readonly enshrouded: EnshroudedData;
+  readonly "insurgency-sandstorm": InsurgencySandstormData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -101,6 +115,13 @@ export interface GameRawDataMap {
   readonly "sons-of-the-forest": A2sRawData;
   readonly icarus: A2sRawData;
   readonly "abiotic-factor": A2sRawData;
+  readonly "arma-3": never;
+  readonly "american-truck-simulator": A2sRawData;
+  readonly "euro-truck-simulator-2": A2sRawData;
+  readonly "the-forest": A2sRawData;
+  readonly unturned: A2sRawData;
+  readonly enshrouded: A2sRawData;
+  readonly "insurgency-sandstorm": A2sRawData;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -154,6 +175,15 @@ export interface GameAliasMap {
   readonly sotf: "sons-of-the-forest";
   readonly sonsoftheforest: "sons-of-the-forest";
   readonly abioticfactor: "abiotic-factor";
+  readonly arma3: "arma-3";
+  readonly a3: "arma-3";
+  readonly ats: "american-truck-simulator";
+  readonly americantrucksimulator: "american-truck-simulator";
+  readonly ets2: "euro-truck-simulator-2";
+  readonly eurotrucksimulator2: "euro-truck-simulator-2";
+  readonly theforest: "the-forest";
+  readonly sandstorm: "insurgency-sandstorm";
+  readonly insurgencysandstorm: "insurgency-sandstorm";
 }
 
 /** Accepted non-canonical game identifier. */
