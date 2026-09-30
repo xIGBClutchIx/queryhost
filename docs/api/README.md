@@ -12,7 +12,13 @@
 - [AbioticFactorData](interfaces/AbioticFactorData.md)
 - [AmericanTruckSimulatorData](interfaces/AmericanTruckSimulatorData.md)
 - [ArkSurvivalEvolvedData](interfaces/ArkSurvivalEvolvedData.md)
+- [ArkSurvivalEvolvedMod](interfaces/ArkSurvivalEvolvedMod.md)
+- [Arma3CreatorDlc](interfaces/Arma3CreatorDlc.md)
 - [Arma3Data](interfaces/Arma3Data.md)
+- [Arma3Difficulty](interfaces/Arma3Difficulty.md)
+- [Arma3Dlc](interfaces/Arma3Dlc.md)
+- [Arma3Mod](interfaces/Arma3Mod.md)
+- [Arma3RawData](interfaces/Arma3RawData.md)
 - [CfxData](interfaces/CfxData.md)
 - [CfxPlayer](interfaces/CfxPlayer.md)
 - [ConanExilesData](interfaces/ConanExilesData.md)
@@ -72,7 +78,10 @@
 - [SteamA2sPlayer](interfaces/SteamA2sPlayer.md)
 - [TeamFortress2Data](interfaces/TeamFortress2Data.md)
 - [TheForestData](interfaces/TheForestData.md)
+- [UnrealSessionData](interfaces/UnrealSessionData.md)
+- [UnrealSessionFlags](interfaces/UnrealSessionFlags.md)
 - [UnturnedData](interfaces/UnturnedData.md)
+- [UnturnedLink](interfaces/UnturnedLink.md)
 - [ValheimData](interfaces/ValheimData.md)
 - [ValheimPlayer](interfaces/ValheimPlayer.md)
 - [VintageStoryData](interfaces/VintageStoryData.md)
@@ -95,6 +104,7 @@
 - [QueryWarningCode](type-aliases/QueryWarningCode.md)
 - [SatisfactoryServerState](type-aliases/SatisfactoryServerState.md)
 - [SupportLevel](type-aliases/SupportLevel.md)
+- [TeamFortress2GameMode](type-aliases/TeamFortress2GameMode.md)
 
 ## Variables
 
