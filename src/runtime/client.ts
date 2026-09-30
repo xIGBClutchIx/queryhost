@@ -64,6 +64,7 @@ import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/q
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
+import { querySourceEngineProfile } from "../profiles/source-engine.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -106,7 +107,13 @@ type ImplementedGame =
   | "fivem"
   | "redm"
   | "satisfactory"
-  | "vintage-story";
+  | "vintage-story"
+  | "counter-strike-2"
+  | "counter-strike-source"
+  | "team-fortress-2"
+  | "left-4-dead"
+  | "left-4-dead-2"
+  | "garrys-mod";
 
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
@@ -251,6 +258,51 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     "vintage-story",
     ["vintage-story-query"],
     vintageStoryProfileRunner,
+  ),
+  "counter-strike-2": createProfileRunner(
+    "counter-strike-2",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["counter-strike-2"].name }),
+    ),
+  ),
+  "counter-strike-source": createProfileRunner(
+    "counter-strike-source",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({
+        ...options,
+        gameName: GAME_REGISTRY["counter-strike-source"].name,
+      }),
+    ),
+  ),
+  "team-fortress-2": createProfileRunner(
+    "team-fortress-2",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["team-fortress-2"].name }),
+    ),
+  ),
+  "left-4-dead": createProfileRunner(
+    "left-4-dead",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead"].name }),
+    ),
+  ),
+  "left-4-dead-2": createProfileRunner(
+    "left-4-dead-2",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead-2"].name }),
+    ),
+  ),
+  "garrys-mod": createProfileRunner(
+    "garrys-mod",
+    ["a2s-info", "a2s-player", "a2s-rules"],
+    a2sProfileRunner((options) =>
+      querySourceEngineProfile({ ...options, gameName: GAME_REGISTRY["garrys-mod"].name }),
+    ),
   ),
 });
 

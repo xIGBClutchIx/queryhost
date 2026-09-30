@@ -40,6 +40,12 @@ describe("game registry", () => {
       "redm",
       "satisfactory",
       "vintage-story",
+      "counter-strike-2",
+      "counter-strike-source",
+      "team-fortress-2",
+      "left-4-dead",
+      "left-4-dead-2",
+      "garrys-mod",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -171,6 +177,30 @@ describe("game registry", () => {
     });
   });
 
+  it.each([
+    ["counter-strike-2", "Counter-Strike 2"],
+    ["counter-strike-source", "Counter-Strike: Source"],
+    ["team-fortress-2", "Team Fortress 2"],
+    ["left-4-dead", "Left 4 Dead"],
+    ["left-4-dead-2", "Left 4 Dead 2"],
+    ["garrys-mod", "Garry's Mod"],
+  ] as const)("queries %s on its 27015 game port", (game, name) => {
+    const definition = getGameDefinition(game);
+
+    expect(definition).toMatchObject({
+      name,
+      defaultPort: 27_015,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        rules: "conditional",
+        mods: "unsupported",
+      },
+    });
+    expect(definition.defaultQueryPort).toBeUndefined();
+    expect(definition.queryPortStrategy).toBeUndefined();
+  });
+
   it("recognizes only registered game IDs", () => {
     expect(isGameId("fivem")).toBe(true);
     expect(isGameId("redm")).toBe(true);
@@ -203,6 +233,19 @@ describe("game registry", () => {
       rdr3: "redm",
       vintagestory: "vintage-story",
       vs: "vintage-story",
+      cs2: "counter-strike-2",
+      counterstrike2: "counter-strike-2",
+      css: "counter-strike-source",
+      "cs-source": "counter-strike-source",
+      counterstrikesource: "counter-strike-source",
+      tf2: "team-fortress-2",
+      teamfortress2: "team-fortress-2",
+      l4d: "left-4-dead",
+      left4dead: "left-4-dead",
+      l4d2: "left-4-dead-2",
+      left4dead2: "left-4-dead-2",
+      gmod: "garrys-mod",
+      garrysmod: "garrys-mod",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);
@@ -226,6 +269,8 @@ describe("game registry", () => {
     expect(getGameDefinition("red-m")).toBe(GAME_REGISTRY.redm);
     expect(getGameDefinition("rdr3")).toBe(GAME_REGISTRY.redm);
     expect(getGameDefinition("vs")).toBe(GAME_REGISTRY["vintage-story"]);
+    expect(getGameDefinition("tf2")).toBe(GAME_REGISTRY["team-fortress-2"]);
+    expect(getGameDefinition("gmod")).toBe(GAME_REGISTRY["garrys-mod"]);
   });
 
   it("lists games in the documented registry order", () => {

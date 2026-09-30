@@ -3,10 +3,15 @@
 import type {
   A2sData,
   A2sRawData,
+  CounterStrike2Data,
+  CounterStrikeSourceData,
   DayZData,
   DayZRawData,
   DontStarveTogetherData,
   FiveMData,
+  GarrysModData,
+  Left4Dead2Data,
+  Left4DeadData,
   MinecraftBedrockData,
   MinecraftJavaData,
   PalworldData,
@@ -16,6 +21,7 @@ import type {
   SevenDaysToDieData,
   SatisfactoryData,
   SatisfactoryRawData,
+  TeamFortress2Data,
   VintageStoryData,
   ValheimData,
 } from "./games.js";
@@ -41,6 +47,12 @@ export interface GameDataMap {
   readonly redm: RedMData;
   readonly satisfactory: SatisfactoryData;
   readonly "vintage-story": VintageStoryData;
+  readonly "counter-strike-2": CounterStrike2Data;
+  readonly "counter-strike-source": CounterStrikeSourceData;
+  readonly "team-fortress-2": TeamFortress2Data;
+  readonly "left-4-dead": Left4DeadData;
+  readonly "left-4-dead-2": Left4Dead2Data;
+  readonly "garrys-mod": GarrysModData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -59,6 +71,12 @@ export interface GameRawDataMap {
   readonly redm: never;
   readonly satisfactory: SatisfactoryRawData;
   readonly "vintage-story": never;
+  readonly "counter-strike-2": A2sRawData;
+  readonly "counter-strike-source": A2sRawData;
+  readonly "team-fortress-2": A2sRawData;
+  readonly "left-4-dead": A2sRawData;
+  readonly "left-4-dead-2": A2sRawData;
+  readonly "garrys-mod": A2sRawData;
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -88,6 +106,19 @@ export interface GameAliasMap {
   readonly rdr3: "redm";
   readonly vintagestory: "vintage-story";
   readonly vs: "vintage-story";
+  readonly cs2: "counter-strike-2";
+  readonly counterstrike2: "counter-strike-2";
+  readonly css: "counter-strike-source";
+  readonly "cs-source": "counter-strike-source";
+  readonly counterstrikesource: "counter-strike-source";
+  readonly tf2: "team-fortress-2";
+  readonly teamfortress2: "team-fortress-2";
+  readonly l4d: "left-4-dead";
+  readonly left4dead: "left-4-dead";
+  readonly l4d2: "left-4-dead-2";
+  readonly left4dead2: "left-4-dead-2";
+  readonly gmod: "garrys-mod";
+  readonly garrysmod: "garrys-mod";
 }
 
 /** Accepted non-canonical game identifier. */

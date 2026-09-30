@@ -46,6 +46,12 @@ export const GAME_IDS: readonly [
   "redm",
   "satisfactory",
   "vintage-story",
+  "counter-strike-2",
+  "counter-strike-source",
+  "team-fortress-2",
+  "left-4-dead",
+  "left-4-dead-2",
+  "garrys-mod",
 ] = [
   "a2s",
   "dont-starve-together",
@@ -61,6 +67,12 @@ export const GAME_IDS: readonly [
   "redm",
   "satisfactory",
   "vintage-story",
+  "counter-strike-2",
+  "counter-strike-source",
+  "team-fortress-2",
+  "left-4-dead",
+  "left-4-dead-2",
+  "garrys-mod",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -87,6 +99,30 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   rdr3: "redm",
   vintagestory: "vintage-story",
   vs: "vintage-story",
+  cs2: "counter-strike-2",
+  counterstrike2: "counter-strike-2",
+  css: "counter-strike-source",
+  "cs-source": "counter-strike-source",
+  counterstrikesource: "counter-strike-source",
+  tf2: "team-fortress-2",
+  teamfortress2: "team-fortress-2",
+  l4d: "left-4-dead",
+  left4dead: "left-4-dead",
+  l4d2: "left-4-dead-2",
+  left4dead2: "left-4-dead-2",
+  gmod: "garrys-mod",
+  garrysmod: "garrys-mod",
+});
+
+/** Source-engine games answer A2S on their game port; Player and Rules depend on server cvars. */
+const SOURCE_ENGINE_CAPABILITIES: GameDefinition["capabilities"] = Object.freeze({
+  summary: "supported",
+  players: "conditional",
+  rules: "conditional",
+  mods: "unsupported",
+  plugins: "unsupported",
+  resources: "unsupported",
+  srv: "unsupported",
 });
 
 /**
@@ -294,6 +330,42 @@ export const GAME_REGISTRY: GameRegistry = {
       resources: "unsupported",
       srv: "unsupported",
     },
+  },
+  "counter-strike-2": {
+    id: "counter-strike-2",
+    name: "Counter-Strike 2",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
+  },
+  "counter-strike-source": {
+    id: "counter-strike-source",
+    name: "Counter-Strike: Source",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
+  },
+  "team-fortress-2": {
+    id: "team-fortress-2",
+    name: "Team Fortress 2",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
+  },
+  "left-4-dead": {
+    id: "left-4-dead",
+    name: "Left 4 Dead",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
+  },
+  "left-4-dead-2": {
+    id: "left-4-dead-2",
+    name: "Left 4 Dead 2",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
+  },
+  "garrys-mod": {
+    id: "garrys-mod",
+    name: "Garry's Mod",
+    defaultPort: 27015,
+    capabilities: SOURCE_ENGINE_CAPABILITIES,
   },
 };
 

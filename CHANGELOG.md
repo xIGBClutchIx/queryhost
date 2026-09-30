@@ -2,6 +2,12 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- Counter-Strike 2, Counter-Strike: Source, Team Fortress 2, Left 4 Dead, Left 4 Dead 2, and Garry's Mod queries through a shared Source-engine A2S profile on the game port, with typed server, SourceTV, tag, and Player data plus unchanged Rules output.
+
 ## [1.2.1] - 2026-09-15
 
 ### Fixed

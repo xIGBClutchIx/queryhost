@@ -24,6 +24,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### counter-strike-2
+
+> `readonly` **counter-strike-2**: [`CounterStrike2Data`](CounterStrike2Data.md)
+
+***
+
+### counter-strike-source
+
+> `readonly` **counter-strike-source**: [`CounterStrikeSourceData`](CounterStrikeSourceData.md)
+
+***
+
 ### dayz
 
 > `readonly` **dayz**: [`DayZData`](DayZData.md)
@@ -39,6 +51,24 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### fivem
 
 > `readonly` **fivem**: [`FiveMData`](FiveMData.md)
+
+***
+
+### garrys-mod
+
+> `readonly` **garrys-mod**: [`GarrysModData`](GarrysModData.md)
+
+***
+
+### left-4-dead
+
+> `readonly` **left-4-dead**: [`Left4DeadData`](Left4DeadData.md)
+
+***
+
+### left-4-dead-2
+
+> `readonly` **left-4-dead-2**: [`Left4Dead2Data`](Left4Dead2Data.md)
 
 ***
 
@@ -81,6 +111,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### satisfactory
 
 > `readonly` **satisfactory**: [`SatisfactoryData`](SatisfactoryData.md)
+
+***
+
+### team-fortress-2
+
+> `readonly` **team-fortress-2**: [`TeamFortress2Data`](TeamFortress2Data.md)
 
 ***
 

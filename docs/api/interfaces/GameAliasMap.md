@@ -34,6 +34,36 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### counterstrike2
+
+> `readonly` **counterstrike2**: `"counter-strike-2"`
+
+***
+
+### counterstrikesource
+
+> `readonly` **counterstrikesource**: `"counter-strike-source"`
+
+***
+
+### cs-source
+
+> `readonly` **cs-source**: `"counter-strike-source"`
+
+***
+
+### cs2
+
+> `readonly` **cs2**: `"counter-strike-2"`
+
+***
+
+### css
+
+> `readonly` **css**: `"counter-strike-source"`
+
+***
+
 ### dontstarvetogether
 
 > `readonly` **dontstarvetogether**: `"dont-starve-together"`
@@ -52,9 +82,45 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### garrysmod
+
+> `readonly` **garrysmod**: `"garrys-mod"`
+
+***
+
+### gmod
+
+> `readonly` **gmod**: `"garrys-mod"`
+
+***
+
 ### java
 
 > `readonly` **java**: `"minecraft-java"`
+
+***
+
+### l4d
+
+> `readonly` **l4d**: `"left-4-dead"`
+
+***
+
+### l4d2
+
+> `readonly` **l4d2**: `"left-4-dead-2"`
+
+***
+
+### left4dead
+
+> `readonly` **left4dead**: `"left-4-dead"`
+
+***
+
+### left4dead2
+
+> `readonly` **left4dead2**: `"left-4-dead-2"`
 
 ***
 
@@ -121,6 +187,18 @@ Alternate input spellings mapped to one stable game identity.
 ### seven-days-to-die
 
 > `readonly` **seven-days-to-die**: `"7-days-to-die"`
+
+***
+
+### teamfortress2
+
+> `readonly` **teamfortress2**: `"team-fortress-2"`
+
+***
+
+### tf2
+
+> `readonly` **tf2**: `"team-fortress-2"`
 
 ***
 

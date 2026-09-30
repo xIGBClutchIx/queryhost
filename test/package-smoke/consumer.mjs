@@ -28,6 +28,12 @@ if (!GAME_IDS.includes("redm") || GAME_REGISTRY.redm.defaultPort !== 30_120) {
 if (!GAME_IDS.includes("vintage-story")) {
   throw new Error("The packed JavaScript entry point omitted Vintage Story.");
 }
+if (
+  GAME_REGISTRY["team-fortress-2"].defaultPort !== 27_015 ||
+  canonicalGameId("cs2") !== "counter-strike-2"
+) {
+  throw new Error("The packed JavaScript entry point omitted Source-engine metadata.");
+}
 if (GAME_REGISTRY["minecraft-java"].defaultPort !== 25_565) {
   throw new Error("The packed registry returned the wrong Minecraft Java port.");
 }

@@ -3,6 +3,8 @@ import { expectAssignable, expectError, expectNotAssignable, expectType } from "
 import {
   type A2sData,
   type A2sPlayer,
+  type CounterStrike2Data,
+  type CounterStrikeSourceData,
   type DayZData,
   type DayZMod,
   type DayZRawData,
@@ -19,6 +21,9 @@ import {
   type GameDataMap,
   type GameRawDataMap,
   type GameId,
+  type GarrysModData,
+  type Left4Dead2Data,
+  type Left4DeadData,
   type MinecraftBedrockData,
   type MinecraftJavaData,
   type PalworldData,
@@ -36,6 +41,9 @@ import {
   type SevenDaysToDiePlayer,
   type SatisfactoryData,
   type SatisfactoryRawData,
+  type SourceEngineData,
+  type SourceEnginePlayer,
+  type TeamFortress2Data,
   type VintageStoryData,
   type ValheimData,
   type ValheimPlayer,
@@ -57,6 +65,12 @@ expectType<
     "redm",
     "satisfactory",
     "vintage-story",
+    "counter-strike-2",
+    "counter-strike-source",
+    "team-fortress-2",
+    "left-4-dead",
+    "left-4-dead-2",
+    "garrys-mod",
   ]
 >(GAME_IDS);
 
@@ -108,6 +122,22 @@ expectType<Promise<QueryResult<"satisfactory">>>(
   query({ game: "satisfactory", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
+expectType<Promise<QueryResult<"counter-strike-2">>>(
+  query({ game: "cs2", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"counter-strike-source">>>(
+  query({ game: "css", host: "play.example.com", port: 27_016 }),
+);
+expectType<Promise<QueryResult<"team-fortress-2">>>(
+  query({ game: "tf2", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"left-4-dead">>>(query({ game: "l4d", host: "play.example.com" }));
+expectType<Promise<QueryResult<"left-4-dead-2">>>(
+  query({ game: "l4d2", host: "play.example.com" }),
+);
+expectType<Promise<QueryResult<"garrys-mod">>>(
+  query({ game: "gmod", host: "play.example.com", queryPort: 27_016 }),
+);
 expectNotAssignable<QueryInput>({ game: "counter-strike", host: "play.example.com" });
 
 declare const dynamicInput: QueryInput;
@@ -188,6 +218,24 @@ if (dynamicResult.ok) {
     case "vintage-story":
       expectType<VintageStoryData>(dynamicResult.data);
       break;
+    case "counter-strike-2":
+      expectType<CounterStrike2Data>(dynamicResult.data);
+      break;
+    case "counter-strike-source":
+      expectType<CounterStrikeSourceData>(dynamicResult.data);
+      break;
+    case "team-fortress-2":
+      expectType<TeamFortress2Data>(dynamicResult.data);
+      break;
+    case "left-4-dead":
+      expectType<Left4DeadData>(dynamicResult.data);
+      break;
+    case "left-4-dead-2":
+      expectType<Left4Dead2Data>(dynamicResult.data);
+      break;
+    case "garrys-mod":
+      expectType<GarrysModData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -262,6 +310,14 @@ expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData)
 expectType<VintageStoryData>(dataMap["vintage-story"]);
 expectType<"liveness" | "status">(dataMap["vintage-story"].response);
 expectType<string | undefined>(dataMap["vintage-story"].motd);
+expectAssignable<SourceEngineData>(dataMap["counter-strike-2"]);
+expectAssignable<SourceEngineData>(dataMap["garrys-mod"]);
+expectType<string>(dataMap["team-fortress-2"].folder);
+expectType<number | undefined>(dataMap["team-fortress-2"].appId);
+expectType<readonly string[] | undefined>(dataMap["counter-strike-2"].tags);
+expectType<number | undefined>(dataMap["counter-strike-source"].sourceTv?.port);
+expectType<readonly SourceEnginePlayer[] | undefined>(dataMap["left-4-dead-2"].players);
+expectType<Readonly<Record<string, string>>>(rawDataMap["left-4-dead"].rules);
 
 declare const fivemPlayer: FiveMPlayer;
 expectType<number>(fivemPlayer.id);
