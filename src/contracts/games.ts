@@ -297,7 +297,21 @@ export interface ArkSurvivalEvolvedData extends SteamA2sData {
 export interface ConanExilesData extends SteamA2sData {}
 
 /** Killing Floor 2 data collected from its Steam A2S query port. */
-export interface KillingFloor2Data extends SteamA2sData {}
+export interface KillingFloor2Data extends SteamA2sData {
+  /** Game mode name from the `Mode` rule, such as `Survival`. */
+  readonly gameMode?: string;
+  readonly difficulty?: "normal" | "hard" | "suicidal" | "hell-on-earth";
+  /** Wave the match is on; waves are counted from 1. */
+  readonly currentWave?: number;
+  /** Waves in the match's game length, from the `NumWaves` rule. */
+  readonly totalWaves?: number;
+  readonly inProgress?: boolean;
+  /** Whether the server runs mutators. */
+  readonly mutators?: boolean;
+  /** Whether the server is custom (unranked) rather than ranked. */
+  readonly custom?: boolean;
+  readonly spectators?: number;
+}
 
 /** Day of Dragons data collected from its Steam A2S query port. */
 export interface DayOfDragonsData extends SteamA2sData {}

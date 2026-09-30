@@ -64,6 +64,7 @@ import type { VintageStoryQueryDependencies } from "../protocols/vintage-story/q
 import { queryVintageStoryProfile } from "../profiles/vintage-story.js";
 import { queryArkSurvivalEvolvedProfile } from "../profiles/ark-survival-evolved.js";
 import { queryArma3Profile } from "../profiles/arma-3.js";
+import { queryKillingFloor2Profile } from "../profiles/killing-floor-2.js";
 import { queryUnturnedProfile } from "../profiles/unturned.js";
 import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
@@ -343,9 +344,7 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
   "killing-floor-2": createProfileRunner(
     "killing-floor-2",
     ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["killing-floor-2"].name }),
-    ),
+    a2sProfileRunner(queryKillingFloor2Profile),
   ),
   "day-of-dragons": createProfileRunner(
     "day-of-dragons",
