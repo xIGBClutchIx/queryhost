@@ -338,6 +338,38 @@ export interface Arma3RawData {
 
 /** Arma 3 data collected from its Steam A2S query port. */
 export interface Arma3Data extends SteamA2sData {
+  /** Whether BattlEye protection is enabled, from the `b` keyword. */
+  readonly battlEye?: boolean;
+  /** Game version clients must run, from the `r` keyword (for example 218 for 2.18). */
+  readonly requiredVersion?: number;
+  /** Game build number clients must run, from the `n` keyword. */
+  readonly requiredBuild?: number;
+  /** Bohemia session state from the `s` keyword: 0 none through 7 playing, 8 finished, 9 aborted. */
+  readonly serverState?: number;
+  /** Mission game type from the `t` keyword, such as `coop`, `zeus`, or `warlord`. */
+  readonly gameType?: string;
+  /** Whether clients must load exactly the server's mods, from the `m` keyword. */
+  readonly equalModsRequired?: boolean;
+  /** Whether the session is locked against new players, from the `l` keyword. */
+  readonly locked?: boolean;
+  /** Whether the server verifies addon signatures, from the `v` keyword. */
+  readonly verifySignatures?: boolean;
+  /** Whether the server is dedicated, from the `d` keyword. */
+  readonly dedicated?: boolean;
+  /** Whether file patching is allowed, from the `f` keyword. */
+  readonly filePatching?: boolean;
+  /** Server operating system from the `p` keyword. */
+  readonly platform?: "linux" | "macos" | "windows";
+  /** Raw Bohemia language code from the `g` keyword, such as 65545 for English. */
+  readonly language?: number;
+  /** Country code from the `o` keyword. */
+  readonly country?: string;
+  /** Mission time remaining in minutes, from the `e` keyword. */
+  readonly timeLeftMinutes?: number;
+  /** Island identifier from the `y` keyword. */
+  readonly island?: string;
+  /** Loaded-content hash from the `h` keyword. */
+  readonly loadedContentHash?: string;
   /** Server-browser metadata format version, when paged Rules metadata is available. */
   readonly rulesProtocol?: number;
   /** Omitted when Rules metadata is unavailable or the server advertises no difficulty. */

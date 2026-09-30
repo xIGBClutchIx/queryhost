@@ -157,4 +157,57 @@ describe("arma-3 full query", (): void => {
       data: { creatorDlc: [{ appId: 1_175_380, name: "Spearhead 1944", hash: 6 }], mods: [] },
     });
   });
+
+  it("decodes Bohemia's one-letter keyword fields", async (): Promise<void> => {
+    const keywords =
+      "bt,r218,n150779,s7,i1,mf,lt,vt,dt,tzeus,g65541,h285fa806,oDE,f0,pw,e15,yAltis,c-25--25,x1,bf";
+    const result = await queryWithDependencies(
+      { game: "arma-3", host: "play.example.com", mode: "summary" },
+      dependencies(packetA2s({ info: sourceInfoPacket({ keywords }) })),
+    );
+
+    if (!result.ok) {
+      throw new Error("Expected a successful Arma 3 result.");
+    }
+    expect(result.data).toMatchObject({
+      battlEye: true,
+      requiredVersion: 218,
+      requiredBuild: 150_779,
+      serverState: 7,
+      gameType: "zeus",
+      equalModsRequired: false,
+      locked: true,
+      verifySignatures: true,
+      dedicated: true,
+      filePatching: false,
+      platform: "windows",
+      language: 65_541,
+      country: "DE",
+      timeLeftMinutes: 15,
+      island: "Altis",
+      loadedContentHash: "285fa806",
+    });
+    expect(result.data.tags).toContain("x1");
+  });
+
+  it("omits keyword fields whose values are not valid", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "arma-3", host: "play.example.com", mode: "summary" },
+      dependencies(packetA2s({ info: sourceInfoPacket({ keywords: "byes,s12,pq,r-1,t,e01" }) })),
+    );
+
+    if (!result.ok) {
+      throw new Error("Expected a successful Arma 3 result.");
+    }
+    for (const field of [
+      "battlEye",
+      "serverState",
+      "platform",
+      "requiredVersion",
+      "gameType",
+      "timeLeftMinutes",
+    ]) {
+      expect(result.data).not.toHaveProperty(field);
+    }
+  });
 });

@@ -43,6 +43,78 @@ const CREATOR_DLC: ReadonlyMap<number, string> = new Map([
   [2_647_830, "Expeditionary Forces"],
 ]);
 
+const PLATFORMS: ReadonlyMap<string, "linux" | "macos" | "windows"> = new Map([
+  ["l", "linux"],
+  ["m", "macos"],
+  ["w", "windows"],
+]);
+
+function flag(value: string): boolean | undefined {
+  if (value === "t" || value === "1") {
+    return true;
+  }
+  if (value === "f" || value === "0") {
+    return false;
+  }
+  return undefined;
+}
+
+function unsigned(value: string, maximum: number): number | undefined {
+  if (!/^(?:0|[1-9]\d*)$/u.test(value)) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return parsed <= maximum ? parsed : undefined;
+}
+
+function text(value: string): string | undefined {
+  return value.length === 0 ? undefined : value;
+}
+
+// Bohemia's server-browser keywords use the first character as the key and the rest as its value.
+function keywordValues(tags: readonly string[]): ReadonlyMap<string, string> {
+  const values = new Map<string, string>();
+  for (const tag of tags) {
+    const key = tag.slice(0, 1);
+    // The first occurrence wins so a repeated key cannot silently replace it.
+    if (tag.length > 1 && !values.has(key)) {
+      values.set(key, tag.slice(1));
+    }
+  }
+  return values;
+}
+
+function optional<K extends keyof Arma3Data>(
+  key: K,
+  value: Arma3Data[K] | undefined,
+): Partial<Pick<Arma3Data, K>> {
+  return value === undefined ? {} : ({ [key]: value } as Pick<Arma3Data, K>);
+}
+
+function keywordData(tags: readonly string[] | undefined): Partial<Arma3Data> {
+  const values = keywordValues(tags ?? []);
+  const read = (key: string): string => values.get(key) ?? "";
+  const uint32 = (key: string): number | undefined => unsigned(read(key), 4_294_967_295);
+  return {
+    ...optional("battlEye", flag(read("b"))),
+    ...optional("requiredVersion", uint32("r")),
+    ...optional("requiredBuild", uint32("n")),
+    ...optional("serverState", unsigned(read("s"), 9)),
+    ...optional("gameType", text(read("t"))),
+    ...optional("equalModsRequired", flag(read("m"))),
+    ...optional("locked", flag(read("l"))),
+    ...optional("verifySignatures", flag(read("v"))),
+    ...optional("dedicated", flag(read("d"))),
+    ...optional("filePatching", flag(read("f"))),
+    ...optional("platform", PLATFORMS.get(read("p"))),
+    ...optional("language", uint32("g")),
+    ...optional("country", text(read("o"))),
+    ...optional("timeLeftMinutes", uint32("e")),
+    ...optional("island", text(read("y"))),
+    ...optional("loadedContentHash", text(read("h"))),
+  };
+}
+
 function rulesData(result: SteamA2sProfileResult): Partial<Arma3Data> {
   const metadata =
     result.rawData === undefined ? undefined : arma3RuleMetadata(result.rawData.rules);
@@ -95,6 +167,6 @@ export async function queryArma3Profile(options: A2sProfileOptions): Promise<Arm
   });
   return Object.freeze({
     ...result,
-    data: Object.freeze({ ...result.data, ...rulesData(result) }),
+    data: Object.freeze({ ...result.data, ...keywordData(result.data.tags), ...rulesData(result) }),
   });
 }
