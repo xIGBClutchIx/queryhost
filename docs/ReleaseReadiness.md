@@ -10,7 +10,7 @@ The package smoke test installs the packed archive into a clean fixture, compare
 
 ## Package and dependency review
 
-The packed artifact must remain at or below 512 KB compressed, 1.5 MB unpacked, and 400 files. The file ceiling leaves room for each new game's generated API page and compiled profile module while the byte ceilings still bound what consumers download. The smoke test also requires the CLI, declarations, API reference, examples, changelog, license, and README while rejecting leaked source, tests, and repository scripts.
+The packed artifact must remain at or below 512 KB compressed, 1.5 MB unpacked, and 600 files. The file ceiling leaves room for each new game's generated API page and compiled profile module while the byte ceilings still bound what consumers download. The smoke test also requires the CLI, declarations, API reference, examples, changelog, license, and README while rejecting leaked source, tests, and repository scripts.
 
 QueryHost has one direct runtime dependency: `@foxglove/wasm-bz2` for bounded decompression of compressed A2S split packets. Its only runtime transitive dependency is `tslib`. Their reviewed licenses are MIT and 0BSD respectively; the smoke test fails if the runtime dependency set or either license changes. Documentation, property-testing, linting, type-testing, and packaging tools remain development-only dependencies.
 
