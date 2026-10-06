@@ -6,6 +6,11 @@ const ABORTED_MESSAGE = "The query was cancelled.";
 const INTERNAL_ERROR_MESSAGE = "The query could not be completed.";
 const TIMEOUT_MESSAGE = "The query timed out.";
 const DEFAULT_MAX_OUTBOUND_ATTEMPTS = 16;
+// Built once: a reasonless abort() constructs a DOMException with a captured stack on every scope
+// close, which dominated per-query CPU. Callers read scope state through getError(), not the reason.
+const SCOPE_ENDED_REASON = Object.freeze(
+  new DOMException("The execution scope ended.", "AbortError"),
+);
 
 type Cleanup = () => void;
 type ExecutionErrorCode = "ABORTED" | "INTERNAL_ERROR" | "TIMEOUT";
@@ -238,7 +243,7 @@ class DefaultExecutionScope implements ExecutionScope {
     }
     this.#detachParent?.();
     this.#detachParent = undefined;
-    this.#controller.abort();
+    this.#controller.abort(SCOPE_ENDED_REASON);
 
     // LIFO mirrors nested resource acquisition and still runs every callback if one is faulty.
     const cleanups = [...this.#cleanups].reverse();

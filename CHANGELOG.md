@@ -2,6 +2,17 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Return an `INVALID_INPUT` failure instead of throwing when JavaScript callers pass an unregistered game ID, an inherited key such as `"__proto__"`, a non-object input, a non-string host, or a signal that is not an `AbortSignal`.
+- Fail a UDP query to a closed port as `CONNECTION_FAILED` in about one round trip instead of waiting out the timeout, by connecting each UDP socket to its pinned peer.
+
+### Changed
+
+- Reduce per-query CPU by about 30% by reusing one abort reason when execution scopes end.
+
 ## [1.4.0] - 2026-10-06
 
 ### Added

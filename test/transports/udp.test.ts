@@ -1,4 +1,4 @@
-import type { Socket } from "node:dgram";
+import { createSocket, type Socket } from "node:dgram";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -52,6 +52,9 @@ class ControlledSocket implements UdpSocketAdapter {
   public throwOnClose = false;
   public throwOnSend = false;
   public onSend: (() => void) | undefined;
+  public readonly connections: { readonly port: number; readonly address: string }[] = [];
+  public deferConnect = false;
+  public pendingConnect: (() => void) | undefined;
 
   public onMessage(listener: (message: Uint8Array, peer: UdpRemotePeer) => void): void {
     this.#messageListener = listener;
@@ -61,15 +64,17 @@ class ControlledSocket implements UdpSocketAdapter {
     this.#errorListener = listener;
   }
 
-  public send(
-    message: Uint8Array,
-    port: number,
-    address: string,
-    completion: (error: Error | undefined) => void,
-  ): void {
+  public connect(port: number, address: string, connected: () => void): void {
+    this.connections.push({ port, address });
+    if (this.deferConnect) {
+      this.pendingConnect = connected;
+      return;
+    }
+    connected();
+  }
+
+  public send(message: Uint8Array, completion: (error: Error | undefined) => void): void {
     void message;
-    void port;
-    void address;
     this.sendCalls += 1;
     if (this.throwOnSend) {
       throw new Error("private send failure");
@@ -116,6 +121,33 @@ afterEach(async (): Promise<void> => {
 });
 
 describe("udpExchange integration", (): void => {
+  it("fails fast when the pinned port is closed", async (): Promise<void> => {
+    const probe = createSocket("udp4");
+    await new Promise<void>((resolve): void => {
+      probe.bind(0, "127.0.0.1", resolve);
+    });
+    const closedPort = probe.address().port;
+    await new Promise<void>((resolve): void => {
+      probe.close(resolve);
+    });
+    const scope = createScope(5_000);
+    const startedMs = performance.now();
+
+    await expect(
+      udpExchange({
+        scope,
+        target: createTarget(closedPort),
+        address: LOOPBACK_ADDRESS,
+        request: Uint8Array.of(1),
+        maxResponseBytes: 16,
+      }),
+    ).rejects.toSatisfy(expectTransportCode("CONNECTION_FAILED"));
+    scope.close();
+
+    // ICMP port-unreachable reaches a connected socket; an unconnected one would wait 5 s.
+    expect(performance.now() - startedMs).toBeLessThan(1_000);
+  });
+
   it("exchanges one datagram with the selected pinned peer", async (): Promise<void> => {
     const server = await startFakeUdpServer((socket, message, remote): void => {
       expect([...message]).toEqual([1, 2, 3]);
@@ -735,5 +767,63 @@ describe("udpExchange boundaries", (): void => {
 
     expect(socket.sendCalls).toBe(0);
     expect(socket.closeCalls).toBe(0);
+  });
+  it("connects to the pinned address and query port before sending", async (): Promise<void> => {
+    const exchangeSocket = new ControlledSocket();
+    const conversationSocket = new ControlledSocket();
+    const peer = { address: LOOPBACK_ADDRESS.address, port: 27_015, size: 1 } as const;
+    for (const socket of [exchangeSocket, conversationSocket]) {
+      socket.onSend = (): void => {
+        expect(socket.connections).toEqual([{ port: 27_015, address: "127.0.0.1" }]);
+        socket.emitMessage(Uint8Array.of(1), peer);
+      };
+    }
+    const scope = createScope();
+    const options = {
+      scope,
+      target: createTarget(27_015),
+      address: LOOPBACK_ADDRESS,
+      request: Uint8Array.of(1),
+      maxResponseBytes: 1,
+    } as const;
+
+    await udpExchange(options, controlledDependencies(exchangeSocket));
+    await udpConversation(
+      {
+        ...options,
+        maxResponses: 1,
+        maxTotalResponseBytes: 1,
+        nextRequest: (): undefined => undefined,
+      },
+      controlledDependencies(conversationSocket),
+    );
+    scope.close();
+
+    expect(exchangeSocket.sendCalls).toBe(1);
+    expect(conversationSocket.sendCalls).toBe(1);
+  });
+
+  it("does not send when cancelled before the socket connects", async (): Promise<void> => {
+    const socket = new ControlledSocket();
+    socket.deferConnect = true;
+    const controller = new AbortController();
+    const scope = createScope(1_000, controller.signal);
+    const exchange = udpExchange(
+      {
+        scope,
+        target: createTarget(27_015),
+        address: LOOPBACK_ADDRESS,
+        request: Uint8Array.of(1),
+        maxResponseBytes: 1,
+      },
+      controlledDependencies(socket),
+    );
+
+    controller.abort();
+    await expect(exchange).rejects.toSatisfy(expectTransportCode("ABORTED"));
+    socket.pendingConnect?.();
+
+    expect(socket.sendCalls).toBe(0);
+    expect(socket.closeCalls).toBe(1);
   });
 });

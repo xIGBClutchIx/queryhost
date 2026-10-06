@@ -53,12 +53,13 @@ export interface UdpRemotePeer {
 export interface UdpSocketAdapter {
   onMessage(listener: (message: Uint8Array, peer: UdpRemotePeer) => void): void;
   onError(listener: (error: Error) => void): void;
-  send(
-    message: Uint8Array,
-    port: number,
-    address: string,
-    completion: (error: Error | undefined) => void,
-  ): void;
+  /**
+   * Associates the socket with one pinned IP literal and port. Connection failures are reported
+   * through `onError`; `connected` runs only once the socket may send.
+   */
+  connect(port: number, address: string, connected: () => void): void;
+  /** Sends to the connected peer. */
+  send(message: Uint8Array, completion: (error: Error | undefined) => void): void;
   close(): void;
 }
 
@@ -142,13 +143,11 @@ function createNodeSocketAdapter(family: IpFamily): UdpSocketAdapter {
     onError(listener: (error: Error) => void): void {
       socket.on("error", listener);
     },
-    send(
-      message: Uint8Array,
-      port: number,
-      address: string,
-      completion: (error: Error | undefined) => void,
-    ): void {
-      socket.send(message, port, address, (error): void => {
+    connect(port: number, address: string, connected: () => void): void {
+      socket.connect(port, address, connected);
+    },
+    send(message: Uint8Array, completion: (error: Error | undefined) => void): void {
+      socket.send(message, (error): void => {
         completion(error ?? undefined);
       });
     },
@@ -244,6 +243,24 @@ function isAborted(signal: AbortSignal): boolean {
 }
 
 /**
+ * Connects to the pinned peer before the first send. A connected socket lets the kernel deliver
+ * ICMP port-unreachable as a socket error, so a closed port fails in one round trip instead of
+ * waiting out the deadline, and it filters datagrams from other peers before they reach Node.
+ */
+function connectSocket(
+  socket: UdpSocketAdapter,
+  options: UdpExchangeOptions,
+  finish: (error: UdpTransportError) => void,
+  connected: () => void,
+): void {
+  try {
+    socket.connect(options.target.port, options.address.address, connected);
+  } catch {
+    finish(new UdpTransportError("CONNECTION_FAILED"));
+  }
+}
+
+/**
  * Sends one datagram and resolves with the first bounded response from the selected pinned peer.
  *
  * Unrelated datagrams are ignored. A fresh socket prevents duplicate or late packets from a prior
@@ -335,7 +352,7 @@ export function udpConversation(
     const sendRequest = (request: Uint8Array): void => {
       try {
         validateRequest(request);
-        socket.send(request, options.target.port, options.address.address, (error): void => {
+        socket.send(request, (error): void => {
           if (error !== undefined) {
             finish(new UdpTransportError("CONNECTION_FAILED"));
           }
@@ -409,7 +426,12 @@ export function udpConversation(
       handleAbort();
       return;
     }
-    sendRequest(options.request);
+    connectSocket(socket, options, finish, (): void => {
+      // Cancellation or a socket error may settle the exchange before the connection completes.
+      if (!settled) {
+        sendRequest(options.request);
+      }
+    });
   });
 }
 
@@ -534,14 +556,19 @@ export function udpCollect(
     options.scope.signal.addEventListener("abort", handleAbort, { once: true });
     unregisterCleanup = options.scope.addCleanup(closeSocket);
 
-    try {
-      socket.send(options.request, options.target.port, options.address.address, (error): void => {
-        if (error !== undefined) {
-          finish(new UdpTransportError("CONNECTION_FAILED"));
-        }
-      });
-    } catch {
-      finish(new UdpTransportError("CONNECTION_FAILED"));
-    }
+    connectSocket(socket, options, finish, (): void => {
+      if (settled) {
+        return;
+      }
+      try {
+        socket.send(options.request, (error): void => {
+          if (error !== undefined) {
+            finish(new UdpTransportError("CONNECTION_FAILED"));
+          }
+        });
+      } catch {
+        finish(new UdpTransportError("CONNECTION_FAILED"));
+      }
+    });
   });
 }

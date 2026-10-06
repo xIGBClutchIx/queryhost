@@ -226,4 +226,27 @@ describe("query execution context", () => {
     );
     expect(vi.getTimerCount()).toBe(0);
   });
+  it("ends every scope with one shared, immutable abort reason", async () => {
+    const closed = createExecutionContext({ timeoutMs: 1_000 });
+    const caller = new AbortController();
+    const aborted = createExecutionContext({ timeoutMs: 1_000, signal: caller.signal });
+    const timedOut = createExecutionContext({ timeoutMs: 1_000 });
+    const child = closed.createOperation(500, "minecraft-slp");
+
+    closed.close();
+    caller.abort();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    const { reason } = closed.signal as { readonly reason: object };
+    expect(reason).toBeInstanceOf(DOMException);
+    expect(reason).toMatchObject({ name: "AbortError" });
+    expect(Object.isFrozen(reason)).toBe(true);
+    for (const scope of [child, aborted, timedOut]) {
+      expect(scope.signal.aborted).toBe(true);
+      expect((scope.signal as { readonly reason: object }).reason).toBe(reason);
+    }
+    expect(timedOut.getError()?.code).toBe("TIMEOUT");
+    expect(aborted.getError()?.code).toBe("ABORTED");
+    expect(closed.getError()).toBeUndefined();
+  });
 });
