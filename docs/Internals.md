@@ -82,9 +82,9 @@ IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` rem
 
 ## UDP transport invariants
 
-One UDP exchange selects an address already present in a pinned target and creates a fresh family-matched socket. It sends one non-empty datagram and accepts only non-empty, non-truncated responses from the selected address and port. A single-response exchange stops after the first accepted datagram. A collection exchange additionally requires protocol-supplied datagram-count, per-datagram, aggregate-byte, and completion bounds.
+One UDP exchange selects an address already present in a pinned target, creates a fresh family-matched socket, and connects it to that address and port before sending. A connected socket receives ICMP port-unreachable as a socket error, so a closed port fails as `CONNECTION_FAILED` within one round trip instead of waiting out the deadline. It sends one non-empty datagram and accepts only non-empty, non-truncated responses from the selected address and port. A single-response exchange stops after the first accepted datagram. A collection exchange additionally requires protocol-supplied datagram-count, per-datagram, aggregate-byte, and completion bounds.
 
-Datagrams from every other peer are ignored before their contents or size are considered. Request and response sizes cannot exceed the UDP payload ceiling, and each protocol supplies a tighter response limit. The execution scope terminates the exchange on its deadline or caller cancellation; success, failure, timeout, and cancellation all close the socket exactly once.
+The kernel drops datagrams from other peers on a connected socket, and the transport still ignores any that arrive before their contents or size are considered. Request and response sizes cannot exceed the UDP payload ceiling, and each protocol supplies a tighter response limit. The execution scope terminates the exchange on its deadline or caller cancellation; success, failure, timeout, and cancellation all close the socket exactly once.
 
 The transport returns copied bytes, round-trip duration, and destination facts. A collection completion callback may inspect framing, but the transport does not parse headers itself, retry protocol exchanges, select another pinned address, or interpret game data.
 
