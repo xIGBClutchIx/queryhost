@@ -2,6 +2,12 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [1.4.0] - 2026-10-06
+
+### Added
+
+- A browser-safe `queryhost/registry` entry point with the game registry, alias helpers, and their types, so client bundles can share the game list without the Node.js query runtime.
+
 ## [1.3.0] - 2026-09-30
 
 ### Added
@@ -55,6 +61,7 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.4.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.4.0
 [1.3.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.3.0
 [1.2.1]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.2.1
 [1.2.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.2.0

@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+
 import * as queryhost from "queryhost";
+import * as registry from "queryhost/registry";
 
 const expectedExports = [
   "GAME_ALIASES",
@@ -68,4 +71,28 @@ try {
 }
 if (!internalModuleBlocked) {
   throw new Error("An internal transport became importable through the package exports map.");
+}
+
+const registryExports = expectedExports.filter((name) => name !== "query");
+const actualRegistryExports = Object.keys(registry).sort();
+if (JSON.stringify(actualRegistryExports) !== JSON.stringify(registryExports)) {
+  throw new Error(`The packed registry exports changed: ${actualRegistryExports.join(", ")}.`);
+}
+if (registry.GAME_REGISTRY !== GAME_REGISTRY) {
+  throw new Error("The registry entry returned a second copy of the game registry.");
+}
+
+/** Every bare specifier the packed registry entry loads, following its relative imports. */
+function externalImports(url, seen = new Set()) {
+  if (seen.has(url.href)) return [];
+  seen.add(url.href);
+  const source = readFileSync(url, "utf8");
+  return [...source.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+"([^"]+)"/gmu)].flatMap(
+    ([, specifier]) =>
+      specifier.startsWith(".") ? externalImports(new URL(specifier, url), seen) : [specifier],
+  );
+}
+const registryImports = externalImports(new URL(import.meta.resolve("queryhost/registry")));
+if (registryImports.length > 0) {
+  throw new Error(`The registry entry loads runtime modules: ${registryImports.join(", ")}.`);
 }
