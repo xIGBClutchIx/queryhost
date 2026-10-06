@@ -87,9 +87,12 @@ function externalImports(url, seen = new Set()) {
   if (seen.has(url.href)) return [];
   seen.add(url.href);
   const source = readFileSync(url, "utf8");
-  return [...source.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+"([^"]+)"/gmu)].flatMap(
-    ([, specifier]) =>
-      specifier.startsWith(".") ? externalImports(new URL(specifier, url), seen) : [specifier],
+  const specifiers = [
+    ...source.matchAll(/^\s*(?:import|export)\s+(?:[^;"']*?\sfrom\s+)?["']([^"']+)["']/gmu),
+    ...source.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/gu),
+  ].map(([, specifier]) => specifier);
+  return specifiers.flatMap((specifier) =>
+    specifier.startsWith(".") ? externalImports(new URL(specifier, url), seen) : [specifier],
   );
 }
 const registryImports = externalImports(new URL(import.meta.resolve("queryhost/registry")));
