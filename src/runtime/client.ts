@@ -16,7 +16,7 @@ import type {
   QueryResult,
   QuerySuccess,
 } from "../contracts/query.js";
-import { canonicalGameId, GAME_REGISTRY } from "../contracts/registry.js";
+import { canonicalGameId, GAME_REGISTRY, isGameInputId } from "../contracts/registry.js";
 import type {
   QueryError,
   QueryMode,
@@ -462,6 +462,12 @@ function normalizeMode(mode: string | undefined): QueryMode {
 }
 
 function validateInput(input: QueryInput): void {
+  // Shape checks for untyped JavaScript callers; the declared type already rules these out.
+  const host: string | number | object | null | undefined = input.host;
+  const signal: AbortSignal | string | object | null | undefined = input.signal;
+  if (typeof host !== "string" || (signal !== undefined && !(signal instanceof AbortSignal))) {
+    throw new TypeError("Invalid query input shape.");
+  }
   if (canonicalGameId(input.game) === "a2s" && input.port === undefined) {
     throw new RangeError("Generic A2S requires a query port.");
   }
@@ -786,13 +792,39 @@ async function runProfileTask(
   }
 }
 
+/**
+ * `query()` is reachable from untyped JavaScript, so its declared input type is not a runtime
+ * guarantee. Widening here lets the checks below reject non-objects and unregistered identifiers,
+ * including inherited keys such as `"__proto__"`, before any registry lookup.
+ */
+type UntypedQueryInput = QueryInput | null | undefined;
+
+function inputGameId(input: UntypedQueryInput): GameInputId | undefined {
+  if (typeof input !== "object" || input === null) {
+    return undefined;
+  }
+  const game: string | number | boolean | object | null | undefined = input.game;
+  return typeof game === "string" && isGameInputId(game) ? game : undefined;
+}
+
+/** Echoes an unregistered `game` value so JavaScript callers can see what was rejected. */
+function unregisteredGame(input: UntypedQueryInput): GameId {
+  // The failure envelope is typed by registered IDs; this is the one place it carries the caller's
+  // own value instead, and it only happens for input that already violates the public type.
+  return (typeof input === "object" && input !== null ? input.game : undefined) as GameId;
+}
+
 /** Internal dependency-injected form of {@link query}; not exported from the package root. */
 export async function queryWithDependencies(
   input: QueryInput,
   dependencies: QueryDependencies,
 ): Promise<QueryResult> {
-  const normalizedInput: QueryInput<GameId> = { ...input, game: canonicalGameId(input.game) };
   const startedAt = dependencies.now();
+  const game = inputGameId(input);
+  if (game === undefined) {
+    return failure(unregisteredGame(input), INPUT_ERROR, duration(startedAt, dependencies));
+  }
+  const normalizedInput: QueryInput<GameId> = { ...input, game: canonicalGameId(game) };
   const registration = PROFILE_RUNNERS[normalizedInput.game];
 
   let timeoutMs: number;
@@ -835,7 +867,13 @@ export async function queryWithDependencies(
   return execution.value.complete(durationMs);
 }
 
-/** Queries one game server through its typed QueryHost profile. */
+/**
+ * Queries one game server through its typed QueryHost profile.
+ *
+ * Query failures resolve as a {@link QueryFailure} with a stable error code. Input that
+ * bypasses the declared type from JavaScript, such as an unregistered `game`, resolves with
+ * `INVALID_INPUT` and echoes the supplied `game` value unchanged.
+ */
 export function query<G extends GameInputId>(
   input: QueryInput<G>,
 ): Promise<QueryResult<CanonicalGameId<G>>> {

@@ -10,6 +10,10 @@
 
 Queries one game server through its typed QueryHost profile.
 
+Query failures resolve as a [QueryFailure](../interfaces/QueryFailure.md) with a stable error code. Input that
+bypasses the declared type from JavaScript, such as an unregistered `game`, resolves with
+`INVALID_INPUT` and echoes the supplied `game` value unchanged.
+
 ## Type Parameters
 
 ### G
