@@ -21,6 +21,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 ## Module ownership
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
+- `registry.ts` is the browser-safe `queryhost/registry` entry. It may re-export only `contracts/registry.ts` values and contract types; a test fails if its import graph reaches any runtime module.
 - `runtime/client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
 - Input aliases are resolved once at the client boundary. Definition lookup accepts aliases, while registry storage, profile dispatch, result types, and runtime `game` fields use the canonical ID. Aliases are explicit and unambiguous; QueryHost does not infer fuzzy names.
 - `cli/options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.

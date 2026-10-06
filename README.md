@@ -198,6 +198,14 @@ isGameId("rust"); // true
 
 The registry is exhaustive over `GameId`. Adding a game requires a typed data model and registry definition; consumers should not maintain a second game list.
 
+Browser and edge code can import the same metadata from `queryhost/registry`. That entry point contains only the registry, the alias helpers, and their types, so bundlers never pull in the Node.js transports behind `query()`:
+
+```ts
+import { listGames } from "queryhost/registry";
+
+const games = listGames(); // safe in a browser bundle
+```
+
 ## Infrastructure boundary
 
 This package is a standalone Node.js library with no Cloudflare or Railway dependencies. Every `query()` call performs live network work unless the caller adds caching. The separate hosted API runs the package as a portable Node.js service on Railway behind Cloudflare.

@@ -4,9 +4,9 @@ Slice 14 created the package-hardening gate. Slice 20 uses that gate to publish 
 
 ## Public package boundary
 
-The package exports only its root entry point. That entry point contains `query()`, the game registry and alias helpers, and the documented public result and game-data types. Transports, protocol parsers, target-safety primitives, execution internals, and profile orchestration are not subpath exports.
+The package root contains `query()`, the game registry and alias helpers, and the documented public result and game-data types. The only subpath export, `queryhost/registry`, repeats the registry, alias helpers, and their types without any runtime imports, so browser bundles can share the game list. Transports, protocol parsers, target-safety primitives, execution internals, and profile orchestration are not subpath exports.
 
-The package smoke test installs the packed archive into a clean fixture, compares the runtime export list to the reviewed surface, proves an internal transport cannot be imported, runs an ESM JavaScript consumer, and compiles a strict NodeNext TypeScript consumer. Generated API documentation starts at `src/index.ts`, so it follows the same boundary.
+The package smoke test installs the packed archive into a clean fixture, compares the runtime export lists of both entry points to the reviewed surface, proves the registry entry loads no runtime modules, proves an internal transport cannot be imported, runs an ESM JavaScript consumer, and compiles a strict NodeNext TypeScript consumer. Generated API documentation starts at `src/index.ts`, so it follows the same boundary.
 
 ## Package and dependency review
 
