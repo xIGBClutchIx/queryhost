@@ -93,6 +93,7 @@
 - [GameCapability](type-aliases/GameCapability.md)
 - [GameId](type-aliases/GameId.md)
 - [GameInputId](type-aliases/GameInputId.md)
+- [GameProtocol](type-aliases/GameProtocol.md)
 - [GameRegistry](type-aliases/GameRegistry.md)
 - [GameRuleMap](type-aliases/GameRuleMap.md)
 - [QueryErrorCode](type-aliases/QueryErrorCode.md)

@@ -13,6 +13,7 @@ export type {
 export type {
   GameCapability,
   GameDefinition,
+  GameProtocol,
   GameRegistry,
   SupportLevel,
 } from "./contracts/registry.js";

@@ -31,6 +31,7 @@ import {
   type DontStarveTogetherData,
   type DontStarveTogetherPlayer,
   canonicalGameId,
+  type GameProtocol,
   GAME_IDS,
   getGameDefinition,
   isGameId,
@@ -223,6 +224,9 @@ expectType<"7-days-to-die">(canonicalGameId("7d2d"));
 expectType<"vintage-story">(canonicalGameId("vintagestory"));
 expectAssignable<GameAlias>("seven-days-to-die");
 expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
+expectType<GameProtocol>(getGameDefinition("rust").protocol);
+expectAssignable<GameProtocol>("a2s-unreal");
+expectNotAssignable<GameProtocol>("steam");
 expectType<"offset" | "fixed" | undefined>(
   getGameDefinition("dont-starve-together").queryPortStrategy,
 );

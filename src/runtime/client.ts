@@ -16,7 +16,8 @@ import type {
   QueryResult,
   QuerySuccess,
 } from "../contracts/query.js";
-import { canonicalGameId, GAME_REGISTRY, isGameInputId } from "../contracts/registry.js";
+import type { A2sRawData, SteamA2sData, UnrealSessionData } from "../contracts/games.js";
+import { canonicalGameId, GAME_IDS, GAME_REGISTRY, isGameInputId } from "../contracts/registry.js";
 import type {
   QueryError,
   QueryMode,
@@ -104,43 +105,6 @@ interface SourceTrace {
   readonly completed: Map<QuerySourceName, QuerySource>;
 }
 
-type ImplementedGame =
-  | "a2s"
-  | "dont-starve-together"
-  | "rust"
-  | "palworld"
-  | "project-zomboid"
-  | "7-days-to-die"
-  | "dayz"
-  | "valheim"
-  | "minecraft-java"
-  | "minecraft-bedrock"
-  | "fivem"
-  | "redm"
-  | "satisfactory"
-  | "vintage-story"
-  | "counter-strike-2"
-  | "counter-strike-source"
-  | "team-fortress-2"
-  | "left-4-dead"
-  | "left-4-dead-2"
-  | "garrys-mod"
-  | "ark-survival-evolved"
-  | "conan-exiles"
-  | "killing-floor-2"
-  | "day-of-dragons"
-  | "soulmask"
-  | "sons-of-the-forest"
-  | "icarus"
-  | "abiotic-factor"
-  | "arma-3"
-  | "american-truck-simulator"
-  | "euro-truck-simulator-2"
-  | "the-forest"
-  | "unturned"
-  | "enshrouded"
-  | "insurgency-sandstorm";
-
 interface ProfileRunOptions {
   readonly input: QueryInput<GameId>;
   readonly scope: ExecutionScope;
@@ -150,7 +114,7 @@ interface ProfileRunOptions {
   readonly resolver: DnsResolver;
 }
 
-interface GameProfileResult<G extends ImplementedGame> {
+interface GameProfileResult<G extends GameId> {
   readonly server: ServerInfo;
   readonly data: GameDataMap[G];
   readonly rawData?: GameRawDataMap[G];
@@ -159,35 +123,31 @@ interface GameProfileResult<G extends ImplementedGame> {
   readonly partial: boolean;
 }
 
-interface ProfileTaskSuccess<G extends ImplementedGame> {
+interface ProfileTaskSuccess<G extends GameId> {
   readonly ok: true;
   readonly complete: (durationMs: number) => QuerySuccess<G>;
 }
 
 type AnyProfileTaskSuccess = {
-  readonly [G in ImplementedGame]: ProfileTaskSuccess<G>;
-}[ImplementedGame];
+  readonly [G in GameId]: ProfileTaskSuccess<G>;
+}[GameId];
 
-type ProfileRunner<G extends ImplementedGame> = (
+type ProfileRunner<G extends GameId> = (
   options: ProfileRunOptions,
 ) => Promise<ProfileTaskSuccess<G>>;
 
-interface ProfileRegistration<G extends ImplementedGame> {
+interface ProfileRegistration<G extends GameId> {
   readonly runner: ProfileRunner<G>;
   readonly sources: readonly QuerySourceName[];
 }
 
 type AnyProfileRegistration = {
-  readonly [G in ImplementedGame]: ProfileRegistration<G>;
-}[ImplementedGame];
-
-type ProfileRunnerRegistry = {
-  readonly [G in GameId]: G extends ImplementedGame ? ProfileRegistration<G> : undefined;
-};
+  readonly [G in GameId]: ProfileRegistration<G>;
+}[GameId];
 
 type ProfileTaskResult = AnyProfileTaskSuccess | { readonly ok: false; readonly error: QueryError };
 
-function createProfileRunner<G extends ImplementedGame>(
+function createProfileRunner<G extends GameId>(
   game: G,
   sources: readonly QuerySourceName[],
   queryProfile: (options: ProfileRunOptions) => Promise<GameProfileResult<G>>,
@@ -214,47 +174,68 @@ function createProfileRunner<G extends ImplementedGame>(
   return Object.freeze({ runner, sources: Object.freeze([...sources]) });
 }
 
-const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
-  a2s: createProfileRunner(
-    "a2s",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryGenericA2sProfile),
-  ),
+const A2S_SOURCES: readonly QuerySourceName[] = Object.freeze([
+  "a2s-info",
+  "a2s-player",
+  "a2s-rules",
+]);
+
+/** Data each shared A2S profile produces, keyed by the registry protocol that selects it. */
+interface SharedA2sDataMap {
+  readonly a2s: SteamA2sData;
+  readonly "a2s-unreal": SteamA2sData & UnrealSessionData;
+}
+
+type SameKeys<A, B> = [keyof A] extends [keyof B]
+  ? [keyof B] extends [keyof A]
+    ? true
+    : false
+  : false;
+
+/**
+ * Games whose data has exactly the fields of a shared A2S profile and whose raw data is plain
+ * Rules. Only these may omit a game-specific profile; any added field forces one.
+ */
+type SharedA2sGame = {
+  readonly [G in GameId]: [GameRawDataMap[G]] extends [A2sRawData]
+    ? [A2sRawData] extends [GameRawDataMap[G]]
+      ? true extends {
+          readonly [P in keyof SharedA2sDataMap]: SameKeys<GameDataMap[G], SharedA2sDataMap[P]>;
+        }[keyof SharedA2sDataMap]
+        ? G
+        : never
+      : never
+    : never;
+}[GameId];
+
+type GameProfileTable = {
+  readonly [G in Exclude<GameId, SharedA2sGame>]: ProfileRegistration<G>;
+} & {
+  readonly [G in SharedA2sGame]?: ProfileRegistration<G>;
+};
+
+/** Game-specific profiles. A game absent here uses the shared profile its registry protocol names. */
+const GAME_PROFILES: GameProfileTable = Object.freeze({
+  a2s: createProfileRunner("a2s", A2S_SOURCES, a2sProfileRunner(queryGenericA2sProfile)),
   "dont-starve-together": createProfileRunner(
     "dont-starve-together",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryDontStarveTogetherProfile),
   ),
-  rust: createProfileRunner(
-    "rust",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryRustProfile),
-  ),
-  palworld: createProfileRunner(
-    "palworld",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryPalworldProfile),
-  ),
+  rust: createProfileRunner("rust", A2S_SOURCES, a2sProfileRunner(queryRustProfile)),
+  palworld: createProfileRunner("palworld", A2S_SOURCES, a2sProfileRunner(queryPalworldProfile)),
   "project-zomboid": createProfileRunner(
     "project-zomboid",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryProjectZomboidProfile),
   ),
   "7-days-to-die": createProfileRunner(
     "7-days-to-die",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(querySevenDaysToDieProfile),
   ),
-  dayz: createProfileRunner(
-    "dayz",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryDayZProfile),
-  ),
-  valheim: createProfileRunner(
-    "valheim",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryValheimProfile),
-  ),
+  dayz: createProfileRunner("dayz", A2S_SOURCES, a2sProfileRunner(queryDayZProfile)),
+  valheim: createProfileRunner("valheim", A2S_SOURCES, a2sProfileRunner(queryValheimProfile)),
   "minecraft-java": createProfileRunner(
     "minecraft-java",
     ["minecraft-srv", "minecraft-slp", "minecraft-query"],
@@ -285,138 +266,69 @@ const PROFILE_RUNNERS: ProfileRunnerRegistry = Object.freeze({
     ["vintage-story-query"],
     vintageStoryProfileRunner,
   ),
-  "counter-strike-2": createProfileRunner(
-    "counter-strike-2",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["counter-strike-2"].name }),
-    ),
-  ),
-  "counter-strike-source": createProfileRunner(
-    "counter-strike-source",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["counter-strike-source"].name,
-      }),
-    ),
-  ),
   "team-fortress-2": createProfileRunner(
     "team-fortress-2",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryTeamFortress2Profile),
-  ),
-  "left-4-dead": createProfileRunner(
-    "left-4-dead",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead"].name }),
-    ),
-  ),
-  "left-4-dead-2": createProfileRunner(
-    "left-4-dead-2",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["left-4-dead-2"].name }),
-    ),
   ),
   "garrys-mod": createProfileRunner(
     "garrys-mod",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryGarrysModProfile),
   ),
   "ark-survival-evolved": createProfileRunner(
     "ark-survival-evolved",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryArkSurvivalEvolvedProfile),
   ),
   "conan-exiles": createProfileRunner(
     "conan-exiles",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryConanExilesProfile),
   ),
   "killing-floor-2": createProfileRunner(
     "killing-floor-2",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryKillingFloor2Profile),
   ),
-  "day-of-dragons": createProfileRunner(
-    "day-of-dragons",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      queryUnrealSteamProfile(options, GAME_REGISTRY["day-of-dragons"].name),
-    ),
-  ),
-  soulmask: createProfileRunner(
-    "soulmask",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(querySoulmaskProfile),
-  ),
-  "sons-of-the-forest": createProfileRunner(
-    "sons-of-the-forest",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["sons-of-the-forest"].name }),
-    ),
-  ),
-  icarus: createProfileRunner(
-    "icarus",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) => queryUnrealSteamProfile(options, GAME_REGISTRY.icarus.name)),
-  ),
+  soulmask: createProfileRunner("soulmask", A2S_SOURCES, a2sProfileRunner(querySoulmaskProfile)),
   "abiotic-factor": createProfileRunner(
     "abiotic-factor",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryAbioticFactorProfile),
   ),
-  "arma-3": createProfileRunner(
-    "arma-3",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryArma3Profile),
-  ),
-  "american-truck-simulator": createProfileRunner(
-    "american-truck-simulator",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({
-        ...options,
-        gameName: GAME_REGISTRY["american-truck-simulator"].name,
-      }),
-    ),
-  ),
-  "euro-truck-simulator-2": createProfileRunner(
-    "euro-truck-simulator-2",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["euro-truck-simulator-2"].name }),
-    ),
-  ),
-  "the-forest": createProfileRunner(
-    "the-forest",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["the-forest"].name }),
-    ),
-  ),
-  unturned: createProfileRunner(
-    "unturned",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner(queryUnturnedProfile),
-  ),
-  enshrouded: createProfileRunner(
-    "enshrouded",
-    ["a2s-info", "a2s-player", "a2s-rules"],
-    a2sProfileRunner((options) =>
-      querySteamA2sProfile({ ...options, gameName: GAME_REGISTRY["enshrouded"].name }),
-    ),
-  ),
+  "arma-3": createProfileRunner("arma-3", A2S_SOURCES, a2sProfileRunner(queryArma3Profile)),
+  unturned: createProfileRunner("unturned", A2S_SOURCES, a2sProfileRunner(queryUnturnedProfile)),
   "insurgency-sandstorm": createProfileRunner(
     "insurgency-sandstorm",
-    ["a2s-info", "a2s-player", "a2s-rules"],
+    A2S_SOURCES,
     a2sProfileRunner(queryInsurgencySandstormProfile),
   ),
 });
+
+function sharedA2sRegistration(game: GameId): AnyProfileRegistration {
+  const { name, protocol } = GAME_REGISTRY[game];
+  if (protocol !== "a2s" && protocol !== "a2s-unreal") {
+    throw new Error(`No query profile is registered for ${game}.`);
+  }
+  const queryProfile =
+    protocol === "a2s-unreal"
+      ? (options: A2sProfileOptions) => queryUnrealSteamProfile(options, name)
+      : (options: A2sProfileOptions) => querySteamA2sProfile({ ...options, gameName: name });
+  // GameProfileTable leaves a game to this path only when its data is exactly a shared A2S shape.
+  return createProfileRunner(
+    game,
+    A2S_SOURCES,
+    a2sProfileRunner<GameId>(queryProfile),
+  ) as AnyProfileRegistration;
+}
+
+// GAME_IDS lists every GameId exactly once, which the registry tests assert.
+const PROFILE_RUNNERS = Object.freeze(
+  Object.fromEntries(
+    GAME_IDS.map((game) => [game, GAME_PROFILES[game] ?? sharedA2sRegistration(game)]),
+  ),
+) as { readonly [G in GameId]: AnyProfileRegistration };
 
 const DEFAULT_DEPENDENCIES: QueryDependencies = {
   now: (): number => performance.now(),
@@ -508,7 +420,7 @@ async function pinnedTarget(
   return resolveTarget(targetInput, scope, resolver);
 }
 
-function a2sProfileRunner<G extends ImplementedGame>(
+function a2sProfileRunner<G extends GameId>(
   queryProfile: (options: A2sProfileOptions) => Promise<GameProfileResult<G>>,
 ): (options: ProfileRunOptions) => Promise<GameProfileResult<G>> {
   return async (options): Promise<GameProfileResult<G>> =>
