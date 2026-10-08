@@ -316,14 +316,20 @@ const GAME_PROFILES: GameProfileTable = Object.freeze({
 });
 
 function sharedA2sRegistration(game: GameId): AnyProfileRegistration {
-  const { name, protocol } = GAME_REGISTRY[game];
+  const { name, protocol, capabilities } = GAME_REGISTRY[game];
   if (protocol !== "a2s" && protocol !== "a2s-unreal") {
     throw new Error(`No query profile is registered for ${game}.`);
   }
+  // A source the registry declares unsupported is reported without network work.
+  const policies: Pick<A2sProfileOptions, "playerPolicy" | "rulesPolicy"> = {
+    ...(capabilities.players === "unsupported" ? { playerPolicy: "unsupported" } : {}),
+    ...(capabilities.rules === "unsupported" ? { rulesPolicy: "unsupported" } : {}),
+  };
   const queryProfile =
     protocol === "a2s-unreal"
-      ? (options: A2sProfileOptions) => queryUnrealSteamProfile(options, name)
-      : (options: A2sProfileOptions) => querySteamA2sProfile({ ...options, gameName: name });
+      ? (options: A2sProfileOptions) => queryUnrealSteamProfile({ ...options, ...policies }, name)
+      : (options: A2sProfileOptions) =>
+          querySteamA2sProfile({ ...options, ...policies, gameName: name });
   // GameProfileTable leaves a game to this path only when its data is exactly a shared A2S shape.
   return createProfileRunner(
     game,

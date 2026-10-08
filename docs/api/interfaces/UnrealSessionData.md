@@ -12,6 +12,7 @@ present only when the server sends it; Rules take precedence over keywords.
 ## Extended by
 
 - [`InsurgencySandstormData`](InsurgencySandstormData.md)
+- [`HumanitZData`](HumanitZData.md)
 - [`ArkSurvivalEvolvedData`](ArkSurvivalEvolvedData.md)
 - [`ConanExilesData`](ConanExilesData.md)
 - [`DayOfDragonsData`](DayOfDragonsData.md)

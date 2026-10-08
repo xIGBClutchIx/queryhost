@@ -71,6 +71,11 @@ describe("game registry", () => {
       "unturned",
       "enshrouded",
       "insurgency-sandstorm",
+      "arma-reforger",
+      "starbound",
+      "space-engineers",
+      "humanitz",
+      "v-rising",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -116,6 +121,7 @@ describe("game registry", () => {
       "icarus",
       "abiotic-factor",
       "insurgency-sandstorm",
+      "humanitz",
     ]);
     expect(protocols("cfx")).toEqual(["fivem", "redm"]);
     expect(GAME_REGISTRY["minecraft-java"].protocol).toBe("minecraft-java");
@@ -382,6 +388,10 @@ describe("game registry", () => {
       theforest: "the-forest",
       sandstorm: "insurgency-sandstorm",
       insurgencysandstorm: "insurgency-sandstorm",
+      armareforger: "arma-reforger",
+      reforger: "arma-reforger",
+      spaceengineers: "space-engineers",
+      vrising: "v-rising",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);

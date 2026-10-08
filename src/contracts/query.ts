@@ -9,6 +9,11 @@ import type {
   UnturnedData,
   EnshroudedData,
   InsurgencySandstormData,
+  ArmaReforgerData,
+  StarboundData,
+  SpaceEngineersData,
+  HumanitZData,
+  VRisingData,
   ArkSurvivalEvolvedData,
   ConanExilesData,
   KillingFloor2Data,
@@ -84,6 +89,11 @@ export interface GameDataMap {
   readonly unturned: UnturnedData;
   readonly enshrouded: EnshroudedData;
   readonly "insurgency-sandstorm": InsurgencySandstormData;
+  readonly "arma-reforger": ArmaReforgerData;
+  readonly starbound: StarboundData;
+  readonly "space-engineers": SpaceEngineersData;
+  readonly humanitz: HumanitZData;
+  readonly "v-rising": VRisingData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -123,6 +133,11 @@ export interface GameRawDataMap {
   readonly unturned: A2sRawData;
   readonly enshrouded: A2sRawData;
   readonly "insurgency-sandstorm": A2sRawData;
+  readonly "arma-reforger": A2sRawData;
+  readonly starbound: A2sRawData;
+  readonly "space-engineers": A2sRawData;
+  readonly humanitz: A2sRawData;
+  readonly "v-rising": A2sRawData;
 }
 
 /**
@@ -165,6 +180,11 @@ export interface GameProtocolMap {
   readonly unturned: "a2s";
   readonly enshrouded: "a2s";
   readonly "insurgency-sandstorm": "a2s-unreal";
+  readonly "arma-reforger": "a2s";
+  readonly starbound: "a2s";
+  readonly "space-engineers": "a2s";
+  readonly humanitz: "a2s-unreal";
+  readonly "v-rising": "a2s";
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -227,6 +247,10 @@ export interface GameAliasMap {
   readonly theforest: "the-forest";
   readonly sandstorm: "insurgency-sandstorm";
   readonly insurgencysandstorm: "insurgency-sandstorm";
+  readonly armareforger: "arma-reforger";
+  readonly reforger: "arma-reforger";
+  readonly spaceengineers: "space-engineers";
+  readonly vrising: "v-rising";
 }
 
 /** Accepted non-canonical game identifier. */

@@ -19,6 +19,7 @@
 - [Arma3Dlc](interfaces/Arma3Dlc.md)
 - [Arma3Mod](interfaces/Arma3Mod.md)
 - [Arma3RawData](interfaces/Arma3RawData.md)
+- [ArmaReforgerData](interfaces/ArmaReforgerData.md)
 - [CfxData](interfaces/CfxData.md)
 - [CfxPlayer](interfaces/CfxPlayer.md)
 - [ConanExilesData](interfaces/ConanExilesData.md)
@@ -40,6 +41,7 @@
 - [GameProtocolMap](interfaces/GameProtocolMap.md)
 - [GameRawDataMap](interfaces/GameRawDataMap.md)
 - [GarrysModData](interfaces/GarrysModData.md)
+- [HumanitZData](interfaces/HumanitZData.md)
 - [IcarusData](interfaces/IcarusData.md)
 - [InsurgencySandstormData](interfaces/InsurgencySandstormData.md)
 - [KillingFloor2Data](interfaces/KillingFloor2Data.md)
@@ -75,6 +77,8 @@
 - [SonsOfTheForestData](interfaces/SonsOfTheForestData.md)
 - [SoulmaskData](interfaces/SoulmaskData.md)
 - [SourceTvEndpoint](interfaces/SourceTvEndpoint.md)
+- [SpaceEngineersData](interfaces/SpaceEngineersData.md)
+- [StarboundData](interfaces/StarboundData.md)
 - [SteamA2sData](interfaces/SteamA2sData.md)
 - [SteamA2sPlayer](interfaces/SteamA2sPlayer.md)
 - [TeamFortress2Data](interfaces/TeamFortress2Data.md)
@@ -86,6 +90,7 @@
 - [ValheimData](interfaces/ValheimData.md)
 - [ValheimPlayer](interfaces/ValheimPlayer.md)
 - [VintageStoryData](interfaces/VintageStoryData.md)
+- [VRisingData](interfaces/VRisingData.md)
 
 ## Type Aliases
 

@@ -7,6 +7,7 @@ QueryHost records user-visible package changes in this file.
 ### Added
 
 - A `protocol` field on every `GAME_REGISTRY` definition naming the game's query protocol family (`a2s`, `a2s-unreal`, `minecraft-java`, `minecraft-bedrock`, `cfx`, `satisfactory`, or `vintage-story`), with the exported `GameProtocol` type and a `GameProtocolMap` that types each game's protocol literally.
+- Arma Reforger, Starbound, Space Engineers, HumanitZ, and V Rising queries through Steam A2S, with each game's query-port rule, an explicit unsupported Player source for Arma Reforger, and Unreal Engine session data for HumanitZ. Each server must enable queries with a setting; the README names it.
 
 ## [1.4.2] - 2026-10-08
 
