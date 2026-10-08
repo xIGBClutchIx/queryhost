@@ -1,7 +1,6 @@
 /** Bounded fixed-path HTTP exchanges over one validated, pinned destination. */
 
-import { request as requestHttp, type ClientRequest, type IncomingMessage } from "node:http";
-import { request as requestHttps } from "node:https";
+import type { ClientRequest, IncomingMessage } from "node:http";
 import { isIP } from "node:net";
 
 import type { QueryErrorCode } from "../contracts/shared.js";
@@ -143,6 +142,16 @@ function nodeRequest(
   configuration: HttpRequestConfiguration,
   onResponse: (response: HttpResponseAdapter) => void,
 ): HttpRequestAdapter {
+  // Loaded on first use: only HTTP-based profiles need the http/https stacks, and
+  // loading them eagerly accounts for most of the package-root import cost.
+  const stack =
+    configuration.protocol === "https"
+      ? process.getBuiltinModule("node:https")
+      : process.getBuiltinModule("node:http");
+  // A dedicated built-in agent keeps a host application's global or proxy agent from
+  // carrying the connection away from the validated, pinned address. `agent: false`
+  // is not enough: Node builds that agent from the global agent's own constructor.
+  const agent = new stack.Agent({ keepAlive: false, maxSockets: 1 });
   const requestOptions = {
     method: configuration.method,
     hostname: configuration.address,
@@ -163,15 +172,17 @@ function nodeRequest(
     },
     ...(configuration.servername === undefined ? {} : { servername: configuration.servername }),
     rejectUnauthorized: configuration.rejectUnauthorized,
+    agent,
   } as const;
-  const request: ClientRequest =
-    configuration.protocol === "https"
-      ? requestHttps(requestOptions, (response): void => {
-          onResponse(nodeResponse(response));
-        })
-      : requestHttp(requestOptions, (response): void => {
-          onResponse(nodeResponse(response));
-        });
+  let request: ClientRequest;
+  try {
+    request = stack.request(requestOptions, (response): void => {
+      onResponse(nodeResponse(response));
+    });
+  } catch (error) {
+    agent.destroy();
+    throw error;
+  }
   return {
     onError(listener): void {
       request.once("error", listener);
@@ -181,6 +192,7 @@ function nodeRequest(
     },
     destroy(): void {
       request.destroy();
+      agent.destroy();
     },
   };
 }
