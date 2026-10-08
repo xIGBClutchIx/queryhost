@@ -559,6 +559,21 @@ export interface InsurgencySandstormData extends SteamA2sData, UnrealSessionData
   readonly modIds?: readonly string[];
 }
 
+/** Arma Reforger data collected from its Steam A2S query port. */
+export interface ArmaReforgerData extends SteamA2sData {}
+
+/** Starbound data collected from its Steam A2S query port. */
+export interface StarboundData extends SteamA2sData {}
+
+/** Space Engineers data collected from its Steam A2S query port. */
+export interface SpaceEngineersData extends SteamA2sData {}
+
+/** HumanitZ data collected from its Steam A2S query port. */
+export interface HumanitZData extends SteamA2sData, UnrealSessionData {}
+
+/** V Rising data collected from its Steam A2S query port. */
+export interface VRisingData extends SteamA2sData {}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */

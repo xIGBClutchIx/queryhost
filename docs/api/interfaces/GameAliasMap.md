@@ -64,6 +64,12 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### armareforger
+
+> `readonly` **armareforger**: `"arma-reforger"`
+
+***
+
 ### ase
 
 > `readonly` **ase**: `"ark-survival-evolved"`
@@ -280,6 +286,12 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### reforger
+
+> `readonly` **reforger**: `"arma-reforger"`
+
+***
+
 ### sandstorm
 
 > `readonly` **sandstorm**: `"insurgency-sandstorm"`
@@ -304,6 +316,12 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### spaceengineers
+
+> `readonly` **spaceengineers**: `"space-engineers"`
+
+***
+
 ### teamfortress2
 
 > `readonly` **teamfortress2**: `"team-fortress-2"`
@@ -325,6 +343,12 @@ Alternate input spellings mapped to one stable game identity.
 ### vintagestory
 
 > `readonly` **vintagestory**: `"vintage-story"`
+
+***
+
+### vrising
+
+> `readonly` **vrising**: `"v-rising"`
 
 ***
 

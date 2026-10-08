@@ -48,6 +48,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### arma-reforger
+
+> `readonly` **arma-reforger**: [`ArmaReforgerData`](ArmaReforgerData.md)
+
+***
+
 ### conan-exiles
 
 > `readonly` **conan-exiles**: [`ConanExilesData`](ConanExilesData.md)
@@ -105,6 +111,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### garrys-mod
 
 > `readonly` **garrys-mod**: [`GarrysModData`](GarrysModData.md)
+
+***
+
+### humanitz
+
+> `readonly` **humanitz**: [`HumanitZData`](HumanitZData.md)
 
 ***
 
@@ -192,6 +204,18 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### space-engineers
+
+> `readonly` **space-engineers**: [`SpaceEngineersData`](SpaceEngineersData.md)
+
+***
+
+### starbound
+
+> `readonly` **starbound**: [`StarboundData`](StarboundData.md)
+
+***
+
 ### team-fortress-2
 
 > `readonly` **team-fortress-2**: [`TeamFortress2Data`](TeamFortress2Data.md)
@@ -207,6 +231,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### unturned
 
 > `readonly` **unturned**: [`UnturnedData`](UnturnedData.md)
+
+***
+
+### v-rising
+
+> `readonly` **v-rising**: [`VRisingData`](VRisingData.md)
 
 ***
 

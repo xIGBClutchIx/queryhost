@@ -92,6 +92,11 @@ export const GAME_IDS: readonly [
   "unturned",
   "enshrouded",
   "insurgency-sandstorm",
+  "arma-reforger",
+  "starbound",
+  "space-engineers",
+  "humanitz",
+  "v-rising",
 ] = [
   "a2s",
   "dont-starve-together",
@@ -128,6 +133,11 @@ export const GAME_IDS: readonly [
   "unturned",
   "enshrouded",
   "insurgency-sandstorm",
+  "arma-reforger",
+  "starbound",
+  "space-engineers",
+  "humanitz",
+  "v-rising",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -187,6 +197,10 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   theforest: "the-forest",
   sandstorm: "insurgency-sandstorm",
   insurgencysandstorm: "insurgency-sandstorm",
+  armareforger: "arma-reforger",
+  reforger: "arma-reforger",
+  spaceengineers: "space-engineers",
+  vrising: "v-rising",
 });
 
 /** Steam A2S games whose Player and Rules answers depend on server configuration or build. */
@@ -611,6 +625,48 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultQueryPort: 27_131,
     queryPortStrategy: "fixed",
     capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, mods: "conditional" }),
+  },
+  "arma-reforger": {
+    id: "arma-reforger",
+    name: "Arma Reforger",
+    protocol: "a2s",
+    defaultPort: 2001,
+    defaultQueryPort: 17_777,
+    queryPortStrategy: "fixed",
+    capabilities: Object.freeze({ ...STEAM_A2S_CAPABILITIES, players: "unsupported" }),
+  },
+  starbound: {
+    id: "starbound",
+    name: "Starbound",
+    protocol: "a2s",
+    defaultPort: 21_025,
+    defaultQueryPort: 21_025,
+    queryPortStrategy: "fixed",
+    capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  "space-engineers": {
+    id: "space-engineers",
+    name: "Space Engineers",
+    protocol: "a2s",
+    defaultPort: 27_016,
+    capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  humanitz: {
+    id: "humanitz",
+    name: "HumanitZ",
+    protocol: "a2s-unreal",
+    defaultPort: 7777,
+    defaultQueryPort: 27_015,
+    queryPortStrategy: "fixed",
+    capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  "v-rising": {
+    id: "v-rising",
+    name: "V Rising",
+    protocol: "a2s",
+    defaultPort: 9876,
+    defaultQueryPort: 9877,
+    capabilities: STEAM_A2S_CAPABILITIES,
   },
 };
 

@@ -13,6 +13,11 @@ import {
   type UnturnedData,
   type EnshroudedData,
   type InsurgencySandstormData,
+  type ArmaReforgerData,
+  type StarboundData,
+  type SpaceEngineersData,
+  type HumanitZData,
+  type VRisingData,
   type ArkSurvivalEvolvedData,
   type ConanExilesData,
   type KillingFloor2Data,
@@ -107,6 +112,11 @@ expectType<
     "unturned",
     "enshrouded",
     "insurgency-sandstorm",
+    "arma-reforger",
+    "starbound",
+    "space-engineers",
+    "humanitz",
+    "v-rising",
   ]
 >(GAME_IDS);
 
@@ -360,6 +370,21 @@ if (dynamicResult.ok) {
       break;
     case "insurgency-sandstorm":
       expectType<InsurgencySandstormData>(dynamicResult.data);
+      break;
+    case "arma-reforger":
+      expectType<ArmaReforgerData>(dynamicResult.data);
+      break;
+    case "starbound":
+      expectType<StarboundData>(dynamicResult.data);
+      break;
+    case "space-engineers":
+      expectType<SpaceEngineersData>(dynamicResult.data);
+      break;
+    case "humanitz":
+      expectType<HumanitZData>(dynamicResult.data);
+      break;
+    case "v-rising":
+      expectType<VRisingData>(dynamicResult.data);
       break;
   }
 } else {
