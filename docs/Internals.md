@@ -22,7 +22,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 
 - `index.ts` defines the package-root export boundary. Internal helpers are not public merely because TypeScript emits their files.
 - `registry.ts` is the browser-safe `queryhost/registry` entry. It may re-export only `contracts/registry.ts` values and contract types; a test fails if its import graph reaches any runtime module.
-- `runtime/client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner registry, and produces stable success or failure envelopes. Adding an implemented game requires one registry entry rather than another orchestration branch.
+- `runtime/client.ts` validates public budgets, owns the global execution envelope, resolves and pins targets, dispatches through an exhaustive typed profile-runner table, and produces stable success or failure envelopes. A game without a game-specific profile runs the shared profile its registry `protocol` names: `a2s` uses `querySteamA2sProfile` and `a2s-unreal` uses `queryUnrealSteamProfile`. The table's type admits that fallback only for games whose `GameProtocolMap` entry names a shared profile, whose `GameDataMap` entry has exactly that profile's shape, and whose raw data is plain Rules, so a plain A2S game is a registry entry plus its contract, and any extra data field fails compilation until the game has its own profile. Every other protocol needs an explicit profile.
 - Input aliases are resolved once at the client boundary. Definition lookup accepts aliases, while registry storage, profile dispatch, result types, and runtime `game` fields use the canonical ID. Aliases are explicit and unambiguous; QueryHost does not infer fuzzy names.
 - `cli/options.ts` validates command arguments without process side effects. `cli.ts` is the thin executable adapter that invokes the public client, prints the complete result, and maps usage and query outcomes to exit codes.
 - `contracts/query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
@@ -225,7 +225,7 @@ New transports should accept an execution scope and a pinned target, impose expl
 
 New parsers should consume bounded bytes, reject malformed or excessive structures deterministically, and contain no network access. Protocol fixtures and malformed-input cases belong in the same slice as the parser.
 
-New game profiles should declare required and optional sources, define merge precedence, preserve provenance, and add their contract to `GameDataMap` and `GAME_REGISTRY` together.
+New game profiles should declare required and optional sources, define merge precedence, preserve provenance, and add their contract to `GameDataMap` and `GAME_REGISTRY` together. A plain A2S game needs no profile module or runtime entry: set its `GameProtocolMap` entry and registry `protocol` to `a2s` or `a2s-unreal` and declare its data interface as an empty extension of `SteamA2sData` (plus `UnrealSessionData` for `a2s-unreal`).
 
 ## Verification
 

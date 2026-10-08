@@ -1,6 +1,13 @@
 /** Exhaustive public game metadata shared by every QueryHost consumer. */
 
-import type { CanonicalGameId, GameAlias, GameAliasMap, GameId, GameInputId } from "./query.js";
+import type {
+  CanonicalGameId,
+  GameAlias,
+  GameAliasMap,
+  GameId,
+  GameInputId,
+  GameProtocolMap,
+} from "./query.js";
 
 /** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
 export type SupportLevel = "supported" | "conditional" | "unsupported";
@@ -9,10 +16,28 @@ export type SupportLevel = "supported" | "conditional" | "unsupported";
 export type GameCapability =
   "summary" | "players" | "rules" | "mods" | "plugins" | "resources" | "srv";
 
+/**
+ * Protocol family of a game profile. `a2s-unreal` marks A2S profiles that also decode Unreal Engine
+ * session values, such as the build ID and session flags, from keywords and Rules.
+ */
+export type GameProtocol =
+  | "a2s"
+  | "a2s-unreal"
+  | "minecraft-java"
+  | "minecraft-bedrock"
+  | "cfx"
+  | "satisfactory"
+  | "vintage-story";
+
 /** Static metadata for one supported game profile. */
 export interface GameDefinition<G extends GameId = GameId> {
   readonly id: G;
   readonly name: string;
+  /**
+   * Protocol the profile queries. A game with no game-specific interpretation is queried through
+   * its protocol's shared profile, so an A2S game can be added with only its definition.
+   */
+  readonly protocol: GameProtocolMap[G];
   /** Default game or service port; omitted when the profile cannot infer one. */
   readonly defaultPort?: number;
   /**
@@ -182,6 +207,7 @@ export const GAME_REGISTRY: GameRegistry = {
   a2s: {
     id: "a2s",
     name: "Generic A2S",
+    protocol: "a2s",
     capabilities: {
       summary: "supported",
       players: "conditional",
@@ -195,6 +221,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "dont-starve-together": {
     id: "dont-starve-together",
     name: "Don't Starve Together",
+    protocol: "a2s",
     defaultPort: 10_999,
     defaultQueryPort: 27_016,
     queryPortStrategy: "fixed",
@@ -211,6 +238,7 @@ export const GAME_REGISTRY: GameRegistry = {
   rust: {
     id: "rust",
     name: "Rust",
+    protocol: "a2s",
     defaultPort: 28015,
     defaultQueryPort: 28017,
     capabilities: {
@@ -226,6 +254,7 @@ export const GAME_REGISTRY: GameRegistry = {
   palworld: {
     id: "palworld",
     name: "Palworld",
+    protocol: "a2s",
     defaultPort: 8211,
     defaultQueryPort: 27015,
     queryPortStrategy: "fixed",
@@ -242,6 +271,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "project-zomboid": {
     id: "project-zomboid",
     name: "Project Zomboid",
+    protocol: "a2s",
     defaultPort: 16261,
     capabilities: {
       summary: "supported",
@@ -256,6 +286,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "7-days-to-die": {
     id: "7-days-to-die",
     name: "7 Days to Die",
+    protocol: "a2s",
     defaultPort: 26900,
     capabilities: {
       summary: "supported",
@@ -270,6 +301,7 @@ export const GAME_REGISTRY: GameRegistry = {
   dayz: {
     id: "dayz",
     name: "DayZ",
+    protocol: "a2s",
     defaultPort: 2302,
     defaultQueryPort: 2305,
     capabilities: {
@@ -285,6 +317,7 @@ export const GAME_REGISTRY: GameRegistry = {
   valheim: {
     id: "valheim",
     name: "Valheim",
+    protocol: "a2s",
     defaultPort: 2456,
     defaultQueryPort: 2457,
     capabilities: {
@@ -300,6 +333,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "minecraft-java": {
     id: "minecraft-java",
     name: "Minecraft: Java Edition",
+    protocol: "minecraft-java",
     defaultPort: 25565,
     capabilities: {
       summary: "supported",
@@ -314,6 +348,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "minecraft-bedrock": {
     id: "minecraft-bedrock",
     name: "Minecraft: Bedrock Edition",
+    protocol: "minecraft-bedrock",
     defaultPort: 19132,
     capabilities: {
       summary: "supported",
@@ -328,6 +363,7 @@ export const GAME_REGISTRY: GameRegistry = {
   fivem: {
     id: "fivem",
     name: "FiveM",
+    protocol: "cfx",
     defaultPort: 30120,
     capabilities: {
       summary: "supported",
@@ -342,6 +378,7 @@ export const GAME_REGISTRY: GameRegistry = {
   redm: {
     id: "redm",
     name: "RedM",
+    protocol: "cfx",
     defaultPort: 30120,
     capabilities: {
       summary: "supported",
@@ -356,6 +393,7 @@ export const GAME_REGISTRY: GameRegistry = {
   satisfactory: {
     id: "satisfactory",
     name: "Satisfactory",
+    protocol: "satisfactory",
     defaultPort: 7777,
     capabilities: {
       summary: "supported",
@@ -370,6 +408,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "vintage-story": {
     id: "vintage-story",
     name: "Vintage Story",
+    protocol: "vintage-story",
     defaultPort: 42420,
     capabilities: {
       summary: "supported",
@@ -384,42 +423,49 @@ export const GAME_REGISTRY: GameRegistry = {
   "counter-strike-2": {
     id: "counter-strike-2",
     name: "Counter-Strike 2",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "counter-strike-source": {
     id: "counter-strike-source",
     name: "Counter-Strike: Source",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "team-fortress-2": {
     id: "team-fortress-2",
     name: "Team Fortress 2",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "left-4-dead": {
     id: "left-4-dead",
     name: "Left 4 Dead",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "left-4-dead-2": {
     id: "left-4-dead-2",
     name: "Left 4 Dead 2",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "garrys-mod": {
     id: "garrys-mod",
     name: "Garry's Mod",
+    protocol: "a2s",
     defaultPort: 27015,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "ark-survival-evolved": {
     id: "ark-survival-evolved",
     name: "ARK: Survival Evolved",
+    protocol: "a2s-unreal",
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -428,6 +474,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "conan-exiles": {
     id: "conan-exiles",
     name: "Conan Exiles",
+    protocol: "a2s-unreal",
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -444,6 +491,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "killing-floor-2": {
     id: "killing-floor-2",
     name: "Killing Floor 2",
+    protocol: "a2s",
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -452,6 +500,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "day-of-dragons": {
     id: "day-of-dragons",
     name: "Day of Dragons",
+    protocol: "a2s-unreal",
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -460,6 +509,7 @@ export const GAME_REGISTRY: GameRegistry = {
   soulmask: {
     id: "soulmask",
     name: "Soulmask",
+    protocol: "a2s-unreal",
     defaultPort: 8777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -468,6 +518,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "sons-of-the-forest": {
     id: "sons-of-the-forest",
     name: "Sons of the Forest",
+    protocol: "a2s",
     defaultPort: 8766,
     defaultQueryPort: 27_016,
     queryPortStrategy: "fixed",
@@ -476,6 +527,7 @@ export const GAME_REGISTRY: GameRegistry = {
   icarus: {
     id: "icarus",
     name: "Icarus",
+    protocol: "a2s-unreal",
     defaultPort: 17_777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -484,6 +536,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "abiotic-factor": {
     id: "abiotic-factor",
     name: "Abiotic Factor",
+    protocol: "a2s-unreal",
     defaultPort: 7777,
     defaultQueryPort: 27_015,
     queryPortStrategy: "fixed",
@@ -492,6 +545,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "arma-3": {
     id: "arma-3",
     name: "Arma 3",
+    protocol: "a2s",
     defaultPort: 2302,
     defaultQueryPort: 2303,
     capabilities: {
@@ -507,6 +561,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "american-truck-simulator": {
     id: "american-truck-simulator",
     name: "American Truck Simulator",
+    protocol: "a2s",
     defaultPort: 27_015,
     defaultQueryPort: 27_016,
     queryPortStrategy: "fixed",
@@ -515,6 +570,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "euro-truck-simulator-2": {
     id: "euro-truck-simulator-2",
     name: "Euro Truck Simulator 2",
+    protocol: "a2s",
     defaultPort: 27_015,
     defaultQueryPort: 27_016,
     queryPortStrategy: "fixed",
@@ -523,6 +579,7 @@ export const GAME_REGISTRY: GameRegistry = {
   "the-forest": {
     id: "the-forest",
     name: "The Forest",
+    protocol: "a2s",
     defaultPort: 27_015,
     defaultQueryPort: 27_016,
     queryPortStrategy: "fixed",
@@ -531,6 +588,7 @@ export const GAME_REGISTRY: GameRegistry = {
   unturned: {
     id: "unturned",
     name: "Unturned",
+    protocol: "a2s",
     defaultPort: 27_015,
     capabilities: Object.freeze({
       ...STEAM_A2S_CAPABILITIES,
@@ -541,12 +599,14 @@ export const GAME_REGISTRY: GameRegistry = {
   enshrouded: {
     id: "enshrouded",
     name: "Enshrouded",
+    protocol: "a2s",
     defaultPort: 15_637,
     capabilities: STEAM_A2S_CAPABILITIES,
   },
   "insurgency-sandstorm": {
     id: "insurgency-sandstorm",
     name: "Insurgency: Sandstorm",
+    protocol: "a2s-unreal",
     defaultPort: 27_102,
     defaultQueryPort: 27_131,
     queryPortStrategy: "fixed",

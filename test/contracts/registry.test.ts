@@ -10,6 +10,7 @@ import {
   isGameId,
   isGameInputId,
   listGames,
+  type GameProtocol,
 } from "../../src/index.js";
 
 const CAPABILITIES = [
@@ -21,6 +22,15 @@ const CAPABILITIES = [
   "srv",
   "summary",
 ] as const;
+const PROTOCOLS: readonly GameProtocol[] = [
+  "a2s",
+  "a2s-unreal",
+  "minecraft-java",
+  "minecraft-bedrock",
+  "cfx",
+  "satisfactory",
+  "vintage-story",
+];
 const SUPPORT_LEVELS = new Set(["conditional", "supported", "unsupported"]);
 
 describe("game registry", () => {
@@ -72,6 +82,7 @@ describe("game registry", () => {
 
       expect(definition.id).toBe(game);
       expect(definition.name.length).toBeGreaterThan(0);
+      expect(PROTOCOLS).toContain(definition.protocol);
       if (definition.defaultPort !== undefined) {
         expect(Number.isInteger(definition.defaultPort)).toBe(true);
         expect(definition.defaultPort).toBeGreaterThan(0);
@@ -91,6 +102,27 @@ describe("game registry", () => {
         Object.values(definition.capabilities).every((level) => SUPPORT_LEVELS.has(level)),
       ).toBe(true);
     }
+  });
+
+  it("names the protocol family that selects each shared profile", () => {
+    const protocols = (protocol: GameProtocol): readonly string[] =>
+      GAME_IDS.filter((game) => GAME_REGISTRY[game].protocol === protocol);
+
+    expect(protocols("a2s-unreal")).toEqual([
+      "ark-survival-evolved",
+      "conan-exiles",
+      "day-of-dragons",
+      "soulmask",
+      "icarus",
+      "abiotic-factor",
+      "insurgency-sandstorm",
+    ]);
+    expect(protocols("cfx")).toEqual(["fivem", "redm"]);
+    expect(GAME_REGISTRY["minecraft-java"].protocol).toBe("minecraft-java");
+    expect(GAME_REGISTRY["minecraft-bedrock"].protocol).toBe("minecraft-bedrock");
+    expect(GAME_REGISTRY.satisfactory.protocol).toBe("satisfactory");
+    expect(GAME_REGISTRY["vintage-story"].protocol).toBe("vintage-story");
+    expect(GAME_REGISTRY["counter-strike-2"].protocol).toBe("a2s");
   });
 
   it("looks up definitions without losing their game identity", () => {

@@ -3,6 +3,7 @@
 export type {
   GameCapability,
   GameDefinition,
+  GameProtocol,
   GameRegistry,
   SupportLevel,
 } from "./contracts/registry.js";
@@ -24,6 +25,7 @@ export type {
   GameId,
   GameDataMap,
   GameInputId,
+  GameProtocolMap,
   GameRawDataMap,
   QueryFailure,
   QueryInput,

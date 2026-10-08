@@ -125,6 +125,48 @@ export interface GameRawDataMap {
   readonly "insurgency-sandstorm": A2sRawData;
 }
 
+/**
+ * Associates each game with the protocol family its registry definition declares. A game whose
+ * profile is its protocol's shared A2S profile must have exactly that profile's data shape.
+ */
+export interface GameProtocolMap {
+  readonly a2s: "a2s";
+  readonly "dont-starve-together": "a2s";
+  readonly rust: "a2s";
+  readonly palworld: "a2s";
+  readonly "project-zomboid": "a2s";
+  readonly "7-days-to-die": "a2s";
+  readonly dayz: "a2s";
+  readonly valheim: "a2s";
+  readonly "minecraft-java": "minecraft-java";
+  readonly "minecraft-bedrock": "minecraft-bedrock";
+  readonly fivem: "cfx";
+  readonly redm: "cfx";
+  readonly satisfactory: "satisfactory";
+  readonly "vintage-story": "vintage-story";
+  readonly "counter-strike-2": "a2s";
+  readonly "counter-strike-source": "a2s";
+  readonly "team-fortress-2": "a2s";
+  readonly "left-4-dead": "a2s";
+  readonly "left-4-dead-2": "a2s";
+  readonly "garrys-mod": "a2s";
+  readonly "ark-survival-evolved": "a2s-unreal";
+  readonly "conan-exiles": "a2s-unreal";
+  readonly "killing-floor-2": "a2s";
+  readonly "day-of-dragons": "a2s-unreal";
+  readonly soulmask: "a2s-unreal";
+  readonly "sons-of-the-forest": "a2s";
+  readonly icarus: "a2s-unreal";
+  readonly "abiotic-factor": "a2s-unreal";
+  readonly "arma-3": "a2s";
+  readonly "american-truck-simulator": "a2s";
+  readonly "euro-truck-simulator-2": "a2s";
+  readonly "the-forest": "a2s";
+  readonly unturned: "a2s";
+  readonly enshrouded: "a2s";
+  readonly "insurgency-sandstorm": "a2s-unreal";
+}
+
 /** Every game identifier supported by the typed public contract. */
 export type GameId = keyof GameDataMap;
 
