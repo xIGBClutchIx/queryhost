@@ -16,7 +16,7 @@ const CONFIG_GATED = [
   ["starbound", "starbound", 21_100, [21_025, 21_025, 3000], false],
   ["space-engineers", "spaceengineers", 28_000, [27_016, 28_000, 3000], false],
   ["humanitz", "humanitz", 7800, [27_015, 27_015, 3000], true],
-  ["v-rising", "vrising", 10_000, [9877, 10_001, 3000], false],
+  ["v-rising", "vrising", 10_000, [9877, 9877, 3000], false],
 ] as const;
 
 describe.each(CONFIG_GATED)(
