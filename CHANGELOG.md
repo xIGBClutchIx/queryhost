@@ -2,6 +2,17 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Accept hostnames with more than four DNS answers instead of reporting `TARGET_BLOCKED`. Up to 64 answers are validated, any unsafe answer still rejects the whole set, and four are pinned, alternating address families when both are present.
+- Report one round trip in `server.queryRttMs` and A2S source `rttMs` when a server requires a challenge, instead of the sum of the challenge and data exchanges.
+
+### Changed
+
+- Start the next validated address 250 ms after the previous one, or as soon as it fails, for required A2S, Minecraft, Satisfactory, and Vintage Story sources. A silent first address no longer costs its full 2 s budget, and later addresses now get tried within the default deadline.
+
 ## [1.4.1] - 2026-10-06
 
 ### Fixed

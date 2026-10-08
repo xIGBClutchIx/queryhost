@@ -1,6 +1,7 @@
 /** Shared A2S profile execution without game-specific rule interpretation. */
 
 import type { ExecutionScope } from "../runtime/execution.js";
+import { raceAttempts } from "../runtime/attempt-race.js";
 import type {
   QueryMode,
   QuerySource,
@@ -62,34 +63,27 @@ function rootTermination(scope: ExecutionScope): UdpTransportError {
 }
 
 async function queryRequiredInfo(options: A2sProfileOptions): Promise<InfoSuccess> {
-  let lastError: Error | undefined;
   options.observer.onSourceStarted("a2s-info");
 
-  for (const address of options.target.addresses) {
-    const operation = options.scope.createOperation(INFO_OPERATION_TIMEOUT_MS, "a2s-info");
-    try {
-      const result = await queryA2sInfo(
-        { scope: operation, target: options.target, address },
-        options.a2s,
-      );
-      const report: QuerySource = {
-        source: "a2s-info",
-        status: "ok",
-        rttMs: result.rttMs,
-      };
-      options.observer.onSourceCompleted(report);
-      return { result, address, report };
-    } catch (error) {
-      if (options.scope.signal.aborted) {
-        throw rootTermination(options.scope);
-      }
-      lastError = error instanceof Error ? error : new Error("The A2S Info source failed.");
-    } finally {
-      operation.close();
-    }
-  }
-
-  throw lastError ?? new Error("The pinned A2S target has no addresses.");
+  const { candidate: address, value: result } = await raceAttempts(
+    {
+      scope: options.scope,
+      candidates: options.target.addresses,
+      operationTimeoutMs: INFO_OPERATION_TIMEOUT_MS,
+      source: "a2s-info",
+      terminated: () => rootTermination(options.scope),
+      empty: () => new Error("The pinned A2S target has no addresses."),
+    },
+    (address, operation) =>
+      queryA2sInfo({ scope: operation, target: options.target, address }, options.a2s),
+  );
+  const report: QuerySource = {
+    source: "a2s-info",
+    status: "ok",
+    rttMs: result.rttMs,
+  };
+  options.observer.onSourceCompleted(report);
+  return { result, address, report };
 }
 
 function isOptionalFailure(status: QuerySourceStatus): boolean {

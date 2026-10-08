@@ -17,6 +17,7 @@ import {
 } from "../protocols/satisfactory/query.js";
 import { SatisfactoryProtocolError } from "../protocols/satisfactory/errors.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { raceAttempts } from "../runtime/attempt-race.js";
 import { HttpTransportError } from "../transports/http.js";
 import { UdpTransportError } from "../transports/udp.js";
 
@@ -67,30 +68,29 @@ async function lightweight(
   cookie: bigint,
 ): Promise<{ readonly result: SatisfactoryLightweightResult; readonly address: PinnedAddress }> {
   options.observer.onSourceStarted("satisfactory-lightweight");
-  let lastError: Error | undefined;
-  for (const address of options.target.addresses) {
-    const operation = options.scope.createOperation(SOURCE_TIMEOUT_MS, "satisfactory-lightweight");
-    try {
-      const result = await querySatisfactoryLightweight(
+  const { candidate: address, value: result } = await raceAttempts(
+    {
+      scope: options.scope,
+      candidates: options.target.addresses,
+      operationTimeoutMs: SOURCE_TIMEOUT_MS,
+      source: "satisfactory-lightweight",
+      terminated: () => new UdpTransportError(terminationCode(options.scope)),
+      empty: () => new Error("Satisfactory target had no validated addresses."),
+    },
+    (address, operation) =>
+      querySatisfactoryLightweight(
         { scope: operation, target: options.target, address },
         cookie,
         options.query,
-      );
-      const report: QuerySource = Object.freeze({
-        source: "satisfactory-lightweight",
-        status: "ok",
-        rttMs: result.rttMs,
-      });
-      options.observer.onSourceCompleted(report);
-      return Object.freeze({ result, address });
-    } catch (error) {
-      if (options.scope.signal.aborted) throw new UdpTransportError(terminationCode(options.scope));
-      lastError = error instanceof Error ? error : new Error("Satisfactory query failed.");
-    } finally {
-      operation.close();
-    }
-  }
-  throw lastError ?? new Error("Satisfactory target had no validated addresses.");
+      ),
+  );
+  const report: QuerySource = Object.freeze({
+    source: "satisfactory-lightweight",
+    status: "ok",
+    rttMs: result.rttMs,
+  });
+  options.observer.onSourceCompleted(report);
+  return Object.freeze({ result, address });
 }
 
 function optionalStatus(error: Error): QuerySource["status"] {

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import type { DnsResolver } from "../../src/network/target.js";
 import { queryWithDependencies } from "../../src/runtime/client.js";
+import type { UdpCollectionResult } from "../../src/transports/udp.js";
 import { dependencies, fixtureA2s } from "../helpers/a2s-profile.js";
 
 describe("generic A2S profile", (): void => {
@@ -51,5 +53,45 @@ describe("generic A2S profile", (): void => {
       error: { code: "INVALID_INPUT" },
       sources: [],
     });
+  });
+
+  it("answers from a later address without waiting out a silent first one", async (): Promise<void> => {
+    const live = await fixtureA2s("rust");
+    const dns: DnsResolver = {
+      resolveAddresses: vi.fn(() =>
+        Promise.resolve([
+          { address: "93.184.216.34", family: 4 as const },
+          { address: "93.184.216.35", family: 4 as const },
+        ]),
+      ),
+      resolveSrv: vi.fn(() => Promise.resolve([])),
+    };
+    const contacted: string[] = [];
+    const startedMs = performance.now();
+
+    const result = await queryWithDependencies(
+      { game: "a2s", host: "play.example.com", port: 27_015 },
+      dependencies(
+        {
+          collect(options): Promise<UdpCollectionResult> {
+            contacted.push(options.address.address);
+            if (options.address.address === "93.184.216.34") {
+              return new Promise((_resolve, reject) => {
+                options.scope.signal.addEventListener("abort", () => {
+                  reject(new Error("silent address cancelled"));
+                });
+              });
+            }
+            return live.collect(options);
+          },
+        },
+        dns,
+      ),
+    );
+
+    expect(result).toMatchObject({ ok: true, server: { name: "QueryHost Rust Fixture" } });
+    expect(performance.now() - startedMs).toBeLessThan(1_000);
+    // Player and Rules follow the address that answered Info.
+    expect(contacted).toEqual(["93.184.216.34", "93.184.216.35", "93.184.216.35", "93.184.216.35"]);
   });
 });

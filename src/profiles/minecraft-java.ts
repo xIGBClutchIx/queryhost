@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 
 import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { raceAttempts } from "../runtime/attempt-race.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
 import {
   createMinecraftQuerySessionId,
@@ -172,39 +173,41 @@ async function requiredStatus(
   candidates: readonly MinecraftCandidate[],
 ): Promise<StatusSuccess> {
   options.observer.onSourceStarted("minecraft-slp");
-  let lastError: Error | undefined;
-  for (const candidate of candidates) {
-    for (const address of candidate.target.addresses) {
-      const operation = options.scope.createOperation(STATUS_OPERATION_TIMEOUT_MS, "minecraft-slp");
-      try {
-        const result = await queryMinecraftStatus(
-          { scope: operation, target: candidate.target, address },
-          options.status,
-        );
-        const report: QuerySource = Object.freeze({
-          source: "minecraft-slp",
-          status: "ok",
-          rttMs: result.rttMs,
-        });
-        options.observer.onSourceCompleted(report);
-        return Object.freeze({
-          result,
-          target: candidate.target,
-          address,
-          ...(candidate.srv === undefined ? {} : { srv: candidate.srv }),
-          report,
-        });
-      } catch (error) {
-        if (options.scope.signal.aborted) {
-          throw rootTcpTermination(options.scope);
-        }
-        lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
-      } finally {
-        operation.close();
-      }
-    }
-  }
-  throw lastError ?? new Error("Minecraft Java discovery produced no addresses.");
+  // SRV order is preserved: every address of a higher-preference target starts before the next.
+  const attempts = candidates.flatMap((candidate) =>
+    candidate.target.addresses.map((address) => ({ candidate, address })),
+  );
+  const {
+    candidate: { candidate, address },
+    value: result,
+  } = await raceAttempts(
+    {
+      scope: options.scope,
+      candidates: attempts,
+      operationTimeoutMs: STATUS_OPERATION_TIMEOUT_MS,
+      source: "minecraft-slp",
+      terminated: () => rootTcpTermination(options.scope),
+      empty: () => new Error("Minecraft Java discovery produced no addresses."),
+    },
+    ({ candidate: entry, address: selected }, operation) =>
+      queryMinecraftStatus(
+        { scope: operation, target: entry.target, address: selected },
+        options.status,
+      ),
+  );
+  const report: QuerySource = Object.freeze({
+    source: "minecraft-slp",
+    status: "ok",
+    rttMs: result.rttMs,
+  });
+  options.observer.onSourceCompleted(report);
+  return Object.freeze({
+    result,
+    target: candidate.target,
+    address,
+    ...(candidate.srv === undefined ? {} : { srv: candidate.srv }),
+    report,
+  });
 }
 
 function queryTarget(status: StatusSuccess, explicitPort: number | undefined): PinnedTarget {

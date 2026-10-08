@@ -13,7 +13,8 @@ import type { ExecutionScope } from "../runtime/execution.js";
 import { isPublicAddress, normalizeIpAddress } from "./ip.js";
 import type { QueryErrorCode } from "../contracts/shared.js";
 
-const MAX_ADDRESS_RECORDS = 4; // Bounds validation work and the transport's fallback set.
+const MAX_PINNED_ADDRESSES = 4; // Bounds the transport's fallback set.
+const MAX_ADDRESS_ANSWERS = 64; // Bounds validation work; real answer sets are far smaller.
 const MAX_SRV_RECORDS = 4; // Prevents SRV targets from multiplying the address fallback set.
 
 /** Target-validation failures that map directly to stable public query error codes. */
@@ -317,8 +318,8 @@ async function resolvePinnedAddresses(
   if (records.length === 0) {
     fail("DNS_FAILED");
   }
-  if (records.length > MAX_ADDRESS_RECORDS) {
-    fail("TARGET_BLOCKED");
+  if (records.length > MAX_ADDRESS_ANSWERS) {
+    fail("DNS_FAILED");
   }
 
   // One unsafe answer rejects the entire set. Selecting only a convenient public answer would
@@ -336,7 +337,32 @@ async function resolvePinnedAddresses(
     addresses.set(`${familyKey}:${address}`, freezeAddress(address, record.family));
   }
 
-  return Object.freeze([...addresses.values()]);
+  return Object.freeze(selectPinnedAddresses([...addresses.values()]));
+}
+
+/**
+ * Keeps at most `MAX_PINNED_ADDRESSES` validated answers. Resolver order is kept when it fits;
+ * a larger set alternates families so a dual-stack host keeps a fallback in each family.
+ */
+function selectPinnedAddresses(addresses: readonly PinnedAddress[]): readonly PinnedAddress[] {
+  if (addresses.length <= MAX_PINNED_ADDRESSES) {
+    return addresses;
+  }
+  const first = addresses[0]?.family;
+  const leading = addresses.filter((address) => address.family === first);
+  const trailing = addresses.filter((address) => address.family !== first);
+  const selected: PinnedAddress[] = [];
+  for (let index = 0; selected.length < MAX_PINNED_ADDRESSES; index += 1) {
+    const lead = leading[index];
+    const trail = trailing[index];
+    if (lead !== undefined) {
+      selected.push(lead);
+    }
+    if (trail !== undefined && selected.length < MAX_PINNED_ADDRESSES) {
+      selected.push(trail);
+    }
+  }
+  return selected;
 }
 
 /**

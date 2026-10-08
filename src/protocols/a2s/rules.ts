@@ -30,7 +30,7 @@ export type A2sRulesDependencies = A2sExchangeDependencies;
 /** Inputs for a direct A2S Rules query against one selected pinned address. */
 export type A2sRulesQueryOptions = A2sQueryOptions;
 
-/** Parsed rules and complete request/challenge round-trip duration. */
+/** Parsed rules and the round-trip time of the exchange that returned them. */
 export interface A2sRulesQueryResult {
   readonly rules: A2sRules;
   readonly rttMs: number;

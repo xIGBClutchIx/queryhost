@@ -173,7 +173,7 @@ describe("A2S Player", (): void => {
     );
   });
 
-  it("performs one challenge retry and adds both exchange durations", async (): Promise<void> => {
+  it("performs one challenge retry and reports the answering exchange duration", async (): Promise<void> => {
     const scope = createExecutionContext({ timeoutMs: 1_000 });
     const result = await queryA2sPlayer(
       { scope, target: target(), address: ADDRESS },
@@ -182,7 +182,7 @@ describe("A2S Player", (): void => {
     scope.close();
 
     expect(result.challenged).toBe(true);
-    expect(result.rttMs).toBe(6);
+    expect(result.rttMs).toBe(4);
     expect(result.players).toHaveLength(2);
   });
 
@@ -258,7 +258,7 @@ describe("A2S Rules", (): void => {
     );
   });
 
-  it("performs one challenge retry and adds both exchange durations", async (): Promise<void> => {
+  it("performs one challenge retry and reports the answering exchange duration", async (): Promise<void> => {
     const scope = createExecutionContext({ timeoutMs: 1_000 });
     const result = await queryA2sRules(
       { scope, target: target(), address: ADDRESS },
@@ -267,7 +267,7 @@ describe("A2S Rules", (): void => {
     scope.close();
 
     expect(result.challenged).toBe(true);
-    expect(result.rttMs).toBe(6);
+    expect(result.rttMs).toBe(4);
     expect(result.rules["hostname"]).toBe("QueryHost");
   });
 
