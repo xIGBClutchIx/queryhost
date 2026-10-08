@@ -11,6 +11,7 @@ import type {
   GameId,
   GameRawDataMap,
   GameInputId,
+  GameProtocolMap,
   QueryFailure,
   QueryInput,
   QueryResult,
@@ -201,16 +202,16 @@ type SameShape<A, B> = [A] extends [B]
   : false;
 
 /**
- * Games whose data has exactly the fields of a shared A2S profile and whose raw data is plain
- * Rules. Only these may omit a game-specific profile; any added field forces one.
+ * Games whose registry protocol has a shared A2S profile, whose data has exactly that profile's
+ * shape, and whose raw data is plain Rules. Only these may omit a game-specific profile.
  */
 type SharedA2sGame = {
-  readonly [G in GameId]: [GameRawDataMap[G]] extends [A2sRawData]
-    ? [A2sRawData] extends [GameRawDataMap[G]]
-      ? true extends {
-          readonly [P in keyof SharedA2sDataMap]: SameShape<GameDataMap[G], SharedA2sDataMap[P]>;
-        }[keyof SharedA2sDataMap]
-        ? G
+  readonly [G in GameId]: GameProtocolMap[G] extends keyof SharedA2sDataMap
+    ? [GameRawDataMap[G]] extends [A2sRawData]
+      ? [A2sRawData] extends [GameRawDataMap[G]]
+        ? SameShape<GameDataMap[G], SharedA2sDataMap[GameProtocolMap[G]]> extends true
+          ? G
+          : never
         : never
       : never
     : never;

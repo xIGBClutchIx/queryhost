@@ -1,6 +1,13 @@
 /** Exhaustive public game metadata shared by every QueryHost consumer. */
 
-import type { CanonicalGameId, GameAlias, GameAliasMap, GameId, GameInputId } from "./query.js";
+import type {
+  CanonicalGameId,
+  GameAlias,
+  GameAliasMap,
+  GameId,
+  GameInputId,
+  GameProtocolMap,
+} from "./query.js";
 
 /** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
 export type SupportLevel = "supported" | "conditional" | "unsupported";
@@ -30,7 +37,7 @@ export interface GameDefinition<G extends GameId = GameId> {
    * Protocol the profile queries. A game with no game-specific interpretation is queried through
    * its protocol's shared profile, so an A2S game can be added with only its definition.
    */
-  readonly protocol: GameProtocol;
+  readonly protocol: GameProtocolMap[G];
   /** Default game or service port; omitted when the profile cannot infer one. */
   readonly defaultPort?: number;
   /**

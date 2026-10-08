@@ -37,6 +37,7 @@
 - [GameAliasMap](interfaces/GameAliasMap.md)
 - [GameDataMap](interfaces/GameDataMap.md)
 - [GameDefinition](interfaces/GameDefinition.md)
+- [GameProtocolMap](interfaces/GameProtocolMap.md)
 - [GameRawDataMap](interfaces/GameRawDataMap.md)
 - [GarrysModData](interfaces/GarrysModData.md)
 - [IcarusData](interfaces/IcarusData.md)

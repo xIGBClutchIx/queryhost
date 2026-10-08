@@ -6,7 +6,7 @@ QueryHost records user-visible package changes in this file.
 
 ### Added
 
-- A `protocol` field on every `GAME_REGISTRY` definition naming the game's query protocol family (`a2s`, `a2s-unreal`, `minecraft-java`, `minecraft-bedrock`, `cfx`, `satisfactory`, or `vintage-story`), and the exported `GameProtocol` type.
+- A `protocol` field on every `GAME_REGISTRY` definition naming the game's query protocol family (`a2s`, `a2s-unreal`, `minecraft-java`, `minecraft-bedrock`, `cfx`, `satisfactory`, or `vintage-story`), with the exported `GameProtocol` type and a `GameProtocolMap` that types each game's protocol literally.
 
 ## [1.4.2] - 2026-10-08
 

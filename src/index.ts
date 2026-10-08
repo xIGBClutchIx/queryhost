@@ -25,6 +25,7 @@ export type {
   GameId,
   GameDataMap,
   GameInputId,
+  GameProtocolMap,
   GameRawDataMap,
   QueryFailure,
   QueryInput,

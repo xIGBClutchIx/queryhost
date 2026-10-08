@@ -53,7 +53,7 @@ destination. Custom game ports preserve the offset unless `queryPortStrategy` is
 
 ### protocol
 
-> `readonly` **protocol**: [`GameProtocol`](../type-aliases/GameProtocol.md)
+> `readonly` **protocol**: [`GameProtocolMap`](GameProtocolMap.md)\[`G`\]
 
 Protocol the profile queries. A game with no game-specific interpretation is queried through
 its protocol's shared profile, so an A2S game can be added with only its definition.

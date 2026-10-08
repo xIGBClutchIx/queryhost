@@ -9,6 +9,7 @@ export type {
   GameAliasMap,
   GameId,
   GameInputId,
+  GameProtocolMap,
 } from "./contracts/query.js";
 export type {
   GameCapability,
