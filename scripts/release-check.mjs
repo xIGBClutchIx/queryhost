@@ -50,6 +50,12 @@ requireReleaseMetadata(
   changelog.includes(`## [${manifest.version}] - `),
   `CHANGELOG.md must contain a dated ${manifest.version} release entry.`,
 );
+requireReleaseMetadata(
+  changelog.includes(
+    `\n[${manifest.version}]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v${manifest.version}\n`,
+  ),
+  `CHANGELOG.md must link the ${manifest.version} heading to its GitHub release.`,
+);
 
 const releaseTag = process.argv[2];
 if (releaseTag !== undefined) {
