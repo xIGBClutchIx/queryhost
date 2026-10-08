@@ -2,6 +2,16 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Send FiveM, RedM, and Satisfactory HTTP queries through a dedicated built-in agent, so a host application's global or proxy HTTP agent can no longer carry the connection away from the validated, pinned address.
+
+### Changed
+
+- Load the HTTP stacks and the bzip2 decoder only when a query needs them, cutting the package-root import time by more than half.
+
 ## [1.5.0] - 2026-10-08
 
 ### Added

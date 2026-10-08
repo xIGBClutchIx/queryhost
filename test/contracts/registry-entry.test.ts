@@ -6,21 +6,27 @@ import * as root from "../../src/index.js";
 import * as registry from "../../src/registry.js";
 
 /** Value-level static and dynamic import specifiers; type-only imports never run. */
-function importSpecifiers(source: string): readonly string[] {
+function importSpecifiers(source: string, includeDynamic = true): readonly string[] {
   const staticImports = source.matchAll(
     /^\s*(?:import|export)\s+(?!type\b)(?:[^;"']*?\sfrom\s+)?["']([^"']+)["']/gmu,
   );
   const dynamicImports = source.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/gu);
-  return [...staticImports, ...dynamicImports].map((match) => match[1] ?? "");
+  return [...staticImports, ...(includeDynamic ? dynamicImports : [])].map(
+    (match) => match[1] ?? "",
+  );
 }
 
 /** Follows relative imports from one source module and returns every bare specifier. */
-function externalImports(entry: URL, seen = new Set<string>()): readonly string[] {
+function externalImports(
+  entry: URL,
+  includeDynamic = true,
+  seen = new Set<string>(),
+): readonly string[] {
   if (seen.has(entry.href)) return [];
   seen.add(entry.href);
-  return importSpecifiers(readFileSync(entry, "utf8")).flatMap((specifier) =>
+  return importSpecifiers(readFileSync(entry, "utf8"), includeDynamic).flatMap((specifier) =>
     specifier.startsWith(".")
-      ? externalImports(new URL(specifier.replace(/\.js$/u, ".ts"), entry), seen)
+      ? externalImports(new URL(specifier.replace(/\.js$/u, ".ts"), entry), includeDynamic, seen)
       : [specifier],
   );
 }
@@ -73,5 +79,15 @@ describe("queryhost/registry entry", () => {
 
   it("detects a runtime import in the root entry", () => {
     expect(externalImports(new URL("../../src/index.ts", import.meta.url))).toContain("node:net");
+  });
+});
+
+describe("package-root entry", () => {
+  it("defers the HTTP stacks and bzip2 decoder until a query needs them", () => {
+    const eager = externalImports(new URL("../../src/index.ts", import.meta.url), false);
+    expect(eager).toContain("node:net");
+    expect(eager).not.toContain("node:http");
+    expect(eager).not.toContain("node:https");
+    expect(eager).not.toContain("@foxglove/wasm-bz2");
   });
 });

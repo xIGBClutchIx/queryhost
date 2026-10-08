@@ -1,3 +1,7 @@
+import http from "node:http";
+import https from "node:https";
+import type { Duplex } from "node:stream";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { PinnedAddress, PinnedTarget } from "../../src/network/target.js";
@@ -88,6 +92,61 @@ describe("fixed-path HTTP transport", (): void => {
 
     expect(result.statusCode).toBe(302);
     expect(redirectedRequests).toBe(0);
+  });
+
+  it("bypasses host-installed global agents that could reroute the pinned address", async (): Promise<void> => {
+    let agentConnections = 0;
+    const trap = (): Duplex => {
+      agentConnections += 1;
+      throw new Error("The global agent must not carry pinned exchanges.");
+    };
+    class ReroutingHttpAgent extends http.Agent {
+      public override createConnection(): Duplex {
+        return trap();
+      }
+    }
+    class ReroutingHttpsAgent extends https.Agent {
+      public override createConnection(): Duplex {
+        return trap();
+      }
+    }
+    let receivedRequests = 0;
+    const fake = await startFakeHttpServer((_request, response): void => {
+      receivedRequests += 1;
+      response.end("{}");
+    });
+    const selected = target(fake.port);
+    const exchange = async (protocol: "http" | "https"): Promise<number> => {
+      const scope = createExecutionContext({ timeoutMs: 500 });
+      try {
+        const result = await fixedHttpExchange({
+          scope,
+          target: selected,
+          address: firstAddress(selected),
+          protocol,
+          path: "/info.json",
+          maxResponseBytes: 64,
+        });
+        return result.statusCode;
+      } finally {
+        scope.close();
+      }
+    };
+    const originalHttpAgent = http.globalAgent;
+    const originalHttpsAgent = https.globalAgent;
+    http.globalAgent = new ReroutingHttpAgent();
+    https.globalAgent = new ReroutingHttpsAgent();
+    try {
+      await expect(exchange("http")).resolves.toBe(200);
+      // The plaintext server cannot complete a TLS handshake, but the socket must be ours.
+      await expect(exchange("https")).rejects.toSatisfy(transportCode("CONNECTION_FAILED"));
+    } finally {
+      http.globalAgent = originalHttpAgent;
+      https.globalAgent = originalHttpsAgent;
+    }
+
+    expect(agentConnections).toBe(0);
+    expect(receivedRequests).toBe(1);
   });
 
   it("sends bounded POST bodies to multi-segment fixed paths", async (): Promise<void> => {

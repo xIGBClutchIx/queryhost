@@ -1,6 +1,6 @@
 /** Bounded Source and GoldSource split-packet inspection and reconstruction. */
 
-import BZip2 from "@foxglove/wasm-bz2";
+import type BZip2 from "@foxglove/wasm-bz2";
 
 import { failA2s } from "./errors.js";
 
@@ -46,8 +46,11 @@ export interface A2sSplitDependencies {
 
 let bzip2Promise: Promise<BZip2> | undefined;
 
+/** Loads the WebAssembly decoder only when a compressed split response arrives. */
 async function getBzip2(): Promise<BZip2> {
-  bzip2Promise ??= BZip2.init();
+  bzip2Promise ??= import("@foxglove/wasm-bz2").then(async ({ default: decoder }) =>
+    decoder.init(),
+  );
   return bzip2Promise;
 }
 
