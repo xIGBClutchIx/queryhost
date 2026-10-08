@@ -1,6 +1,6 @@
 {
   "name": "queryhost",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Fast, typed game server queries for TypeScript.",
   "keywords": [
     "game-server",

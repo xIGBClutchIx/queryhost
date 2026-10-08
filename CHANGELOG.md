@@ -2,7 +2,7 @@
 
 QueryHost records user-visible package changes in this file.
 
-## [Unreleased]
+## [1.4.2] - 2026-10-08
 
 ### Fixed
 
