@@ -77,6 +77,8 @@ function resolver(
 interface ScriptedTcpOptions {
   readonly response: Uint8Array;
   readonly failAddresses?: ReadonlySet<string>;
+  /** Milliseconds before the connection to an address completes. */
+  readonly connectDelayMs?: ReadonlyMap<string, number>;
   readonly addresses?: string[];
   readonly ports?: number[];
   readonly hosts?: string[];
@@ -91,6 +93,7 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
       let endListener = (): void => undefined;
       let errorListener: (error: Error) => void = (): void => undefined;
       let selectedAddress = "";
+      let delayed: ReturnType<typeof setTimeout> | undefined;
       return {
         onConnect(listener): void {
           connectListener = listener;
@@ -108,13 +111,19 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
           selectedAddress = address;
           options.addresses?.push(address);
           options.ports?.push(port);
-          queueMicrotask((): void => {
+          const settle = (): void => {
             if (options.failAddresses?.has(address) === true) {
               errorListener(new Error("Synthetic connection failure."));
             } else {
               connectListener();
             }
-          });
+          };
+          const delayMs = options.connectDelayMs?.get(address);
+          if (delayMs === undefined) {
+            queueMicrotask(settle);
+          } else {
+            delayed = setTimeout(settle, delayMs);
+          }
         },
         write(data, completion): void {
           completion(undefined);
@@ -126,6 +135,7 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
           }
         },
         destroy(): void {
+          clearTimeout(delayed);
           endListener();
         },
       };
@@ -286,6 +296,82 @@ describe("Minecraft Java game profile", (): void => {
       data: { srv: { host: "backup.example.com", port: 25_566 } },
     });
     expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+  });
+
+  it("waits for a slow preferred SRV priority before trying a backup", async (): Promise<void> => {
+    const addresses: string[] = [];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        return Promise.resolve([
+          hostname === "primary.example.com"
+            ? { address: "1.1.1.1", family: 4 }
+            : { address: "8.8.8.8", family: 4 },
+        ]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve([
+          { name: "primary.example.com", port: 25_565, priority: 0, weight: 1 },
+          { name: "backup.example.com", port: 25_566, priority: 10, weight: 1 },
+        ]);
+      },
+    };
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: SUCCESS_RESPONSE,
+          connectDelayMs: new Map([["1.1.1.1", 600]]),
+          addresses,
+        }),
+        dns,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { srv: { host: "primary.example.com", port: 25_565 } },
+    });
+    expect(addresses).toEqual(["1.1.1.1"]);
+  });
+
+  it("races targets that share an SRV priority", async (): Promise<void> => {
+    const addresses: string[] = [];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        return Promise.resolve([
+          hostname === "silent.example.com"
+            ? { address: "1.1.1.1", family: 4 }
+            : { address: "8.8.8.8", family: 4 },
+        ]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve([
+          { name: "silent.example.com", port: 25_565, priority: 0, weight: 0 },
+          { name: "live.example.com", port: 25_566, priority: 0, weight: 1 },
+        ]);
+      },
+    };
+    const startedMs = performance.now();
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: SUCCESS_RESPONSE,
+          connectDelayMs: new Map([["1.1.1.1", 10_000]]),
+          addresses,
+        }),
+        dns,
+        successfulQuery(),
+        (): number => 0,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { srv: { host: "live.example.com", port: 25_566 } },
+    });
+    expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+    expect(performance.now() - startedMs).toBeLessThan(1_000);
   });
 
   it("bypasses SRV for an explicit game port and keeps queryPort separate", async (): Promise<void> => {

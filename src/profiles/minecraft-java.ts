@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 
 import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
 import type { ExecutionScope } from "../runtime/execution.js";
-import { raceAttempts } from "../runtime/attempt-race.js";
+import { raceAttempts, type AttemptRaceWin } from "../runtime/attempt-race.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
 import {
   createMinecraftQuerySessionId,
@@ -75,6 +75,13 @@ export interface MinecraftJavaProfileResult {
 interface MinecraftCandidate {
   readonly target: PinnedTarget;
   readonly srv?: MinecraftSrvTarget;
+  /** SRV priority; omitted for direct targets, which form a single group. */
+  readonly priority?: number;
+}
+
+interface StatusAttempt {
+  readonly candidate: MinecraftCandidate;
+  readonly address: PinnedAddress;
 }
 
 interface DiscoveryResult {
@@ -161,6 +168,7 @@ async function discover(options: MinecraftJavaProfileOptions): Promise<Discovery
         Object.freeze({
           target: record.target,
           srv: Object.freeze({ host: record.target.hostname, port: record.target.port }),
+          priority: record.priority,
         }),
       ),
     ),
@@ -173,28 +181,55 @@ async function requiredStatus(
   candidates: readonly MinecraftCandidate[],
 ): Promise<StatusSuccess> {
   options.observer.onSourceStarted("minecraft-slp");
-  // SRV order is preserved: every address of a higher-preference target starts before the next.
-  const attempts = candidates.flatMap((candidate) =>
-    candidate.target.addresses.map((address) => ({ candidate, address })),
-  );
+  // Candidates arrive in SRV order. Addresses race within one priority group; a higher-numbered
+  // priority is a backup and starts only after every target in the preferred group has failed.
+  const groups: StatusAttempt[][] = [];
+  let groupPriority: number | undefined;
+  for (const candidate of candidates) {
+    const attempts = candidate.target.addresses.map((address) => ({ candidate, address }));
+    const current = groups.at(-1);
+    if (current === undefined || candidate.priority !== groupPriority) {
+      groups.push(attempts);
+      groupPriority = candidate.priority;
+    } else {
+      current.push(...attempts);
+    }
+  }
+
+  let win: AttemptRaceWin<StatusAttempt, MinecraftJavaStatusQueryResult> | undefined;
+  let lastError: Error | undefined;
+  for (const group of groups) {
+    try {
+      win = await raceAttempts(
+        {
+          scope: options.scope,
+          candidates: group,
+          operationTimeoutMs: STATUS_OPERATION_TIMEOUT_MS,
+          source: "minecraft-slp",
+          terminated: () => rootTcpTermination(options.scope),
+          empty: () => new Error("Minecraft Java discovery produced no addresses."),
+        },
+        ({ candidate: entry, address: selected }, operation) =>
+          queryMinecraftStatus(
+            { scope: operation, target: entry.target, address: selected },
+            options.status,
+          ),
+      );
+      break;
+    } catch (error) {
+      if (options.scope.signal.aborted) {
+        throw rootTcpTermination(options.scope);
+      }
+      lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
+    }
+  }
+  if (win === undefined) {
+    throw lastError ?? new Error("Minecraft Java discovery produced no addresses.");
+  }
   const {
     candidate: { candidate, address },
     value: result,
-  } = await raceAttempts(
-    {
-      scope: options.scope,
-      candidates: attempts,
-      operationTimeoutMs: STATUS_OPERATION_TIMEOUT_MS,
-      source: "minecraft-slp",
-      terminated: () => rootTcpTermination(options.scope),
-      empty: () => new Error("Minecraft Java discovery produced no addresses."),
-    },
-    ({ candidate: entry, address: selected }, operation) =>
-      queryMinecraftStatus(
-        { scope: operation, target: entry.target, address: selected },
-        options.status,
-      ),
-  );
+  } = win;
   const report: QuerySource = Object.freeze({
     source: "minecraft-slp",
     status: "ok",
