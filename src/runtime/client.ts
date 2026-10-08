@@ -186,9 +186,17 @@ interface SharedA2sDataMap {
   readonly "a2s-unreal": SteamA2sData & UnrealSessionData;
 }
 
-type SameKeys<A, B> = [keyof A] extends [keyof B]
-  ? [keyof B] extends [keyof A]
-    ? true
+/**
+ * Mutual assignability alone would accept extra optional fields, so the key sets must match too;
+ * keys alone would accept a changed field type or optionality.
+ */
+type SameShape<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? [keyof A] extends [keyof B]
+      ? [keyof B] extends [keyof A]
+        ? true
+        : false
+      : false
     : false
   : false;
 
@@ -200,7 +208,7 @@ type SharedA2sGame = {
   readonly [G in GameId]: [GameRawDataMap[G]] extends [A2sRawData]
     ? [A2sRawData] extends [GameRawDataMap[G]]
       ? true extends {
-          readonly [P in keyof SharedA2sDataMap]: SameKeys<GameDataMap[G], SharedA2sDataMap[P]>;
+          readonly [P in keyof SharedA2sDataMap]: SameShape<GameDataMap[G], SharedA2sDataMap[P]>;
         }[keyof SharedA2sDataMap]
         ? G
         : never
