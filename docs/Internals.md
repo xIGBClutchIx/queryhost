@@ -60,6 +60,8 @@ Every attempted or skipped source produces provenance. Optional-source failure m
 
 One root execution scope owns the query deadline, caller signal, and a 16-attempt outbound-work budget. Child operation scopes inherit the same termination and attempt budget while clamping their own deadline to the parent. DNS lookups, transport exchanges, challenge retries, fallbacks, and optional sources all consume from that shared allowance before starting work.
 
+Required sources that may try several validated candidates (A2S Info, Minecraft SLP, Minecraft Bedrock, Satisfactory lightweight, and Vintage Story) go through `runtime/attempt-race.ts`. It starts candidates in preference order, each in its own operation scope, and starts the next one 250 ms later or as soon as an attempt fails, in the style of RFC 8305. The first success wins and closes every other attempt's scope; if all fail, the last candidate's error is raised, as sequential fallback did. Concurrent attempts still draw from the shared outbound-attempt budget. CFX full mode keeps sequential fallback because its three endpoints already run concurrently per address, and optional sources stay on the address that answered the required source.
+
 Every resource acquired during a query must register cleanup immediately. Cleanup is idempotent from the scope's perspective, runs in reverse registration order, and continues if another cleanup callback throws.
 
 Arbitrary exceptions and abort reasons are internal details. Code crossing into the public result contract must expose only a stable `QueryErrorCode` and stable message.
@@ -70,7 +72,7 @@ Target resolution is an SSRF and network-abuse boundary:
 
 - Accept a hostname or IP literal, never a caller-provided URL, path, packet, or redirect target.
 - Validate ports as integers from 1 through 65535.
-- Accept at most four combined address answers and four SRV records before derived work grows.
+- Validate up to 64 address answers, then pin at most four, and accept at most four SRV records before derived work grows. When more than four answers pass validation, the pinned set alternates address families in resolver order so a dual-stack host keeps a fallback in each family.
 - Use one Node resolver per public query. Pass the root signal into every lookup, cancel native resolver work on termination, and settle the lookup adapter immediately even if a platform promise is slow to reject.
 - Reject the entire answer set when any address is unsafe or malformed.
 - Treat IPv4-mapped IPv6, scoped IPv6, documentation, benchmark, multicast, private, link-local, loopback, and reserved space as blocked.
@@ -102,11 +104,11 @@ After a required source succeeds, requested independent optional sources receive
 
 ## Shared A2S profile invariants
 
-Generic A2S, Rust, Palworld, Project Zomboid, 7 Days to Die, Don't Starve Together, DayZ, Valheim, and the shared Steam A2S games use the same game-neutral orchestration. A2S Info is required. The shared profile tries only addresses from the validated target in resolver order; once Info succeeds, optional Player and Rules work uses that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT.
+Generic A2S, Rust, Palworld, Project Zomboid, 7 Days to Die, Don't Starve Together, DayZ, Valheim, and the shared Steam A2S games use the same game-neutral orchestration. A2S Info is required. The shared profile races only addresses from the validated target, staggered in resolver order; once Info succeeds, optional Player and Rules work uses that same address so one result never merges different server instances. Info supplies the common name, map, version, password state, player counts, and primary query RTT. Every A2S source reports the round trip of the exchange that returned data, so a challenge handshake does not double the measured RTT.
 
 Full mode applies each profile's declared Player and Rules policy concurrently. A supported source is queried; an unavailable capability is reported as `unsupported` without opening a socket. Summary mode records both as `not-requested`. Optional failure omits only its value, preserves its source report, adds stable warnings, and marks the successful result partial. Confirmed empty Player and Rules responses remain empty collections. The shared module has no game IDs, rule names, or game-specific result fields.
 
-The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address, optional sources receive 1,500 ms each, and every child remains capped by the root deadline.
+The public query deadline defaults to 5,000 ms and accepts values through 30,000 ms. Required Info attempts receive 2,000 ms per pinned address from the moment each starts, optional sources receive 1,500 ms each, and every child remains capped by the root deadline.
 
 ## Game-specific A2S merges
 
@@ -168,9 +170,9 @@ Current stock 1.22 servers return the exact protocol acknowledgement `Query comp
 
 ## Minecraft Java SLP invariants
 
-With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. At most four SRV records and four addresses per derived hostname are accepted; all are validated and pinned, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. Their DNS work and every later connection share the root attempt budget, so the record and address caps cannot multiply into an unbounded fallback set. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
+With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. At most four SRV records are accepted and at most four addresses are pinned per derived hostname; all are validated, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. Their DNS work and every later connection share the root attempt budget, so the record and address caps cannot multiply into an unbounded fallback set. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
 
-SLP tries each ordered target and its validated addresses until the required source succeeds. The handshake uses the selected SRV hostname and port when discovery succeeds, and `data.srv` records the target that actually answered rather than the first DNS record.
+SLP races the validated addresses of every target in one SRV priority group, staggered in weighted order, and moves to the next priority only after the whole group fails, so a backup priority never answers while a preferred target is still responding. The handshake uses the selected SRV hostname and port when discovery succeeds, and `data.srv` records the target that actually answered rather than the first DNS record.
 
 VarInts are canonical signed 32-bit encodings limited to five bytes. Framed responses, JSON bytes, JSON characters, chat-component depth, node count, and normalized MOTD output all have explicit limits. Status documents require a version name, numeric protocol, non-negative player counts, and a supported description component. Invalid UTF-8, trailing packet bytes, malformed JSON, and invalid field types fail deterministically.
 

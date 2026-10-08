@@ -34,7 +34,7 @@ export type A2sPlayerDependencies = A2sExchangeDependencies;
 /** Inputs for a direct A2S Player query against one selected pinned address. */
 export type A2sPlayerQueryOptions = A2sQueryOptions;
 
-/** Parsed player list and complete request/challenge round-trip duration. */
+/** Parsed player list and the round-trip time of the exchange that returned it. */
 export interface A2sPlayerQueryResult {
   readonly players: readonly A2sPlayer[];
   readonly rttMs: number;

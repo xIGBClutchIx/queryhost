@@ -298,7 +298,7 @@ describe("safe target resolution", () => {
       resolveAddresses: vi.fn(() => Promise.reject(new Error("resolver detail"))),
       resolveSrv: vi.fn(() => Promise.resolve([])),
     };
-    const tooMany = Array.from<DnsAddressRecord>({ length: 5 }).fill({
+    const tooMany = Array.from<DnsAddressRecord>({ length: 65 }).fill({
       address: "1.1.1.1",
       family: 4,
     });
@@ -329,6 +329,61 @@ describe("safe target resolution", () => {
     );
     await expectResolutionError(
       () => resolveTarget({ host: "play.example.com", port: 25565 }, createResolver(tooMany)),
+      "DNS_FAILED",
+    );
+  });
+
+  it("pins four answers from a larger dual-stack set, alternating families", async () => {
+    const records: DnsAddressRecord[] = [
+      { address: "1.1.1.1", family: 4 },
+      { address: "1.0.0.1", family: 4 },
+      { address: "8.8.8.8", family: 4 },
+      { address: "2606:4700:4700::1111", family: 6 },
+      { address: "2606:4700:4700::1001", family: 6 },
+    ];
+
+    const target = await resolveTarget(
+      { host: "play.example.com", port: 25565 },
+      createResolver(records),
+    );
+
+    expect(target.addresses).toEqual([
+      { address: "1.1.1.1", family: 4 },
+      { address: "2606:4700:4700::1111", family: 6 },
+      { address: "1.0.0.1", family: 4 },
+      { address: "2606:4700:4700::1001", family: 6 },
+    ]);
+  });
+
+  it("keeps the first four answers of a larger single-family set", async () => {
+    const records: DnsAddressRecord[] = ["1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4", "9.9.9.9"].map(
+      (address) => ({ address, family: 4 }),
+    );
+
+    const target = await resolveTarget(
+      { host: "play.example.com", port: 25565 },
+      createResolver(records),
+    );
+
+    expect(target.addresses.map(({ address }) => address)).toEqual([
+      "1.1.1.1",
+      "1.0.0.1",
+      "8.8.8.8",
+      "8.8.4.4",
+    ]);
+  });
+
+  it("still rejects a large answer set when an answer past the pinned four is private", async () => {
+    const records: DnsAddressRecord[] = [
+      ...["1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4"].map((address) => ({
+        address,
+        family: 4 as const,
+      })),
+      { address: "10.0.0.1", family: 4 },
+    ];
+
+    await expectResolutionError(
+      () => resolveTarget({ host: "play.example.com", port: 25565 }, createResolver(records)),
       "TARGET_BLOCKED",
     );
   });

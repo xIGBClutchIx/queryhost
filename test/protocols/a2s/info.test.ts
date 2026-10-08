@@ -436,7 +436,7 @@ describe("A2S Info exchange", (): void => {
     expect(requests).toBe(2);
   });
 
-  it("adds both exchange durations after a challenge", async (): Promise<void> => {
+  it("reports the answering exchange duration after a challenge", async (): Promise<void> => {
     const challenge = await readHexFixture("challenge-captured.hex");
     const response = await readHexFixture("source-captured-redacted.hex");
     const replies = [challenge, response] as const;
@@ -464,6 +464,6 @@ describe("A2S Info exchange", (): void => {
     );
     scope.close();
 
-    expect(result.rttMs).toBe(9);
+    expect(result.rttMs).toBe(6);
   });
 });

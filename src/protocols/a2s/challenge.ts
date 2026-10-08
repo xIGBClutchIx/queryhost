@@ -10,7 +10,7 @@ export type A2sChallengePacket<T> =
   | { readonly kind: "challenge"; readonly challenge: number }
   | { readonly kind: "data"; readonly value: T };
 
-/** Successful challenge-based source query and its complete round-trip duration. */
+/** Successful challenge-based source query and the round-trip time of the answering exchange. */
 export interface A2sChallengeQueryResult<T> {
   readonly value: T;
   readonly rttMs: number;
@@ -64,7 +64,8 @@ export async function queryA2sChallengeSource<T>(
   }
   return {
     value: secondPacket.value,
-    rttMs: firstResponse.rttMs + secondResponse.rttMs,
+    // The challenge exchange is handshake overhead; report the one round trip that returned data.
+    rttMs: secondResponse.rttMs,
     challenged: true,
   };
 }

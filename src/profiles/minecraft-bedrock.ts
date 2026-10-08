@@ -2,6 +2,7 @@
 
 import type { MinecraftBedrockData } from "../contracts/games.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { raceAttempts } from "../runtime/attempt-race.js";
 import {
   createMinecraftBedrockClientGuid,
   queryMinecraftBedrockPing,
@@ -54,14 +55,17 @@ async function requiredPing(
   options.observer.onSourceStarted("minecraft-bedrock-raknet");
   const timestamp = BigInt(Math.floor((options.wallNow ?? Date.now)()));
   const clientGuid = createMinecraftBedrockClientGuid(options.random ?? Math.random);
-  let lastError: Error | undefined;
-  for (const address of options.target.addresses) {
-    const operation = options.scope.createOperation(
-      PING_OPERATION_TIMEOUT_MS,
-      "minecraft-bedrock-raknet",
-    );
-    try {
-      const result = await queryMinecraftBedrockPing(
+  const { value: result } = await raceAttempts(
+    {
+      scope: options.scope,
+      candidates: options.target.addresses,
+      operationTimeoutMs: PING_OPERATION_TIMEOUT_MS,
+      source: "minecraft-bedrock-raknet",
+      terminated: () => rootTermination(options.scope),
+      empty: () => new Error("Minecraft Bedrock target had no validated addresses."),
+    },
+    (address, operation) =>
+      queryMinecraftBedrockPing(
         {
           scope: operation,
           target: options.target,
@@ -70,24 +74,15 @@ async function requiredPing(
           clientGuid,
         },
         options.ping,
-      );
-      const report: QuerySource = Object.freeze({
-        source: "minecraft-bedrock-raknet",
-        status: "ok",
-        rttMs: result.rttMs,
-      });
-      options.observer.onSourceCompleted(report);
-      return Object.freeze({ result, report });
-    } catch (error) {
-      if (options.scope.signal.aborted) {
-        throw rootTermination(options.scope);
-      }
-      lastError = error instanceof Error ? error : new Error("Minecraft Bedrock ping failed.");
-    } finally {
-      operation.close();
-    }
-  }
-  throw lastError ?? new Error("Minecraft Bedrock target had no validated addresses.");
+      ),
+  );
+  const report: QuerySource = Object.freeze({
+    source: "minecraft-bedrock-raknet",
+    status: "ok",
+    rttMs: result.rttMs,
+  });
+  options.observer.onSourceCompleted(report);
+  return Object.freeze({ result, report });
 }
 
 /** Queries the required RakNet source and maps its advertised fields into stable contracts. */

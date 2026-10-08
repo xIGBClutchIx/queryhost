@@ -128,7 +128,7 @@ export type A2sInfoDependencies = A2sExchangeDependencies;
 /** Inputs for a direct A2S Info query against one selected pinned address. */
 export type A2sInfoQueryOptions = A2sQueryOptions;
 
-/** Parsed A2S information and the complete request/challenge round-trip duration. */
+/** Parsed A2S information and the round-trip time of the exchange that returned it. */
 export interface A2sInfoQueryResult {
   readonly info: A2sInfo;
   readonly rttMs: number;
@@ -381,7 +381,8 @@ export async function queryA2sInfo(
 
   return {
     info: secondPacket.info,
-    rttMs: firstResponse.rttMs + secondResponse.rttMs,
+    // The challenge exchange is handshake overhead; report the one round trip that returned data.
+    rttMs: secondResponse.rttMs,
     challenged: true,
   };
 }

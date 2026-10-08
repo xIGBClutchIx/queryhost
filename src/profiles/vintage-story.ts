@@ -14,6 +14,7 @@ import {
   type VintageStoryQueryResult,
 } from "../protocols/vintage-story/query.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { raceAttempts } from "../runtime/attempt-race.js";
 import { TcpTransportError } from "../transports/tcp.js";
 
 const QUERY_OPERATION_TIMEOUT_MS = 2_000;
@@ -49,34 +50,25 @@ async function requiredQuery(
   options: VintageStoryProfileOptions,
 ): Promise<{ readonly result: VintageStoryQueryResult; readonly report: QuerySource }> {
   options.observer.onSourceStarted("vintage-story-query");
-  let lastError: Error | undefined;
-  for (const address of options.target.addresses) {
-    const operation = options.scope.createOperation(
-      QUERY_OPERATION_TIMEOUT_MS,
-      "vintage-story-query",
-    );
-    try {
-      const result = await queryVintageStory(
-        { scope: operation, target: options.target, address },
-        options.query,
-      );
-      const report: QuerySource = Object.freeze({
-        source: "vintage-story-query",
-        status: "ok",
-        rttMs: result.rttMs,
-      });
-      options.observer.onSourceCompleted(report);
-      return Object.freeze({ result, report });
-    } catch (error) {
-      if (options.scope.signal.aborted) {
-        throw rootTermination(options.scope);
-      }
-      lastError = error instanceof Error ? error : new Error("Vintage Story query failed.");
-    } finally {
-      operation.close();
-    }
-  }
-  throw lastError ?? new Error("Vintage Story target had no validated addresses.");
+  const { value: result } = await raceAttempts(
+    {
+      scope: options.scope,
+      candidates: options.target.addresses,
+      operationTimeoutMs: QUERY_OPERATION_TIMEOUT_MS,
+      source: "vintage-story-query",
+      terminated: () => rootTermination(options.scope),
+      empty: () => new Error("Vintage Story target had no validated addresses."),
+    },
+    (address, operation) =>
+      queryVintageStory({ scope: operation, target: options.target, address }, options.query),
+  );
+  const report: QuerySource = Object.freeze({
+    source: "vintage-story-query",
+    status: "ok",
+    rttMs: result.rttMs,
+  });
+  options.observer.onSourceCompleted(report);
+  return Object.freeze({ result, report });
 }
 
 /** Queries a Vintage Story server and preserves liveness-only responses without invented data. */
