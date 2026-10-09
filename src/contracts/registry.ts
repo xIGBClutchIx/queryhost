@@ -706,6 +706,7 @@ export const GAME_REGISTRY: GameRegistry = {
     protocol: "a2s",
     defaultPort: 27_000,
     defaultQueryPort: 27_020,
+    queryPortStrategy: "fixed",
     capabilities: STEAM_A2S_CAPABILITIES,
   },
 };

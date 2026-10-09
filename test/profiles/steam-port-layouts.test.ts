@@ -20,7 +20,7 @@ const PORT_LAYOUTS = [
   ["enshrouded", "enshrouded", 16_000, [15_637, 16_000, 3000]],
   ["insurgency-sandstorm", "sandstorm", 28_000, [27_131, 27_131, 3000]],
   ["vein", "vein", 7800, [7778, 7801, 3000]],
-  ["avorion", "avorion", 28_000, [27_020, 28_020, 3000]],
+  ["avorion", "avorion", 28_000, [27_020, 27_020, 3000]],
 ] as const;
 
 describe.each(PORT_LAYOUTS)("%s game profile", (game, alias, customPort, expected): void => {
