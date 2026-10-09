@@ -137,6 +137,18 @@ function text(info: JsonObject, key: string): string | undefined {
     : failEco("MALFORMED_RESPONSE");
 }
 
+/**
+ * Some Eco builds serialize enum settings as their ordinal instead of their name. The ordinal's
+ * meaning is build-specific, so it is omitted rather than guessed or treated as malformed.
+ */
+function enumName(info: JsonObject, key: string): string | undefined {
+  const value = present(info, key);
+  if (typeof value === "number" && Number.isSafeInteger(value)) {
+    return undefined;
+  }
+  return text(info, key);
+}
+
 function flag(info: JsonObject, key: string): boolean | undefined {
   const value = present(info, key);
   if (value === undefined) {
@@ -218,11 +230,13 @@ export function parseEcoFrontpage(data: Uint8Array): EcoFrontpage {
     peakActivePlayers: count(info, "PeakActivePlayers"),
     maxActivePlayers: count(info, "MaxActivePlayers"),
     adminOnline: flag(info, "AdminOnline"),
-    category: text(info, "Category"),
+    category: enumName(info, "Category"),
     language: text(info, "Language"),
     worldSize: text(info, "WorldSize"),
     economyDescription: text(info, "EconomyDesc"),
-    skillSpecialization: text(info, "SkillSpecializationSetting"),
+    // Builds with a numeric setting also send its display name as `SkillSpecialization`.
+    skillSpecialization:
+      text(info, "SkillSpecialization") ?? enumName(info, "SkillSpecializationSetting"),
     playtimes: text(info, "Playtimes"),
     discordAddress: text(info, "DiscordAddress"),
     joinUrl: text(info, "JoinUrl"),

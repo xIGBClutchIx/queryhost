@@ -50,6 +50,27 @@ describe("Eco frontpage", (): void => {
     });
   });
 
+  it("omits numeric enum ordinals and keeps the descriptive setting name", (): void => {
+    const legacy = readFileSync(
+      new URL("../../fixtures/eco/frontpage-0.7.json", import.meta.url),
+      "utf8",
+    );
+    const page = parseEcoFrontpage(encode(legacy));
+    expect(page).toMatchObject({
+      description: "PPK Test",
+      version: "0.7.8.6 beta",
+      onlinePlayers: 0,
+      skillSpecialization: "Medium",
+      gamePort: 27505,
+      webPort: 27022,
+    });
+    expect(page.category).toBeUndefined();
+    expect(
+      parseEcoFrontpage(encode('{"Info":{"SkillSpecializationSetting":2}}')).skillSpecialization,
+    ).toBeUndefined();
+    expect(() => parseEcoFrontpage(encode('{"Info":{"Category":1.5}}'))).toThrow(EcoProtocolError);
+  });
+
   it("omits absent and null keys instead of inventing values", (): void => {
     expect(
       parseEcoFrontpage(encode('{"Info":{"Description":"Bare","OnlinePlayersNames":null}}')),

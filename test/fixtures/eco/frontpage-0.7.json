@@ -1,0 +1,28 @@
+{
+  "Info": {
+    "UniqueIdentifier": 7048595726131916000,
+    "Id": "ac2dc8fe-703f-4f41-8646-7a442e6581d2",
+    "GamePort": 27505,
+    "WebPort": 27022,
+    "IsLAN": false,
+    "Description": "PPK Test",
+    "Category": 0,
+    "OnlinePlayers": 0,
+    "TotalPlayers": 0,
+    "AdminOnline": false,
+    "TimeSinceStart": 833.1648740765587,
+    "TimeLeft": 2591166.9136872236,
+    "Animals": 811,
+    "Plants": 78658,
+    "Laws": 0,
+    "WorldSize": "0.52km²",
+    "Version": "0.7.8.6 beta",
+    "EconomyDesc": "0 trades, 0 contracts",
+    "SkillSpecialization": "Medium",
+    "SkillSpecializationSetting": 2,
+    "Language": "English",
+    "HasPassword": false,
+    "HasMeteor": true,
+    "DistributionStationItems": "None."
+  }
+}
