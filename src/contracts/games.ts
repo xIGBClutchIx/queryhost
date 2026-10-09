@@ -574,6 +574,12 @@ export interface HumanitZData extends SteamA2sData, UnrealSessionData {}
 /** V Rising data collected from its Steam A2S query port. */
 export interface VRisingData extends SteamA2sData {}
 
+/** VEIN data collected from its Steam A2S query port. */
+export interface VeinData extends SteamA2sData {}
+
+/** Avorion data collected from its Steam A2S query port. */
+export interface AvorionData extends SteamA2sData {}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */
@@ -693,4 +699,52 @@ export interface SatisfactoryRawData {
   readonly subStates: readonly SatisfactorySubState[];
   /** Omitted when the optional HTTPS source did not complete. */
   readonly health?: SatisfactoryHealth;
+}
+
+/** Eco world facts from the dedicated server's web `/frontpage` status page. */
+export interface EcoData {
+  /** Omitted when the server does not list names; empty means it confirmed nobody is online. */
+  readonly players?: readonly string[];
+  /** Players who have joined this world at any time; Eco reports no slot limit here. */
+  readonly totalPlayers?: number;
+  readonly activeAndOnlinePlayers?: number;
+  readonly peakActivePlayers?: number;
+  /** Active-player setting reported by the server, as Eco defines it. */
+  readonly maxActivePlayers?: number;
+  readonly adminOnline?: boolean;
+  /** Long server description with Unity rich-text tags removed. */
+  readonly detailedDescription?: string;
+  readonly category?: string;
+  readonly language?: string;
+  readonly worldSize?: string;
+  readonly economyDescription?: string;
+  readonly skillSpecialization?: string;
+  readonly playtimes?: string;
+  readonly discordAddress?: string;
+  readonly joinUrl?: string;
+  readonly access?: string;
+  /** Game port advertised by the server; it may differ from the queried web port. */
+  readonly gamePort?: number;
+  /** Web port advertised by the server. */
+  readonly webPort?: number;
+  readonly external?: boolean;
+  readonly lan?: boolean;
+  readonly paused?: boolean;
+  /** Whether this world has a meteor countdown. */
+  readonly meteor?: boolean;
+  readonly timeSinceStartSeconds?: number;
+  /** Time left on the meteor countdown, as reported by the server. */
+  readonly timeLeftSeconds?: number;
+  readonly animals?: number;
+  readonly plants?: number;
+  readonly laws?: number;
+  /** Whether the server limits daily play time. */
+  readonly limitingHours?: boolean;
+  readonly exhaustionAfterHours?: number;
+}
+
+/** Eco text fields exactly as served, including Unity rich-text tags. */
+export interface EcoRawData {
+  readonly description?: string;
+  readonly detailedDescription?: string;
 }

@@ -14,6 +14,8 @@ import type {
   SpaceEngineersData,
   HumanitZData,
   VRisingData,
+  VeinData,
+  AvorionData,
   ArkSurvivalEvolvedData,
   ConanExilesData,
   KillingFloor2Data,
@@ -45,6 +47,8 @@ import type {
   TeamFortress2Data,
   VintageStoryData,
   ValheimData,
+  EcoData,
+  EcoRawData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -94,6 +98,9 @@ export interface GameDataMap {
   readonly "space-engineers": SpaceEngineersData;
   readonly humanitz: HumanitZData;
   readonly "v-rising": VRisingData;
+  readonly eco: EcoData;
+  readonly vein: VeinData;
+  readonly avorion: AvorionData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -138,6 +145,9 @@ export interface GameRawDataMap {
   readonly "space-engineers": A2sRawData;
   readonly humanitz: A2sRawData;
   readonly "v-rising": A2sRawData;
+  readonly eco: EcoRawData;
+  readonly vein: A2sRawData;
+  readonly avorion: A2sRawData;
 }
 
 /**
@@ -185,6 +195,9 @@ export interface GameProtocolMap {
   readonly "space-engineers": "a2s";
   readonly humanitz: "a2s-unreal";
   readonly "v-rising": "a2s";
+  readonly eco: "eco";
+  readonly vein: "a2s";
+  readonly avorion: "a2s";
 }
 
 /** Every game identifier supported by the typed public contract. */

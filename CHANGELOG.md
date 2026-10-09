@@ -2,6 +2,14 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- Eco queries over the dedicated server's unauthenticated web `/frontpage` status page (web port 3001, game port `+1`), with the server name stripped of Unity rich-text tags, online player names, total and active player counts, and world facts such as the meteor countdown, laws, animals, and plants. The name and description as served stay under `rawData`.
+- `eco` in the `GameProtocol` union and an `eco-frontpage` query source.
+- VEIN (game port 7777, query `+1`) and Avorion (game port 27000, fixed Steam query port 27020) through Steam A2S.
+
 ## [1.5.1] - 2026-10-08
 
 ### Fixed

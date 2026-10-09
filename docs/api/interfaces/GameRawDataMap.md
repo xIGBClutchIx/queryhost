@@ -52,6 +52,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### avorion
+
+> `readonly` **avorion**: [`A2sRawData`](A2sRawData.md)
+
+***
+
 ### conan-exiles
 
 > `readonly` **conan-exiles**: [`A2sRawData`](A2sRawData.md)
@@ -85,6 +91,12 @@ Associates implemented games with their untouched protocol payloads.
 ### dont-starve-together
 
 > `readonly` **dont-starve-together**: [`A2sRawData`](A2sRawData.md)
+
+***
+
+### eco
+
+> `readonly` **eco**: [`EcoRawData`](EcoRawData.md)
 
 ***
 
@@ -241,6 +253,12 @@ Associates implemented games with their untouched protocol payloads.
 ### valheim
 
 > `readonly` **valheim**: `never`
+
+***
+
+### vein
+
+> `readonly` **vein**: [`A2sRawData`](A2sRawData.md)
 
 ***
 

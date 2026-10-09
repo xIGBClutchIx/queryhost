@@ -24,6 +24,8 @@ import { parseMinecraftStatusResponse } from "../../src/protocols/minecraft-java
 import { SatisfactoryProtocolError } from "../../src/protocols/satisfactory/errors.js";
 import { parseSatisfactoryState } from "../../src/protocols/satisfactory/lightweight.js";
 import { parseSatisfactoryHealth } from "../../src/protocols/satisfactory/query.js";
+import { EcoProtocolError } from "../../src/protocols/eco/errors.js";
+import { parseEcoFrontpage } from "../../src/protocols/eco/frontpage.js";
 import { VintageStoryProtocolError } from "../../src/protocols/vintage-story/errors.js";
 import { parseVintageStoryQueryResponse } from "../../src/protocols/vintage-story/query.js";
 
@@ -145,6 +147,23 @@ describe("bounded parser properties", (): void => {
           parseVintageStoryQueryResponse(data);
         }, VintageStoryProtocolError);
       }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Eco status pages to stable protocol errors", (): void => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          bytes,
+          fc.json().map((json) => new TextEncoder().encode(json)),
+        ),
+        (data): void => {
+          acceptsOnlyStableFailure((): void => {
+            parseEcoFrontpage(data);
+          }, EcoProtocolError);
+        },
+      ),
       PROPERTY_OPTIONS,
     );
   });
