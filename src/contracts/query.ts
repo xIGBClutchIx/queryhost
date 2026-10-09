@@ -45,6 +45,8 @@ import type {
   TeamFortress2Data,
   VintageStoryData,
   ValheimData,
+  EcoData,
+  EcoRawData,
 } from "./games.js";
 import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
 
@@ -94,6 +96,7 @@ export interface GameDataMap {
   readonly "space-engineers": SpaceEngineersData;
   readonly humanitz: HumanitZData;
   readonly "v-rising": VRisingData;
+  readonly eco: EcoData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -138,6 +141,7 @@ export interface GameRawDataMap {
   readonly "space-engineers": A2sRawData;
   readonly humanitz: A2sRawData;
   readonly "v-rising": A2sRawData;
+  readonly eco: EcoRawData;
 }
 
 /**
@@ -185,6 +189,7 @@ export interface GameProtocolMap {
   readonly "space-engineers": "a2s";
   readonly humanitz: "a2s-unreal";
   readonly "v-rising": "a2s";
+  readonly eco: "eco";
 }
 
 /** Every game identifier supported by the typed public contract. */

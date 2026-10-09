@@ -38,6 +38,7 @@ import {
 } from "../network/target.js";
 import { UdpTransportError } from "../transports/udp.js";
 import { TcpTransportError } from "../transports/tcp.js";
+import { HttpTransportError } from "../transports/http.js";
 import { A2sProtocolError } from "../protocols/a2s/errors.js";
 import type { A2sExchangeDependencies } from "../protocols/a2s/network.js";
 import type { A2sProfileObserver, A2sProfileOptions } from "../profiles/a2s.js";
@@ -78,6 +79,9 @@ import { queryDayZProfile } from "../profiles/dayz.js";
 import { queryDontStarveTogetherProfile } from "../profiles/dont-starve-together.js";
 import { querySteamA2sProfile } from "../profiles/steam-a2s.js";
 import { querySoulmaskProfile } from "../profiles/soulmask.js";
+import { queryEcoProfile } from "../profiles/eco.js";
+import { EcoProtocolError } from "../protocols/eco/errors.js";
+import type { EcoQueryDependencies } from "../protocols/eco/frontpage.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -97,6 +101,7 @@ export interface QueryDependencies {
   readonly redm?: CfxQueryDependencies;
   readonly satisfactory?: SatisfactoryQueryDependencies;
   readonly vintageStory?: VintageStoryQueryDependencies;
+  readonly eco?: EcoQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -313,6 +318,7 @@ const GAME_PROFILES: GameProfileTable = Object.freeze({
     A2S_SOURCES,
     a2sProfileRunner(queryInsurgencySandstormProfile),
   ),
+  eco: createProfileRunner("eco", ["eco-frontpage"], ecoProfileRunner),
 });
 
 function sharedA2sRegistration(game: GameId): AnyProfileRegistration {
@@ -532,6 +538,15 @@ async function vintageStoryProfileRunner(
   });
 }
 
+async function ecoProfileRunner(options: ProfileRunOptions): Promise<GameProfileResult<"eco">> {
+  return queryEcoProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    observer: options.observer,
+    ...(options.dependencies.eco === undefined ? {} : { query: options.dependencies.eco }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -602,6 +617,13 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof TcpTransportError) {
     return { code: error.code, message: error.message, source: tcpErrorSource(trace) };
+  }
+  if (error instanceof HttpTransportError && trace.started.has("eco-frontpage")) {
+    // Eco's page is the only required HTTP source; optional HTTP sources map their own failures.
+    return { code: error.code, message: error.message, source: "eco-frontpage" };
+  }
+  if (error instanceof EcoProtocolError) {
+    return { code: error.code, message: error.message, source: "eco-frontpage" };
   }
   if (error instanceof A2sProtocolError) {
     return a2sProtocolError(error);

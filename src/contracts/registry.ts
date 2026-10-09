@@ -27,7 +27,8 @@ export type GameProtocol =
   | "minecraft-bedrock"
   | "cfx"
   | "satisfactory"
-  | "vintage-story";
+  | "vintage-story"
+  | "eco";
 
 /** Static metadata for one supported game profile. */
 export interface GameDefinition<G extends GameId = GameId> {
@@ -97,6 +98,7 @@ export const GAME_IDS: readonly [
   "space-engineers",
   "humanitz",
   "v-rising",
+  "eco",
 ] = [
   "a2s",
   "dont-starve-together",
@@ -138,6 +140,7 @@ export const GAME_IDS: readonly [
   "space-engineers",
   "humanitz",
   "v-rising",
+  "eco",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -668,6 +671,22 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultQueryPort: 9877,
     queryPortStrategy: "fixed",
     capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  eco: {
+    id: "eco",
+    name: "Eco",
+    protocol: "eco",
+    defaultPort: 3000,
+    defaultQueryPort: 3001,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "unsupported",
+      mods: "unsupported",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
   },
 };
 

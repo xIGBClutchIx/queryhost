@@ -18,6 +18,8 @@ import {
   type SpaceEngineersData,
   type HumanitZData,
   type VRisingData,
+  type EcoData,
+  type EcoRawData,
   type ArkSurvivalEvolvedData,
   type ConanExilesData,
   type KillingFloor2Data,
@@ -117,6 +119,7 @@ expectType<
     "space-engineers",
     "humanitz",
     "v-rising",
+    "eco",
   ]
 >(GAME_IDS);
 
@@ -168,6 +171,9 @@ expectType<Promise<QueryResult<"satisfactory">>>(
   query({ game: "satisfactory", host: "play.example.com" }),
 );
 expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
+expectType<Promise<QueryResult<"eco">>>(
+  query({ game: "eco", host: "play.example.com", queryPort: 3001 }),
+);
 expectType<Promise<QueryResult<"counter-strike-2">>>(
   query({ game: "cs2", host: "play.example.com" }),
 );
@@ -237,6 +243,7 @@ expectType<number | undefined>(getGameDefinition("rust").defaultQueryPort);
 expectType<"a2s">(getGameDefinition("rust").protocol);
 expectType<"a2s-unreal">(getGameDefinition("icarus").protocol);
 expectType<"cfx">(getGameDefinition("fivem").protocol);
+expectType<"eco">(getGameDefinition("eco").protocol);
 declare const dynamicGameId: GameId;
 expectType<GameProtocol>(getGameDefinition(dynamicGameId).protocol);
 expectAssignable<GameProtocol>("a2s-unreal");
@@ -386,6 +393,10 @@ if (dynamicResult.ok) {
     case "v-rising":
       expectType<VRisingData>(dynamicResult.data);
       break;
+    case "eco":
+      expectType<EcoData>(dynamicResult.data);
+      expectType<EcoRawData | undefined>(dynamicResult.rawData);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -460,6 +471,11 @@ expectType<string | undefined>(rawDataMap.satisfactory.health?.serverCustomData)
 expectType<VintageStoryData>(dataMap["vintage-story"]);
 expectType<"liveness" | "status">(dataMap["vintage-story"].response);
 expectType<string | undefined>(dataMap["vintage-story"].motd);
+expectType<EcoData>(dataMap.eco);
+expectType<readonly string[] | undefined>(dataMap.eco.players);
+expectType<number | undefined>(dataMap.eco.totalPlayers);
+expectType<boolean | undefined>(dataMap.eco.meteor);
+expectType<string | undefined>(rawDataMap.eco.description);
 expectAssignable<SteamA2sData>(dataMap["counter-strike-2"]);
 expectAssignable<SteamA2sData>(dataMap["garrys-mod"]);
 expectType<string>(dataMap["team-fortress-2"].folder);

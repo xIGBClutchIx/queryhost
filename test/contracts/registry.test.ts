@@ -30,6 +30,7 @@ const PROTOCOLS: readonly GameProtocol[] = [
   "cfx",
   "satisfactory",
   "vintage-story",
+  "eco",
 ];
 const SUPPORT_LEVELS = new Set(["conditional", "supported", "unsupported"]);
 
@@ -76,6 +77,7 @@ describe("game registry", () => {
       "space-engineers",
       "humanitz",
       "v-rising",
+      "eco",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -128,6 +130,7 @@ describe("game registry", () => {
     expect(GAME_REGISTRY["minecraft-bedrock"].protocol).toBe("minecraft-bedrock");
     expect(GAME_REGISTRY.satisfactory.protocol).toBe("satisfactory");
     expect(GAME_REGISTRY["vintage-story"].protocol).toBe("vintage-story");
+    expect(GAME_REGISTRY.eco.protocol).toBe("eco");
     expect(GAME_REGISTRY["counter-strike-2"].protocol).toBe("a2s");
   });
 
@@ -228,6 +231,17 @@ describe("game registry", () => {
         rules: "unsupported",
       },
     });
+    expect(getGameDefinition("eco")).toMatchObject({
+      name: "Eco",
+      defaultPort: 3000,
+      defaultQueryPort: 3001,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        rules: "unsupported",
+      },
+    });
+    expect(getGameDefinition("eco").queryPortStrategy).toBeUndefined();
   });
 
   it.each([

@@ -67,6 +67,8 @@ export type {
   SpaceEngineersData,
   HumanitZData,
   VRisingData,
+  EcoData,
+  EcoRawData,
   ArkSurvivalEvolvedData,
   ArkSurvivalEvolvedMod,
   ConanExilesData,

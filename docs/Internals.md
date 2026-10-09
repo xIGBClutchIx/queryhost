@@ -40,6 +40,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `protocols/cfx/` owns the shared FXServer fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `protocols/satisfactory/` owns Lightweight Query framing and the fixed HTTPS HealthCheck request and response schema.
+- `protocols/eco/` owns the fixed `/frontpage` request, bounded JSON parsing of its `Info` schema, and Unity rich-text stripping.
 - `protocols/vintage-story/` owns the direct TCP query packet, frame inspection, strict protobuf-compatible decoding, and stock-server liveness acknowledgement.
 - `profiles/a2s.ts` owns game-neutral A2S source orchestration, address pinning, common server facts, provenance, and warnings.
 - `profiles/steam-a2s.ts` owns the one typed A2S projection shared by games that need no game-specific rule interpretation; the runtime passes only the caller-facing game name for warnings and the profile's Player and Rules policy.
@@ -60,7 +61,7 @@ Every attempted or skipped source produces provenance. Optional-source failure m
 
 One root execution scope owns the query deadline, caller signal, and a 16-attempt outbound-work budget. Child operation scopes inherit the same termination and attempt budget while clamping their own deadline to the parent. DNS lookups, transport exchanges, challenge retries, fallbacks, and optional sources all consume from that shared allowance before starting work.
 
-Required sources that may try several validated candidates (A2S Info, Minecraft SLP, Minecraft Bedrock, Satisfactory lightweight, and Vintage Story) go through `runtime/attempt-race.ts`. It starts candidates in preference order, each in its own operation scope, and starts the next one 250 ms later or as soon as an attempt fails, in the style of RFC 8305. The first success wins and closes every other attempt's scope; if all fail, the last candidate's error is raised, as sequential fallback did. Concurrent attempts still draw from the shared outbound-attempt budget. CFX full mode keeps sequential fallback because its three endpoints already run concurrently per address, and optional sources stay on the address that answered the required source.
+Required sources that may try several validated candidates (A2S Info, Minecraft SLP, Minecraft Bedrock, Satisfactory lightweight, Vintage Story, and Eco) go through `runtime/attempt-race.ts`. It starts candidates in preference order, each in its own operation scope, and starts the next one 250 ms later or as soon as an attempt fails, in the style of RFC 8305. The first success wins and closes every other attempt's scope; if all fail, the last candidate's error is raised, as sequential fallback did. Concurrent attempts still draw from the shared outbound-attempt budget. CFX full mode keeps sequential fallback because its three endpoints already run concurrently per address, and optional sources stay on the address that answered the required source.
 
 Every resource acquired during a query must register cleanup immediately. Cleanup is idempotent from the scope's perspective, runs in reverse registration order, and continues if another cleanup callback throws.
 
@@ -168,6 +169,14 @@ Vintage Story sends the protocol's fixed eight-byte empty `ServerQuery` request 
 Responses use the game's four-byte big-endian frame length. Compressed frames, trailing bytes, non-canonical varints, duplicate known fields, invalid UTF-8, impossible player counts, and responses above 8,192 bytes fail deterministically. Unknown protobuf-compatible fields are skipped only within the validated frame and bounded wire representation.
 
 Current stock 1.22 servers return the exact protocol acknowledgement `Query complete` to an unauthenticated direct query. That response confirms protocol liveness but no metadata, so the public result sets `data.response` to `liveness` and leaves name, version, player counts, mode, MOTD, and password state omitted. Servers that implement the official `ServerQueryAnswer` schema produce `data.response: "status"`; only fields present in that answer are normalized. These behaviors were verified against the official 1.22.7 server archive and the official server configuration documentation, which specifies TCP and UDP port 42420.
+
+## Eco status page invariants
+
+Eco sends one `GET /frontpage` over plain HTTP to the web server, TCP 3001 by default. The registry treats it as game port 3000 with a `+1` query offset, matching the shipped `Network.eco` defaults, and an explicit `queryPort` covers a separately configured `WebServerPort`. The request goes only to the validated, pinned addresses through the fixed HTTP transport; the profile never follows the advertised `JoinUrl`, `GamePort`, `WebPort`, or relay address and does not consult Strange Loop's server list. Validated addresses race through `runtime/attempt-race.ts` like other required single sources.
+
+The page is the only, required source, so a transport failure, a non-2xx status (`CONNECTION_FAILED`), or a malformed body (`MALFORMED_RESPONSE`) fails the query with `eco-frontpage` provenance. Bodies are capped at 256 KiB, and must decode as strict UTF-8 JSON within 16 levels and 16,384 nodes. The root must hold an `Info` object; only own, known keys are read, unknown keys are dropped, and an absent or `null` key is omitted. A known key with the wrong type, a negative or fractional count, or a port above 65535 is malformed rather than coerced. A confirmed empty string or player-name list is kept as-is.
+
+`TotalPlayers` counts everyone who has ever joined the world, not slots, so it is `data.totalPlayers` and `server.players.max` stays omitted. `server.name` and `data.detailedDescription` remove Unity rich-text tags (`<color=…>`, `<b>`, `<#rrggbb>`, and similar), while `rawData` keeps both strings exactly as served. Field names and types follow GameDig's `eco` protocol and rust-gamedig's `eco` types; the fixture is synthetic because no live capture was available.
 
 ## Minecraft Java SLP invariants
 

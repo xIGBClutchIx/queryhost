@@ -88,6 +88,12 @@ Associates implemented games with their untouched protocol payloads.
 
 ***
 
+### eco
+
+> `readonly` **eco**: [`EcoRawData`](EcoRawData.md)
+
+***
+
 ### enshrouded
 
 > `readonly` **enshrouded**: [`A2sRawData`](A2sRawData.md)

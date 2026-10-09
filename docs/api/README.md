@@ -31,6 +31,8 @@
 - [DayZRawData](interfaces/DayZRawData.md)
 - [DontStarveTogetherData](interfaces/DontStarveTogetherData.md)
 - [DontStarveTogetherPlayer](interfaces/DontStarveTogetherPlayer.md)
+- [EcoData](interfaces/EcoData.md)
+- [EcoRawData](interfaces/EcoRawData.md)
 - [EnshroudedData](interfaces/EnshroudedData.md)
 - [EuroTruckSimulator2Data](interfaces/EuroTruckSimulator2Data.md)
 - [FiveMData](interfaces/FiveMData.md)

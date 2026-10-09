@@ -30,6 +30,7 @@ The current source tree contains the package foundation and supported profiles:
 - concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 - Satisfactory lightweight UDP status with optional authentication-free HTTPS health enrichment
 - direct Vintage Story TCP queries with stock-server liveness detection and typed richer status responses
+- Eco queries over the dedicated server's web `/frontpage` status page
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
 The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
@@ -90,6 +91,8 @@ FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by
 
 Vintage Story uses its normal TCP game port, 42420 by default. Current stock servers acknowledge the direct status request without disclosing metadata, producing `data.response: "liveness"`; compatible servers may return the protocol's richer status answer with name, MOTD, player counts, mode, password state, and version. QueryHost connects only to the caller's validated, pinned target and does not consult the public server list or another central service.
 
+Eco reads the dedicated server's unauthenticated `GET /frontpage` status page from its web server, TCP 3001 by default. `port` is the UDP game port (3000 by default) and the web port follows it at `+1`; set `queryPort` when `WebServerPort` is configured separately. The page supplies the normalized name (with Unity rich-text tags removed), version, password state, and online count, plus online player names and world facts such as the meteor countdown, laws, animals, and plants. Eco reports how many players have ever joined the world rather than a slot limit, so `server.players.max` is omitted and that count is `data.totalPlayers`. The name and long description exactly as served, tags included, are kept under `rawData`.
+
 Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
 
 `port` is the game's normal connection port. Rust follows its conventional two-port offset, so game port 28015 queries A2S on 28017. Palworld uses game port 8211 and a fixed conventional Steam query port of 27015; changing the game port does not shift that query default. DayZ uses game port 2302 and Steam query port 2305 by convention; a custom game port preserves the `+3` offset. Don't Starve Together keeps its independently configured query port at 27016 even when `port` changes. The same fixed rule applies to Steam query port 27015 for ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, and Abiotic Factor (game port 7777), Soulmask (8777), and Icarus (17777), and to 27016 for Sons of the Forest (8766). American Truck Simulator, Euro Truck Simulator 2, and The Forest default to game port 27015 with fixed query port 27016, and Insurgency: Sandstorm to 27102 with fixed query port 27131. Arma 3 derives its query port as game port `+1` (2302 and 2303 by default). Arma Reforger keeps its A2S port fixed at 17777 for game port 2001, Starbound keeps its query port at 21025, and HumanitZ keeps 27015 for game port 7777. V Rising keeps its separately configured `QueryPort` at 9877 for game port 9876, and Space Engineers answers on its game port (27016). Unturned (27015) and Enshrouded (15637) answer A2S on the port players connect to, so a custom `port` is also the query destination. Project Zomboid uses UDP 16261, 7 Days to Die uses UDP 26900, and the Source-engine games use UDP 27015 for both the registry default and A2S destination. An explicit `queryPort` always takes precedence for custom layouts.
@@ -140,6 +143,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `space-engineers`          | `spaceengineers`                                             |
 | `humanitz`                 | —                                                            |
 | `v-rising`                 | `vrising`                                                    |
+| `eco`                      | —                                                            |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
 
@@ -181,6 +185,7 @@ queryhost fivem play.example.com 30120
 queryhost redm play.example.com 30120
 queryhost satisfactory play.example.com 7777
 queryhost vs play.example.com 42420
+queryhost eco play.example.com 3000
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

@@ -89,6 +89,12 @@ profile is its protocol's shared A2S profile must have exactly that profile's da
 
 ***
 
+### eco
+
+> `readonly` **eco**: `"eco"`
+
+***
+
 ### enshrouded
 
 > `readonly` **enshrouded**: `"a2s"`

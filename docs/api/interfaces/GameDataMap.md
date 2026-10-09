@@ -90,6 +90,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### eco
+
+> `readonly` **eco**: [`EcoData`](EcoData.md)
+
+***
+
 ### enshrouded
 
 > `readonly` **enshrouded**: [`EnshroudedData`](EnshroudedData.md)
