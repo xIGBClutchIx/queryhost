@@ -21,6 +21,7 @@ The current source tree contains the package foundation and supported profiles:
 - ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor profiles over their fixed Steam query port
 - Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm profiles over their Steam A2S endpoint
 - Arma Reforger, Starbound, Space Engineers, HumanitZ, and V Rising profiles over their Steam A2S endpoint, which each server enables with a setting
+- VEIN and Avorion profiles over their Steam A2S query port
 - a generic A2S profile for Source and GoldSource servers with an explicit query port
 - bounded TCP exchanges with pinned destinations, response framing, cancellation, byte limits, and deterministic cleanup
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
@@ -83,6 +84,8 @@ Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, 
 
 Arma Reforger, Starbound, Space Engineers, HumanitZ, and V Rising use the same Steam A2S data shape, but their servers answer only when a server setting enables queries. Arma Reforger needs the `a2s` block in its server config (`address` plus `port`, 17777 by default) and never provides player records, so its Player source is reported as `unsupported` without network work. Starbound needs `"runQueryServer": true` in `starbound_server.config`; its `queryServerPort` defaults to the game port, 21025. Space Engineers answers on its game port (`ServerPort`, 27016 by default). HumanitZ answers on the port its `-queryport` launch option sets, 27015 by default, and reports the same Unreal Engine build ID, open public slots, and session flags as the other Unreal Engine games. V Rising registers with Steam only when `ListOnSteam` is `true` in `ServerHostSettings.json`, and then answers on `QueryPort`, 9877 by default.
 
+VEIN and Avorion use the same Steam A2S data shape and answer without extra server configuration. VEIN queries `-QueryPort`, which defaults to the game port `+1` (7777 and 7778). Avorion queries its Steam query port, 27020 for game port 27000, and a custom game port keeps that `+20` offset; its separate 27003 port is Avorion's own server-listing protocol and is not used.
+
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
 Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
@@ -144,6 +147,8 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `humanitz`                 | —                                                            |
 | `v-rising`                 | `vrising`                                                    |
 | `eco`                      | —                                                            |
+| `vein`                     | —                                                            |
+| `avorion`                  | —                                                            |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
 
@@ -186,6 +191,8 @@ queryhost redm play.example.com 30120
 queryhost satisfactory play.example.com 7777
 queryhost vs play.example.com 42420
 queryhost eco play.example.com 3000
+queryhost vein play.example.com 7777
+queryhost avorion play.example.com 27000
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

@@ -54,6 +54,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### avorion
+
+> `readonly` **avorion**: [`AvorionData`](AvorionData.md)
+
+***
+
 ### conan-exiles
 
 > `readonly` **conan-exiles**: [`ConanExilesData`](ConanExilesData.md)
@@ -249,6 +255,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 ### valheim
 
 > `readonly` **valheim**: [`ValheimData`](ValheimData.md)
+
+***
+
+### vein
+
+> `readonly` **vein**: [`VeinData`](VeinData.md)
 
 ***
 

@@ -53,6 +53,12 @@ profile is its protocol's shared A2S profile must have exactly that profile's da
 
 ***
 
+### avorion
+
+> `readonly` **avorion**: `"a2s"`
+
+***
+
 ### conan-exiles
 
 > `readonly` **conan-exiles**: `"a2s-unreal"`
@@ -248,6 +254,12 @@ profile is its protocol's shared A2S profile must have exactly that profile's da
 ### valheim
 
 > `readonly` **valheim**: `"a2s"`
+
+***
+
+### vein
+
+> `readonly` **vein**: `"a2s"`
 
 ***
 

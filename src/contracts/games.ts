@@ -574,6 +574,12 @@ export interface HumanitZData extends SteamA2sData, UnrealSessionData {}
 /** V Rising data collected from its Steam A2S query port. */
 export interface VRisingData extends SteamA2sData {}
 
+/** VEIN data collected from its Steam A2S query port. */
+export interface VeinData extends SteamA2sData {}
+
+/** Avorion data collected from its Steam A2S query port. */
+export interface AvorionData extends SteamA2sData {}
+
 /** Normalized Minecraft message-of-the-day representations. */
 export interface MinecraftMotd {
   /** Formatting-free text suitable for logs and plain interfaces. */

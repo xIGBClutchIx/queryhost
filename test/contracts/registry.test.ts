@@ -78,6 +78,8 @@ describe("game registry", () => {
       "humanitz",
       "v-rising",
       "eco",
+      "vein",
+      "avorion",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());

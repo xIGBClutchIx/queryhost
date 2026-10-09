@@ -20,6 +20,7 @@
 - [Arma3Mod](interfaces/Arma3Mod.md)
 - [Arma3RawData](interfaces/Arma3RawData.md)
 - [ArmaReforgerData](interfaces/ArmaReforgerData.md)
+- [AvorionData](interfaces/AvorionData.md)
 - [CfxData](interfaces/CfxData.md)
 - [CfxPlayer](interfaces/CfxPlayer.md)
 - [ConanExilesData](interfaces/ConanExilesData.md)
@@ -91,6 +92,7 @@
 - [UnturnedLink](interfaces/UnturnedLink.md)
 - [ValheimData](interfaces/ValheimData.md)
 - [ValheimPlayer](interfaces/ValheimPlayer.md)
+- [VeinData](interfaces/VeinData.md)
 - [VintageStoryData](interfaces/VintageStoryData.md)
 - [VRisingData](interfaces/VRisingData.md)
 

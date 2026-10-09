@@ -69,6 +69,8 @@ export type {
   VRisingData,
   EcoData,
   EcoRawData,
+  VeinData,
+  AvorionData,
   ArkSurvivalEvolvedData,
   ArkSurvivalEvolvedMod,
   ConanExilesData,

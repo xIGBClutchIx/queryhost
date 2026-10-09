@@ -99,6 +99,8 @@ export const GAME_IDS: readonly [
   "humanitz",
   "v-rising",
   "eco",
+  "vein",
+  "avorion",
 ] = [
   "a2s",
   "dont-starve-together",
@@ -141,6 +143,8 @@ export const GAME_IDS: readonly [
   "humanitz",
   "v-rising",
   "eco",
+  "vein",
+  "avorion",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -687,6 +691,22 @@ export const GAME_REGISTRY: GameRegistry = {
       resources: "unsupported",
       srv: "unsupported",
     },
+  },
+  vein: {
+    id: "vein",
+    name: "VEIN",
+    protocol: "a2s",
+    defaultPort: 7777,
+    defaultQueryPort: 7778,
+    capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  avorion: {
+    id: "avorion",
+    name: "Avorion",
+    protocol: "a2s",
+    defaultPort: 27_000,
+    defaultQueryPort: 27_020,
+    capabilities: STEAM_A2S_CAPABILITIES,
   },
 };
 

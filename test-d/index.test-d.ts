@@ -20,6 +20,8 @@ import {
   type VRisingData,
   type EcoData,
   type EcoRawData,
+  type VeinData,
+  type AvorionData,
   type ArkSurvivalEvolvedData,
   type ConanExilesData,
   type KillingFloor2Data,
@@ -120,6 +122,8 @@ expectType<
     "humanitz",
     "v-rising",
     "eco",
+    "vein",
+    "avorion",
   ]
 >(GAME_IDS);
 
@@ -244,6 +248,8 @@ expectType<"a2s">(getGameDefinition("rust").protocol);
 expectType<"a2s-unreal">(getGameDefinition("icarus").protocol);
 expectType<"cfx">(getGameDefinition("fivem").protocol);
 expectType<"eco">(getGameDefinition("eco").protocol);
+expectType<"a2s">(getGameDefinition("vein").protocol);
+expectType<"a2s">(getGameDefinition("avorion").protocol);
 declare const dynamicGameId: GameId;
 expectType<GameProtocol>(getGameDefinition(dynamicGameId).protocol);
 expectAssignable<GameProtocol>("a2s-unreal");
@@ -397,6 +403,12 @@ if (dynamicResult.ok) {
       expectType<EcoData>(dynamicResult.data);
       expectType<EcoRawData | undefined>(dynamicResult.rawData);
       break;
+    case "vein":
+      expectType<VeinData>(dynamicResult.data);
+      break;
+    case "avorion":
+      expectType<AvorionData>(dynamicResult.data);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -476,6 +488,9 @@ expectType<readonly string[] | undefined>(dataMap.eco.players);
 expectType<number | undefined>(dataMap.eco.totalPlayers);
 expectType<boolean | undefined>(dataMap.eco.meteor);
 expectType<string | undefined>(rawDataMap.eco.description);
+expectAssignable<SteamA2sData>(dataMap.vein);
+expectAssignable<SteamA2sData>(dataMap.avorion);
+expectType<Readonly<Record<string, string>>>(rawDataMap.avorion.rules);
 expectAssignable<SteamA2sData>(dataMap["counter-strike-2"]);
 expectAssignable<SteamA2sData>(dataMap["garrys-mod"]);
 expectType<string>(dataMap["team-fortress-2"].folder);
