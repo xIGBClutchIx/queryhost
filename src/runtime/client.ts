@@ -5,6 +5,7 @@ import {
   OutboundAttemptLimitError,
   type ExecutionScope,
 } from "./execution.js";
+import { queryManyWith } from "./batch.js";
 import type {
   CanonicalGameId,
   GameDataMap,
@@ -14,6 +15,8 @@ import type {
   GameProtocolMap,
   QueryFailure,
   QueryInput,
+  QueryManyEntry,
+  QueryManyOptions,
   QueryResult,
   QuerySuccess,
 } from "../contracts/query.js";
@@ -23,6 +26,7 @@ import type {
   QueryError,
   QueryMode,
   QuerySource,
+  QuerySourceEvent,
   QuerySourceName,
   QuerySourceStatus,
   QueryWarning,
@@ -109,6 +113,9 @@ export interface QueryDependencies {
 interface SourceTrace {
   readonly started: Set<QuerySourceName>;
   readonly completed: Map<QuerySourceName, QuerySource>;
+  readonly onSource: ((event: QuerySourceEvent) => void) | undefined;
+  /** Set once the result exists; a profile that lost the deadline race may still report late. */
+  settled: boolean;
 }
 
 interface ProfileRunOptions {
@@ -398,7 +405,12 @@ function validateInput(input: QueryInput): void {
   // Shape checks for untyped JavaScript callers; the declared type already rules these out.
   const host: string | number | object | null | undefined = input.host;
   const signal: AbortSignal | string | object | null | undefined = input.signal;
-  if (typeof host !== "string" || (signal !== undefined && !(signal instanceof AbortSignal))) {
+  const onSource: QueryInput["onSource"] | string | object | null = input.onSource;
+  if (
+    typeof host !== "string" ||
+    (signal !== undefined && !(signal instanceof AbortSignal)) ||
+    (onSource !== undefined && typeof onSource !== "function")
+  ) {
     throw new TypeError("Invalid query input shape.");
   }
   if (canonicalGameId(input.game) === "a2s" && input.port === undefined) {
@@ -700,15 +712,42 @@ function traceSources(
   return sources;
 }
 
+function emit(trace: SourceTrace, event: QuerySourceEvent): void {
+  if (trace.onSource === undefined || trace.settled) {
+    return;
+  }
+  try {
+    trace.onSource(event);
+  } catch {
+    // Caller progress code must not change, abort, or leak into the query result.
+  }
+}
+
 function observer(trace: SourceTrace): A2sProfileObserver {
   return {
     onSourceStarted(source): void {
       trace.started.add(source);
+      emit(trace, { type: "started", source });
     },
     onSourceCompleted(report): void {
       trace.completed.set(report.source, report);
+      emit(trace, { type: "completed", report });
     },
   };
+}
+
+/**
+ * Completes, from the final result, every source a terminal error cut short, then stops all
+ * further progress so callers see exactly the result's sources and nothing after it resolves.
+ */
+function settle<R extends QueryResult>(trace: SourceTrace, result: R): R {
+  for (const report of result.sources) {
+    if (!trace.completed.has(report.source)) {
+      emit(trace, { type: "completed", report });
+    }
+  }
+  trace.settled = true;
+  return result;
 }
 
 async function runProfileTask(
@@ -786,7 +825,12 @@ export async function queryWithDependencies(
     return failure(normalizedInput.game, INPUT_ERROR, duration(startedAt, dependencies));
   }
 
-  const trace: SourceTrace = { started: new Set(), completed: new Map() };
+  const trace: SourceTrace = {
+    started: new Set(),
+    completed: new Map(),
+    onSource: normalizedInput.onSource,
+    settled: false,
+  };
   const resolver = dependencies.resolver ?? createNodeDnsResolver();
   const execution = await executeWithDeadline(
     {
@@ -798,22 +842,28 @@ export async function queryWithDependencies(
   );
   const durationMs = duration(startedAt, dependencies);
   if (!execution.ok) {
-    return failure(
-      normalizedInput.game,
-      execution.error,
-      durationMs,
-      traceSources(trace, registration.sources, execution.error),
+    return settle(
+      trace,
+      failure(
+        normalizedInput.game,
+        execution.error,
+        durationMs,
+        traceSources(trace, registration.sources, execution.error),
+      ),
     );
   }
   if (!execution.value.ok) {
-    return failure(
-      normalizedInput.game,
-      execution.value.error,
-      durationMs,
-      traceSources(trace, registration.sources, execution.value.error),
+    return settle(
+      trace,
+      failure(
+        normalizedInput.game,
+        execution.value.error,
+        durationMs,
+        traceSources(trace, registration.sources, execution.value.error),
+      ),
     );
   }
-  return execution.value.complete(durationMs);
+  return settle(trace, execution.value.complete(durationMs));
 }
 
 /**
@@ -829,4 +879,29 @@ export function query<G extends GameInputId>(
   return queryWithDependencies(input, DEFAULT_DEPENDENCIES) as Promise<
     QueryResult<CanonicalGameId<G>>
   >;
+}
+
+/**
+ * Queries many game servers with bounded concurrency, yielding each result as it settles.
+ *
+ * Entries arrive in completion order; `index` gives each input's position. Every input started
+ * yields exactly one entry, and a failed target is a {@link QueryFailure} entry rather than a
+ * rejected batch. Inputs are read lazily, and no query starts until iteration begins.
+ * Stopping iteration early cancels the queries still in flight and waits for their cleanup.
+ *
+ * @throws TypeError or RangeError, synchronously, when `inputs` is not iterable or `options` is
+ * invalid. Invalid individual inputs resolve as `INVALID_INPUT` entries instead.
+ *
+ * @example
+ * ```ts
+ * for await (const { input, result } of queryMany(servers, { concurrency: 4 })) {
+ *   console.log(input.host, result.ok ? result.server.players : result.error.code);
+ * }
+ * ```
+ */
+export function queryMany<G extends GameInputId>(
+  inputs: Iterable<QueryInput<G>>,
+  options?: QueryManyOptions,
+): AsyncGenerator<QueryManyEntry<G>, void, undefined> {
+  return queryManyWith(inputs, options, query);
 }

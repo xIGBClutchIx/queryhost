@@ -50,7 +50,14 @@ import type {
   EcoData,
   EcoRawData,
 } from "./games.js";
-import type { QueryError, QueryMode, QuerySource, QueryWarning, ServerInfo } from "./shared.js";
+import type {
+  QueryError,
+  QueryMode,
+  QuerySource,
+  QuerySourceEvent,
+  QueryWarning,
+  ServerInfo,
+} from "./shared.js";
 
 /**
  * Associates each game ID with its stable game-specific result shape.
@@ -289,6 +296,12 @@ export type QueryInput<G extends GameInputId = GameInputId> = {
   readonly timeoutMs?: number;
   /** Caller cancellation propagated to every outstanding operation. */
   readonly signal?: AbortSignal;
+  /**
+   * Called synchronously as each source starts and completes. Every source in the result's
+   * `sources` has completed before the query resolves, and no call follows. Exceptions thrown by
+   * the callback are ignored and never change the result.
+   */
+  readonly onSource?: (event: QuerySourceEvent) => void;
 } & (CanonicalGameId<G> extends "a2s"
   ? {
       /** Actual A2S query destination; generic A2S has no inferred default. */
@@ -337,3 +350,24 @@ export interface QueryFailure<G extends GameId> extends QueryResultBase<G> {
 /** Success remains correlated by game; failure needs no game-specific data correlation. */
 export type QueryResult<G extends GameId = GameId> =
   (G extends GameId ? QuerySuccess<G> : never) | QueryFailure<G>;
+
+/** Batch-wide controls for `queryMany()`. Each input keeps its own deadline and signal. */
+export interface QueryManyOptions {
+  /** Queries allowed in flight at once, from 1 through 64; defaults to 8. */
+  readonly concurrency?: number;
+  /**
+   * Stops the batch: no further input is started, and queries already in flight resolve with
+   * `ABORTED` before iteration ends.
+   */
+  readonly signal?: AbortSignal;
+}
+
+/** One settled query from `queryMany()`, correlated with the input that produced it. */
+export type QueryManyEntry<G extends GameInputId = GameInputId> = {
+  readonly [K in G]: {
+    /** Zero-based position of `input` in the iterable passed to `queryMany()`. */
+    readonly index: number;
+    readonly input: QueryInput<K>;
+    readonly result: QueryResult<CanonicalGameId<K>>;
+  };
+}[G];

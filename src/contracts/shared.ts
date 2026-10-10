@@ -57,6 +57,16 @@ export interface QuerySource {
   readonly rttMs?: number;
 }
 
+/**
+ * Progress for one source of a running query, delivered through `QueryInput.onSource`.
+ *
+ * `started` fires before a source's network work begins. `completed` carries the same report that
+ * appears in the result's `sources`; skipped and unsupported sources complete without starting.
+ */
+export type QuerySourceEvent =
+  | { readonly type: "started"; readonly source: QuerySourceName }
+  | { readonly type: "completed"; readonly report: QuerySource };
+
 /** Machine-readable warning codes for successful but incomplete results. */
 export type QueryWarningCode =
   | "PARTIAL_RESULT"

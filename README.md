@@ -16,7 +16,7 @@ The current source tree contains the package foundation and supported profiles:
 - bounded Source and GoldSource split-packet reconstruction with bzip2, size, and checksum validation
 - strict A2S Player and Rules parsing with bounded one-retry challenge flows
 - concurrent optional A2S enrichment with per-source success, timeout, malformed, blocked, unsupported, skipped, and transport-failure provenance
-- the public `query()` entry point and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, DayZ, and Steam-backend Valheim profiles over bounded A2S sources
+- the public `query()` entry point, bounded-concurrency `queryMany()` batches, per-source progress callbacks, and complete Rust, Don't Starve Together, Palworld, Project Zomboid, 7 Days to Die, DayZ, and Steam-backend Valheim profiles over bounded A2S sources
 - Counter-Strike 2, Counter-Strike: Source, Team Fortress 2, Left 4 Dead, Left 4 Dead 2, and Garry's Mod profiles over their game-port A2S endpoint
 - ARK: Survival Evolved, Conan Exiles, Killing Floor 2, Day of Dragons, Soulmask, Sons of the Forest, Icarus, and Abiotic Factor profiles over their fixed Steam query port
 - Arma 3, American Truck Simulator, Euro Truck Simulator 2, The Forest, Unturned, Enshrouded, and Insurgency: Sandstorm profiles over their Steam A2S endpoint
@@ -65,6 +65,25 @@ if (result.ok) {
 ```
 
 `QueryResult` is a discriminated union. Check `ok` before reading `data` or `error`. A dynamic `GameId` can be narrowed with an exhaustive switch on `result.game`.
+
+Use `queryMany()` to check a server list, dashboard, or bot's servers together. It runs at most `concurrency` queries at once (8 by default, up to 64) and yields each result as it settles, so a slow server never holds up the rest:
+
+```ts
+import { queryMany } from "queryhost";
+
+const servers = [
+  { game: "rust", host: "play.example.com" },
+  { game: "minecraft", host: "mc.example.com" },
+] as const;
+
+for await (const { index, result } of queryMany(servers, { concurrency: 4 })) {
+  console.log(index, result.ok ? result.server.players : result.error.code);
+}
+```
+
+Entries arrive in completion order with the input's `index`. Each target keeps its own `timeoutMs` and `signal`, and a failed target is an ordinary failure entry rather than a rejected batch. Passing `signal` in the options stops starting new inputs and cancels queries in flight; leaving the loop early does the same and waits for their cleanup.
+
+For live progress, pass `onSource` with any query. It is called as each source starts and completes, and its completed reports are exactly the result's `sources`.
 
 Implemented A2S profiles default to `mode: "full"`: Info is required, then supported optional sources run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
 

@@ -2,6 +2,13 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- `queryMany(inputs, options)`, which queries many servers with bounded concurrency (8 by default, at most 64) and yields `{ index, input, result }` entries as each settles. A failed target is a failure entry, never a rejected batch, and a batch `signal` stops starting new inputs and cancels those in flight. Breaking out of the loop early cancels outstanding queries and waits for their cleanup.
+- An `onSource` callback on `QueryInput` that reports each source as it starts and completes, with the exported `QuerySourceEvent` type. The completed reports match the result's `sources`, nothing is reported after the query resolves, and a callback that throws cannot change the result.
+
 ## [1.6.0] - 2026-10-09
 
 ### Added
@@ -108,6 +115,7 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[Unreleased]: https://github.com/xIGBClutchIx/queryhost/compare/v1.6.0...HEAD
 [1.6.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.6.0
 [1.5.1]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.5.1
 [1.5.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.5.0
