@@ -175,6 +175,7 @@ describe("Minecraft Bedrock RakNet primitives", (): void => {
       version: "1.21.100",
       playersOnline: 12,
       playersMax: 50,
+      subMotd: "Bedrock level",
       advertisedIpv4Port: 19_132,
       advertisedIpv6Port: 19_133,
     });
