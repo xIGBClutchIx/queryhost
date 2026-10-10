@@ -272,14 +272,7 @@ async function pingAddress(
       options.observer.onSourceStarted("minecraft-legacy-ping");
     }
     try {
-      // A peer that accepted the connection and then closed it or answered unparseable bytes is
-      // listening, so its legacy retry continues this address's attempt: discovery and earlier
-      // rejecting targets cannot spend the attempt a legacy server needs. A failed connection
-      // proves no listener, so retrying it draws from the budget like any other attempt.
-      const result = await queryMinecraftLegacyStatus(
-        modernStatus === "malformed" ? { ...request, retryOfAttempt: true } : request,
-        options.status,
-      );
+      const result = await queryMinecraftLegacyStatus(request, options.status);
       return Object.freeze({ result, modernStatus });
     } catch (legacyError) {
       // A winning sibling's cancellation says nothing about this ping, but this attempt's own
