@@ -250,6 +250,14 @@ describe("detection probe plan", (): void => {
     expect(planProbes(3000)[0]).toMatchObject({ protocol: "eco", port: 3001 });
   });
 
+  it("asks every conventional destination before guessing other protocols on the port", (): void => {
+    const pairs = planProbes(7777).map(({ protocol, port }) => `${protocol}@${port}`);
+
+    // ARK and the other fixed-port games, Satisfactory, then VEIN's game port + 1.
+    expect(pairs.slice(0, 3)).toEqual(["a2s@27015", "satisfactory@7777", "a2s@7778"]);
+    expect(pairs.indexOf("minecraft-java@7777")).toBeGreaterThan(2);
+  });
+
   it("keeps fixed query ports as candidates for a custom game port", (): void => {
     const pairs = planProbes(9000).map(({ protocol, port }) => `${protocol}@${port}`);
 
@@ -433,9 +441,9 @@ describe("detect", (): void => {
     expect(detected.ok).toBe(true);
     expect(statuses(detected.probes).slice(0, 4)).toEqual([
       "a2s@28017:matched",
+      "a2s@28015:cancelled",
       "minecraft-java@28015:cancelled",
       "minecraft-bedrock@28015:cancelled",
-      "cfx@28015:cancelled",
     ]);
     expect(detected.probes.slice(4).every(({ status }) => status === "skipped")).toBe(true);
   });

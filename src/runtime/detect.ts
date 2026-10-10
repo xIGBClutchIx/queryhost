@@ -178,16 +178,23 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
       (a, b) =>
         b.weight - a.weight || distance(a) - distance(b) || a.rank - b.rank || a.port - b.port,
     );
-  // Each protocol's best pair runs before any protocol's second, so a small budget still asks
-  // every protocol once instead of spending itself on alternative A2S ports.
+  // Pairs some game conventionally uses run before mere possibilities. Within each tier every
+  // protocol's best pair runs before any protocol's second, so a small budget still asks each
+  // protocol once instead of spending itself on alternative A2S ports.
+  const conventional = ranked.filter((probe) => probe.conventional.length > 0);
+  const possible = ranked.filter((probe) => probe.conventional.length === 0);
+  return Object.freeze([...protocolsFirst(conventional), ...protocolsFirst(possible)]);
+}
+
+function protocolsFirst(probes: readonly PlannedProbe[]): readonly PlannedProbe[] {
   const seen = new Set<DetectProtocol>();
   const firsts: PlannedProbe[] = [];
   const rest: PlannedProbe[] = [];
-  for (const probe of ranked) {
+  for (const probe of probes) {
     (seen.has(probe.protocol) ? rest : firsts).push(probe);
     seen.add(probe.protocol);
   }
-  return Object.freeze([...firsts, ...rest]);
+  return [...firsts, ...rest];
 }
 
 function probeInput(
