@@ -29,15 +29,18 @@ export type {
   GameRawDataMap,
   QueryFailure,
   QueryInput,
+  QueryManyEntry,
+  QueryManyOptions,
   QueryResult,
   QuerySuccess,
 } from "./contracts/query.js";
-export { query } from "./runtime/client.js";
+export { query, queryMany } from "./runtime/client.js";
 export type {
   QueryError,
   QueryErrorCode,
   QueryMode,
   QuerySource,
+  QuerySourceEvent,
   QuerySourceName,
   QuerySourceStatus,
   QueryWarning,

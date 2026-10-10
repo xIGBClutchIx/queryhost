@@ -26,6 +26,24 @@ DNS hostname or IP literal. URL syntax is intentionally not accepted.
 
 > `readonly` `optional` **mode?**: [`QueryMode`](QueryMode.md)
 
+### onSource?
+
+> `readonly` `optional` **onSource?**: (`event`) => `void`
+
+Called synchronously as each source starts and completes. Every source in the result's
+`sources` has completed before the query resolves, and no call follows. Exceptions thrown by
+the callback are ignored and never change the result.
+
+#### Parameters
+
+##### event
+
+[`QuerySourceEvent`](QuerySourceEvent.md)
+
+#### Returns
+
+`void`
+
 ### signal?
 
 > `readonly` `optional` **signal?**: `AbortSignal`

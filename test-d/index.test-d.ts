@@ -45,6 +45,11 @@ import {
   getGameDefinition,
   isGameId,
   query,
+  queryMany,
+  type QueryManyEntry,
+  type QuerySource,
+  type QuerySourceEvent,
+  type QuerySourceName,
   type FiveMData,
   type FiveMPlayer,
   type GameAlias,
@@ -546,3 +551,40 @@ declare const redmPlayer: RedMPlayer;
 expectType<number>(redmPlayer.id);
 expectType<string>(redmPlayer.name);
 expectType<number | undefined>(redmPlayer.ping);
+
+const rustBatch = queryMany([{ game: "rust", host: "play.example.com" }], { concurrency: 4 });
+expectType<AsyncGenerator<QueryManyEntry<"rust">, void, undefined>>(rustBatch);
+declare const mixedEntry: QueryManyEntry<"rust" | "mc">;
+declare const javaResult: QueryResult<"minecraft-java">;
+expectAssignable<QueryManyEntry<"rust" | "mc">>({
+  index: 0,
+  input: { game: "mc", host: "play.example.com" },
+  result: javaResult,
+});
+// Each entry keeps its input and result on the same game.
+expectNotAssignable<QueryManyEntry<"rust" | "mc">>({
+  index: 0,
+  input: { game: "rust", host: "play.example.com" },
+  result: javaResult,
+});
+expectType<number>(mixedEntry.index);
+declare const mixedInputs: readonly (QueryInput<"rust"> | QueryInput<"dayz">)[];
+for await (const entry of queryMany(mixedInputs)) {
+  expectType<QueryResult<"rust"> | QueryResult<"dayz">>(entry.result);
+}
+expectError(queryMany([{ game: "a2s", host: "play.example.com" }]));
+expectError(queryMany([{ game: "rust", host: "play.example.com" }], { concurrency: "4" }));
+
+void query({
+  game: "rust",
+  host: "play.example.com",
+  onSource(event): void {
+    if (event.type === "started") {
+      expectType<QuerySourceName>(event.source);
+    } else {
+      expectType<QuerySource>(event.report);
+    }
+  },
+});
+declare const sourceEvent: QuerySourceEvent;
+expectType<"started" | "completed">(sourceEvent.type);

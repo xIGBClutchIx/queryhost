@@ -14,6 +14,7 @@ const expectedExports = [
   "isGameInputId",
   "listGames",
   "query",
+  "queryMany",
 ].sort();
 const actualExports = Object.keys(queryhost).sort();
 if (JSON.stringify(actualExports) !== JSON.stringify(expectedExports)) {
@@ -73,7 +74,7 @@ if (!internalModuleBlocked) {
   throw new Error("An internal transport became importable through the package exports map.");
 }
 
-const registryExports = expectedExports.filter((name) => name !== "query");
+const registryExports = expectedExports.filter((name) => name !== "query" && name !== "queryMany");
 const actualRegistryExports = Object.keys(registry).sort();
 if (JSON.stringify(actualRegistryExports) !== JSON.stringify(registryExports)) {
   throw new Error(`The packed registry exports changed: ${actualRegistryExports.join(", ")}.`);
