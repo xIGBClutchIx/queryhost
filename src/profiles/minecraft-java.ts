@@ -235,6 +235,8 @@ function fallbackStatus(error: Error): QuerySourceStatus | undefined {
 interface LegacyTrace {
   started: boolean;
   lastStatus?: QuerySourceStatus;
+  /** Set when a legacy ping exhausted the query's attempt budget, whichever address it served. */
+  budgetError?: OutboundAttemptLimitError;
 }
 
 /**
@@ -275,10 +277,11 @@ async function pingAddress(
       const result = await queryMinecraftLegacyStatus(request, options.status);
       return Object.freeze({ result, modernStatus });
     } catch (legacyError) {
-      // An exhausted budget is the query's own failure, not this address's, so it keeps its
-      // public contract instead of hiding behind the SLP error.
+      // An exhausted budget is the query's own failure, not this address's. The race keeps only
+      // its last candidate's error, so the trace carries it to `requiredStatus`.
       if (legacyError instanceof OutboundAttemptLimitError) {
         legacy.lastStatus = "failed";
+        legacy.budgetError = legacyError;
         throw legacyError;
       }
       // A winning sibling's cancellation says nothing about this ping, but this attempt's own
@@ -321,6 +324,10 @@ async function requiredStatus(
         throw rootTcpTermination(options.scope);
       }
       lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
+      if (legacy.budgetError !== undefined) {
+        lastError = legacy.budgetError;
+        break;
+      }
     }
   }
   if (win === undefined) {

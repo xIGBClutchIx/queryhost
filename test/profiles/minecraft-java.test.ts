@@ -694,6 +694,52 @@ describe("Minecraft Java game profile", (): void => {
     });
   });
 
+  it("reports an exhausted attempt budget even when a raced sibling hits it", async (): Promise<void> => {
+    // Four same-priority targets race, and connect delays make their SLP pings fail in reverse
+    // order. The first target's legacy ping is then the seventeenth attempt, while the last
+    // target, whose error the race keeps, failed only its SLP ping.
+    const hosts = ["a", "b", "c", "d"];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        const index = hosts.indexOf(hostname.split(".")[0] ?? "");
+        return Promise.resolve([{ address: `${String(index + 1)}.1.1.1`, family: 4 }]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve(
+          hosts.map((host) => ({
+            name: `${host}.example.com`,
+            port: 25_565,
+            priority: 0,
+            weight: 1,
+          })),
+        );
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          addresses,
+          response: () => undefined,
+          connectDelayMs: new Map([
+            ["1.1.1.1", 790],
+            ["2.1.1.1", 530],
+            ["3.1.1.1", 270],
+            ["4.1.1.1", 10],
+          ]),
+        }),
+        dns,
+      ),
+    );
+
+    expect(addresses).toHaveLength(7);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "The query exceeded its outbound attempt limit." },
+    });
+  });
+
   it("decides the legacy fallback per address so a hanging sibling cannot mask it", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "minecraft-java", host: "play.example.com", mode: "summary" },
