@@ -112,6 +112,9 @@ async function* runBatch<G extends GameInputId>(
   const stop = new AbortController();
   const batchSignal = signal === undefined ? stop.signal : AbortSignal.any([signal, stop.signal]);
   const running = new Map<number, Promise<QueryManyEntry<G>>>();
+  // Entries in the order they settled; racing already-settled promises would pick input order.
+  const settled: QueryManyEntry<G>[] = [];
+  let wake: (() => void) | undefined;
   let iterator: Iterator<QueryInput<G>> | undefined;
   let exhausted = false;
   let nextIndex = 0;
@@ -134,12 +137,26 @@ async function* runBatch<G extends GameInputId>(
           break;
         }
         const index = nextIndex++;
-        running.set(index, runOne(index, step.value, batchSignal, run));
+        running.set(
+          index,
+          runOne(index, step.value, batchSignal, run).then((entry) => {
+            settled.push(entry);
+            wake?.();
+            return entry;
+          }),
+        );
       }
       if (running.size === 0) {
         return;
       }
-      const entry = await Promise.race(running.values());
+      let entry = settled.shift();
+      while (entry === undefined) {
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+        });
+        wake = undefined;
+        entry = settled.shift();
+      }
       running.delete(entry.index);
       yield entry;
     }

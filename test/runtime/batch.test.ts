@@ -106,6 +106,25 @@ describe("queryMany batching", (): void => {
     expect(indexes).toEqual([2, 0, 1]);
   });
 
+  it("keeps settlement order for results that settle while the consumer is paused", async (): Promise<void> => {
+    const { run, pending } = controlledRunner();
+    const iterator = queryManyWith(inputs(3), undefined, run)[Symbol.asyncIterator]();
+
+    const first = iterator.next();
+    await flush();
+    pendingAt(pending, 2).resolve(failed());
+    expect((await first).value?.index).toBe(2);
+
+    pendingAt(pending, 1).resolve(failed());
+    await flush();
+    pendingAt(pending, 0).resolve(failed());
+    await flush();
+
+    expect((await iterator.next()).value?.index).toBe(1);
+    expect((await iterator.next()).value?.index).toBe(0);
+    expect((await iterator.next()).done).toBe(true);
+  });
+
   it("returns the caller's own input, not the signal-carrying copy it runs", async (): Promise<void> => {
     const servers = inputs(1);
     const run = vi.fn<QueryRunner<"rust">>(() => Promise.resolve(failed()));

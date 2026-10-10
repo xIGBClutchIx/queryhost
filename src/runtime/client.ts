@@ -723,6 +723,13 @@ function emit(trace: SourceTrace, event: QuerySourceEvent): void {
   }
 }
 
+/** Callers get a frozen copy, so their code can never rewrite the provenance a profile keeps. */
+function emitCompleted(trace: SourceTrace, report: QuerySource): void {
+  if (trace.onSource !== undefined && !trace.settled) {
+    emit(trace, { type: "completed", report: Object.freeze({ ...report }) });
+  }
+}
+
 function observer(trace: SourceTrace): A2sProfileObserver {
   return {
     onSourceStarted(source): void {
@@ -731,7 +738,7 @@ function observer(trace: SourceTrace): A2sProfileObserver {
     },
     onSourceCompleted(report): void {
       trace.completed.set(report.source, report);
-      emit(trace, { type: "completed", report });
+      emitCompleted(trace, report);
     },
   };
 }
@@ -743,7 +750,7 @@ function observer(trace: SourceTrace): A2sProfileObserver {
 function settle<R extends QueryResult>(trace: SourceTrace, result: R): R {
   for (const report of result.sources) {
     if (!trace.completed.has(report.source)) {
-      emit(trace, { type: "completed", report });
+      emitCompleted(trace, report);
     }
   }
   trace.settled = true;

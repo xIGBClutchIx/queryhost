@@ -114,6 +114,25 @@ describe("query source progress", (): void => {
     expect(onSource).toHaveBeenCalled();
   });
 
+  it("hands the callback frozen reports it cannot use to rewrite the result", async (): Promise<void> => {
+    const frozen: boolean[] = [];
+    const onSource = (event: QuerySourceEvent): void => {
+      if (event.type === "completed") {
+        frozen.push(Object.isFrozen(event.report));
+        Object.assign(event.report, { status: "failed", source: "a2s-rules" });
+      }
+    };
+
+    const result = await queryWithDependencies(
+      { game: "rust", host: "play.example.com", onSource },
+      dependencies(await fixtureA2s("rust")),
+    );
+
+    expect(frozen.length).toBeGreaterThan(0);
+    expect(frozen.every(Boolean)).toBe(true);
+    expect(result.sources.map(({ status }) => status)).toEqual(["ok", "ok", "ok"]);
+  });
+
   it("rejects a non-function callback as INVALID_INPUT", async (): Promise<void> => {
     const onSource = untypedCallback("log");
 
