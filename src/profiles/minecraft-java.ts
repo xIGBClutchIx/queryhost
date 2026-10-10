@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 
 import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
 import { javaCrossplay } from "./minecraft-crossplay.js";
-import type { ExecutionScope } from "../runtime/execution.js";
+import { OutboundAttemptLimitError, type ExecutionScope } from "../runtime/execution.js";
 import { raceAttempts, type AttemptRaceWin } from "../runtime/attempt-race.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
 import {
@@ -275,6 +275,12 @@ async function pingAddress(
       const result = await queryMinecraftLegacyStatus(request, options.status);
       return Object.freeze({ result, modernStatus });
     } catch (legacyError) {
+      // An exhausted budget is the query's own failure, not this address's, so it keeps its
+      // public contract instead of hiding behind the SLP error.
+      if (legacyError instanceof OutboundAttemptLimitError) {
+        legacy.lastStatus = "failed";
+        throw legacyError;
+      }
       // A winning sibling's cancellation says nothing about this ping, but this attempt's own
       // deadline is the ping timing out.
       if (!operation.signal.aborted) {

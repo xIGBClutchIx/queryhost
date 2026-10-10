@@ -661,6 +661,39 @@ describe("Minecraft Java game profile", (): void => {
     });
   });
 
+  it("reports an attempt budget the legacy ping exhausts as the outbound limit", async (): Promise<void> => {
+    // Discovery spends 9 of the 16 attempts on four SRV targets and every target closes both
+    // pings, so the fourth target's legacy ping is the seventeenth attempt.
+    const hosts = ["a", "b", "c", "d"];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        const index = hosts.indexOf(hostname.split(".")[0] ?? "");
+        return Promise.resolve([{ address: `${String(index + 1)}.1.1.1`, family: 4 }]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve(
+          hosts.map((host, priority) => ({
+            name: `${host}.example.com`,
+            port: 25_565,
+            priority,
+            weight: 1,
+          })),
+        );
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(scriptedTcp({ addresses, response: () => undefined }), dns),
+    );
+
+    expect(addresses).toHaveLength(7);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "The query exceeded its outbound attempt limit." },
+    });
+  });
+
   it("decides the legacy fallback per address so a hanging sibling cannot mask it", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "minecraft-java", host: "play.example.com", mode: "summary" },
