@@ -8,6 +8,7 @@ const expectedExports = [
   "GAME_IDS",
   "GAME_REGISTRY",
   "canonicalGameId",
+  "detect",
   "getGameDefinition",
   "isGameAlias",
   "isGameId",
@@ -74,7 +75,8 @@ if (!internalModuleBlocked) {
   throw new Error("An internal transport became importable through the package exports map.");
 }
 
-const registryExports = expectedExports.filter((name) => name !== "query" && name !== "queryMany");
+const runtimeExports = new Set(["detect", "query", "queryMany"]);
+const registryExports = expectedExports.filter((name) => !runtimeExports.has(name));
 const actualRegistryExports = Object.keys(registry).sort();
 if (JSON.stringify(actualRegistryExports) !== JSON.stringify(registryExports)) {
   throw new Error(`The packed registry exports changed: ${actualRegistryExports.join(", ")}.`);

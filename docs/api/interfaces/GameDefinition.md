@@ -65,3 +65,12 @@ its protocol's shared profile, so an A2S game can be added with only its definit
 > `readonly` `optional` **queryPortStrategy?**: `"offset"` \| `"fixed"`
 
 Whether a custom game port shifts the conventional query port or leaves it fixed.
+
+***
+
+### steamAppId?
+
+> `readonly` `optional` **steamAppId?**: `number`
+
+Steam App ID a server of this game advertises in A2S Info, which lets `detect()` tell games
+apart that share a protocol and port. Omitted for games that are not identified on Steam.

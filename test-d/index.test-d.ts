@@ -46,6 +46,10 @@ import {
   isGameId,
   query,
   queryMany,
+  detect,
+  type DetectEvidence,
+  type DetectProbe,
+  type DetectResult,
   type QueryManyEntry,
   type QuerySource,
   type QuerySourceEvent,
@@ -595,3 +599,21 @@ void query({
 declare const sourceEvent: QuerySourceEvent;
 expectType<"started" | "completed">(sourceEvent.type);
 expectAssignable<QuerySourceName>("minecraft-legacy-ping");
+
+const detection = await detect({ host: "play.example.com", port: 28015, maxProbes: 4 });
+expectType<DetectResult>(detection);
+expectType<readonly DetectProbe[]>(detection.probes);
+if (detection.ok) {
+  expectType<DetectEvidence>(detection.evidence);
+  // The detected game keeps its result correlated, so narrowing `game` narrows `result`.
+  if (detection.game === "rust") {
+    expectType<QueryResult<"rust">>(detection.result);
+  }
+} else {
+  expectType<"ABORTED" | "DNS_FAILED" | "INVALID_INPUT" | "NOT_DETECTED" | "TARGET_BLOCKED">(
+    detection.error.code,
+  );
+}
+expectError(detect({ game: "rust", host: "play.example.com" }));
+expectError(detect({ host: "play.example.com", mode: "verbose" }));
+expectType<number | undefined>(getGameDefinition("rust").steamAppId);

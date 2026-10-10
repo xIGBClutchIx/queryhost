@@ -6,9 +6,10 @@ import type { QueryMode } from "../contracts/shared.js";
 
 const MAX_TIMEOUT_MS = 30_000;
 
-/** Validated command-line options ready to become a public query input. */
+/** Validated command-line options ready to become a public query or detection input. */
 export interface QueryCommandOptions {
-  readonly game: GameId;
+  /** `auto` detects the game instead of querying a named one. */
+  readonly game: GameId | "auto";
   readonly host: string;
   readonly port?: number;
   readonly queryPort?: number;
@@ -55,7 +56,7 @@ function flagValue(
   return value;
 }
 
-/** Parses `queryhost <game> <host> [port]` and its bounded optional flags. */
+/** Parses `queryhost <game|auto> <host> [port]` and its bounded optional flags. */
 export function parseQueryArguments(args: readonly string[]): QueryCommandParseResult {
   if (args.includes("--help") || args.includes("-h")) {
     return { kind: "help" };
@@ -111,8 +112,11 @@ export function parseQueryArguments(args: readonly string[]): QueryCommandParseR
   }
   const game = positional[0];
   const host = positional[1];
-  if (game === undefined || !isGameInputId(game)) {
+  if (game === undefined || (game !== "auto" && !isGameInputId(game))) {
     return error(`Unsupported game: ${game ?? "(missing)"}`);
+  }
+  if (game === "auto" && flags.queryPort !== undefined) {
+    return error("--query-port cannot be combined with auto; pass the port to try instead.");
   }
   if (host === undefined || host.length === 0) {
     return error("Host must not be empty.");
@@ -126,7 +130,7 @@ export function parseQueryArguments(args: readonly string[]): QueryCommandParseR
   return {
     kind: "query",
     options: {
-      game: canonicalGameId(game),
+      game: game === "auto" ? game : canonicalGameId(game),
       host,
       ...(port === undefined ? {} : { port }),
       ...(flags.queryPort === undefined ? {} : { queryPort: flags.queryPort }),
