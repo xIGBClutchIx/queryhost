@@ -32,6 +32,7 @@ export type QuerySourceName =
   | "a2s-rules"
   | "minecraft-srv"
   | "minecraft-slp"
+  | "minecraft-legacy-ping"
   | "minecraft-query"
   | "minecraft-bedrock-raknet"
   | "fivem-info"

@@ -38,7 +38,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `transports/tcp.ts` owns bounded request/response streams against one pinned address. Protocol callbacks identify complete framing without moving parsing into the transport.
 - `transports/http.ts` owns bounded, non-redirecting GET/POST requests to protocol-owned fixed paths over one pinned address while preserving the original Host and TLS SNI identity. Each request uses its own built-in `Agent`, never the process-wide or a host-installed one (`agent: false` would build from the global agent's constructor), and loads `node:http`/`node:https` on first use.
 - `protocols/a2s/` owns bounds-checked binary primitives and protocol facts shared by A2S game profiles.
-- `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, and SLP request/response handling.
+- `protocols/minecraft-java/` owns strict VarInts, status framing, JSON boundary validation, chat-component normalization, favicon validation, SLP request/response handling, and the pre-1.7 legacy ping.
 - `protocols/minecraft-bedrock/` owns RakNet unconnected ping framing, echoed identifiers, strict UTF-8 decoding, and bounded advertisement parsing.
 - `protocols/cfx/` owns the shared FXServer fixed endpoint paths, bounded JSON parsing, endpoint schemas, and explicit blocked/not-found response classification.
 - `protocols/satisfactory/` owns Lightweight Query framing and the fixed HTTPS HealthCheck request and response schema.
@@ -190,6 +190,12 @@ SLP races the validated addresses of every target in one SRV priority group, sta
 VarInts are canonical signed 32-bit encodings limited to five bytes. Framed responses, JSON bytes, JSON characters, chat-component depth, node count, and normalized MOTD output all have explicit limits. Status documents require a version name, numeric protocol, non-negative player counts, and a supported description component. Invalid UTF-8, trailing packet bytes, malformed JSON, and invalid field types fail deterministically.
 
 MOTD plain text strips legacy formatting. HTML is produced only from escaped text and fixed color/style declarations, so server text cannot inject markup or attributes. Favicon values must be bounded PNG data URLs with a 64-by-64 IHDR; malformed, incorrectly sized, or excessive icons are rejected. The normalized result exposes version and player counts under `server`, with MOTD, protocol version, and favicon under `data`.
+
+## Minecraft Java legacy ping invariants
+
+Pre-1.7 servers do not understand the modern handshake and close, reset, or answer it with an old kick packet. When SLP fails that way (malformed, too large, or a connection failure), the profile reports SLP with that status and retries once with the legacy ping over the same SRV groups and staggered address race. An SLP timeout does not fall back: a legacy server answers or closes promptly, and retrying an unreachable host would double its wait. When both pings fail, the query fails with the SLP error and both source reports. When SLP succeeds, `minecraft-legacy-ping` is reported as `not-requested`.
+
+The request is the 1.6 form, `FE 01` followed by an `MC|PingHost` plugin message carrying protocol 74 and the handshake hostname and port; servers before 1.6 stop reading after `FE 01`, and Beta 1.8 through 1.3 after `FE`. The response must be exactly one `0xFF` kick packet whose UTF-16BE string is at most 2,048 characters, with no trailing bytes and no lone surrogates. A string starting with `§1\0` must hold exactly five NUL-separated fields: protocol, version name, MOTD, online, and max. Any other string is the Beta 1.8 to 1.3 layout of exactly three `§`-separated fields (MOTD, online, max), which cannot carry a version or protocol, so both stay omitted rather than guessed. Counts are unsigned decimal 32-bit integers; a confirmed empty version name or MOTD is kept. Legacy responses never carry a favicon. The MOTD goes through the same legacy-format normalization as SLP descriptions, and optional UDP Query still runs in full mode.
 
 ## Minecraft Query invariants
 

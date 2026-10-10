@@ -588,3 +588,4 @@ void query({
 });
 declare const sourceEvent: QuerySourceEvent;
 expectType<"started" | "completed">(sourceEvent.type);
+expectAssignable<QuerySourceName>("minecraft-legacy-ping");

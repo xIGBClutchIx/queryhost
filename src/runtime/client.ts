@@ -259,7 +259,7 @@ const GAME_PROFILES: GameProfileTable = Object.freeze({
   valheim: createProfileRunner("valheim", A2S_SOURCES, a2sProfileRunner(queryValheimProfile)),
   "minecraft-java": createProfileRunner(
     "minecraft-java",
-    ["minecraft-srv", "minecraft-slp", "minecraft-query"],
+    ["minecraft-srv", "minecraft-slp", "minecraft-legacy-ping", "minecraft-query"],
     minecraftJavaProfileRunner,
   ),
   "minecraft-bedrock": createProfileRunner(

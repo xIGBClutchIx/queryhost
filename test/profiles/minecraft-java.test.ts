@@ -75,7 +75,8 @@ function resolver(
 }
 
 interface ScriptedTcpOptions {
-  readonly response: Uint8Array;
+  /** Bytes sent back for a request; `undefined` closes the connection without a response. */
+  readonly response: Uint8Array | ((request: Uint8Array) => Uint8Array | undefined);
   readonly failAddresses?: ReadonlySet<string>;
   /** Milliseconds before the connection to an address completes. */
   readonly connectDelayMs?: ReadonlyMap<string, number>;
@@ -129,8 +130,14 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
           completion(undefined);
           options.hosts?.push(new TextDecoder().decode(data));
           if (options.failAddresses?.has(selectedAddress) !== true) {
+            const response =
+              typeof options.response === "function" ? options.response(data) : options.response;
             queueMicrotask((): void => {
-              dataListener(options.response);
+              if (response === undefined) {
+                endListener();
+              } else {
+                dataListener(response);
+              }
             });
           }
         },
@@ -220,6 +227,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "ok", rttMs: 8 },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "ok", rttMs: 6 },
       ],
       warnings: [],
@@ -255,6 +263,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "ok" },
         { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "not-requested" },
       ],
     });
@@ -471,6 +480,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "timeout" },
       ],
       warnings: [{ code: "PARTIAL_RESULT" }, { code: "SOURCE_TIMEOUT", source: "minecraft-query" }],
@@ -499,8 +509,128 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "malformed" },
       ],
       warnings: [],
     });
   });
+
+  it("falls back to the legacy ping when a pre-1.7 server closes the modern handshake", async (): Promise<void> => {
+    const requests: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request) => {
+            requests.push(request[0] === 0xfe ? "legacy" : "modern");
+            return legacyOnly(request, "§1\u000078\u00001.6.4\u0000§6Old §lWorld\u00003\u000020");
+          },
+        }),
+      ),
+    );
+
+    expect(requests).toEqual(["modern", "legacy"]);
+    expect(result).toMatchObject({
+      ok: true,
+      server: { version: "1.6.4", players: { online: 3, max: 20 }, queryRttMs: 8 },
+      data: {
+        motd: {
+          plain: "Old World",
+          html: '<span style="color:#ffaa00">Old </span><span style="color:#ffaa00;font-weight:bold">World</span>',
+        },
+        protocolVersion: 78,
+      },
+      partial: false,
+      warnings: [],
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok", rttMs: 8 },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+    if (result.ok && result.game === "minecraft-java") {
+      expect(result.data.favicon).toBeUndefined();
+    }
+  });
+
+  it("omits version facts a Beta 1.8 to 1.3 legacy response cannot confirm", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({ response: (request) => legacyOnly(request, "A Beta Server§0§10") }),
+      ),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok && result.game === "minecraft-java") {
+      expect(result.server).toEqual({ players: { online: 0, max: 10 }, queryRttMs: 8 });
+      expect(result.data).toEqual({ motd: { plain: "A Beta Server", html: "A Beta Server" } });
+    }
+  });
+
+  it("keeps optional Query after a legacy ping answers in full mode", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com" },
+      dependencies(
+        scriptedTcp({
+          response: (request) =>
+            legacyOnly(request, "§1\u000078\u00001.6.4\u0000Old\u00003\u000020"),
+        }),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      server: { map: "world", version: "1.6.4" },
+      data: { players: ["Alex"], software: { name: "Paper" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "ok" },
+      ],
+    });
+  });
+
+  it("does not retry with the legacy ping after a modern status timeout", async (): Promise<void> => {
+    const requests: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request) => {
+            requests.push(request[0] === 0xfe ? "legacy" : "modern");
+            return Uint8Array.of(0x05);
+          },
+        }),
+      ),
+    );
+
+    expect(requests).toEqual(["modern"]);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "TIMEOUT", source: "minecraft-slp" },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "timeout" },
+      ],
+    });
+  });
 });
+
+function legacyKick(text: string): Uint8Array {
+  const bytes = new Uint8Array(3 + text.length * 2);
+  const view = new DataView(bytes.buffer);
+  view.setUint8(0, 0xff);
+  view.setUint16(1, text.length);
+  for (let index = 0; index < text.length; index += 1) {
+    view.setUint16(3 + index * 2, text.charCodeAt(index));
+  }
+  return bytes;
+}
+
+/** Simulates a pre-1.7 server: it drops the modern handshake and answers only `FE 01`. */
+function legacyOnly(request: Uint8Array, text: string): Uint8Array | undefined {
+  return request[0] === 0xfe ? legacyKick(text) : undefined;
+}
