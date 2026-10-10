@@ -27,6 +27,7 @@ The current source tree contains the package foundation and supported profiles:
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
 - Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
+- a `crossplay` hint on either Minecraft edition when the server advertises a Geyser bridge for the other edition's players, at no extra network cost
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
 - concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
 - Satisfactory lightweight UDP status with optional authentication-free HTTPS health enrichment

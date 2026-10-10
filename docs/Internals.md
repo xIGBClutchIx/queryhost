@@ -206,6 +206,10 @@ The pong must echo the request timestamp and contain the exact RakNet offline-me
 
 The primary MOTD becomes `server.name` and `data.motd`; version and player counts are normalized under `server`. Edition, numeric protocol, game mode, decimal server ID, and advertised IPv4/IPv6 ports remain under `MinecraftBedrockData`. Advertised ports are informational because following untrusted response-directed destinations would cross the validated target boundary. RakNet is the profile's single required source, so timeout, malformed data, or transport failure returns a failed query rather than partial success.
 
+## Minecraft crossplay hints
+
+`profiles/minecraft-crossplay.ts` derives the optional `crossplay` hint from data each Minecraft profile already received; it never sends a probe to the other edition's port. Java matches Query plugin names that are `Geyser` or `Floodgate`, alone or with a platform suffix such as `Geyser-Spigot`. Bedrock matches only Geyser's exact default sub-MOTDs (`Geyser`, which Geyser substitutes for an empty sub-MOTD, and `Another Geyser server.`), because vanilla servers put an arbitrary level name in that field. The hint is evidence, not a capability check: omission means no evidence, never a confirmed single-edition server.
+
 ## Satisfactory Dedicated Server invariants
 
 Satisfactory resolves and pins one public destination on port 7777 by default. The required source is the version-1 Lightweight Query API over UDP. Poll cookies are random unsigned 64-bit correlation values; responses must echo the cookie and match the fixed magic, message type, version, terminator, exact packet length, bounded UTF-8 server name, known lifecycle state, and bounded substate collection. The parser retains the unsigned flag word as a decimal string, interprets only the documented modded bit, and discards future unknown substate IDs as required by the shipped protocol documentation.

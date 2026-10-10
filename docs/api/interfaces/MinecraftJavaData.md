@@ -10,6 +10,14 @@ Minecraft Java data merged from Server List Ping and optional Query/SRV sources.
 
 ## Properties
 
+### crossplay?
+
+> `readonly` `optional` **crossplay?**: [`MinecraftCrossplayHint`](MinecraftCrossplayHint.md)
+
+Present when Query plugins show a Geyser or Floodgate bridge for Bedrock players.
+
+***
+
 ### favicon?
 
 > `readonly` `optional` **favicon?**: `string`

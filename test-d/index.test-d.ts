@@ -64,6 +64,7 @@ import {
   type Left4Dead2Data,
   type Left4DeadData,
   type MinecraftBedrockData,
+  type MinecraftCrossplayHint,
   type MinecraftJavaData,
   type PalworldData,
   type PalworldPlayer,
@@ -463,6 +464,8 @@ expectType<readonly string[] | undefined>(dataMap["minecraft-java"].players);
 expectType<string | undefined>(dataMap["minecraft-java"].software?.name);
 expectType<string | undefined>(dataMap["minecraft-java"].plugins?.[0]?.name);
 expectType<string | undefined>(dataMap["minecraft-java"].srv?.host);
+expectType<MinecraftCrossplayHint | undefined>(dataMap["minecraft-java"].crossplay);
+expectType<"geyser" | undefined>(dataMap["minecraft-java"].crossplay?.bridge);
 expectType<MinecraftBedrockData>(dataMap["minecraft-bedrock"]);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].edition);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].motd);
@@ -471,6 +474,9 @@ expectType<string | undefined>(dataMap["minecraft-bedrock"].gameMode);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].serverId);
 expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv4Port);
 expectType<number | undefined>(dataMap["minecraft-bedrock"].advertisedIpv6Port);
+expectType<"query-plugins" | "bedrock-sub-motd" | undefined>(
+  dataMap["minecraft-bedrock"].crossplay?.evidence,
+);
 expectType<FiveMData>(dataMap.fivem);
 expectType<readonly string[] | undefined>(dataMap.fivem.resources);
 expectType<Readonly<Record<string, string>> | undefined>(dataMap.fivem.variables);

@@ -608,6 +608,18 @@ export interface MinecraftSrvTarget {
   readonly port: number;
 }
 
+/**
+ * Evidence that a Minecraft server also admits players from the other edition
+ * through a bridge such as Geyser. It is inferred from data the server already
+ * advertises, so a missing hint never proves that a server is single-edition.
+ */
+export interface MinecraftCrossplayHint {
+  /** Bridge software the evidence points to. */
+  readonly bridge: "geyser";
+  /** Advertised data that matched: Java Query plugin names or the Bedrock sub-MOTD. */
+  readonly evidence: "query-plugins" | "bedrock-sub-motd";
+}
+
 /** Minecraft Java data merged from Server List Ping and optional Query/SRV sources. */
 export interface MinecraftJavaData {
   readonly motd?: MinecraftMotd;
@@ -621,6 +633,8 @@ export interface MinecraftJavaData {
   /** Omitted when Query is skipped or unavailable; empty means Query confirmed no listed players. */
   readonly players?: readonly string[];
   readonly srv?: MinecraftSrvTarget;
+  /** Present when Query plugins show a Geyser or Floodgate bridge for Bedrock players. */
+  readonly crossplay?: MinecraftCrossplayHint;
 }
 
 /** Minecraft Bedrock data parsed from a RakNet unconnected pong. */
@@ -634,6 +648,8 @@ export interface MinecraftBedrockData {
   readonly advertisedIpv4Port?: number;
   /** IPv6 port advertised by the server, when present. */
   readonly advertisedIpv6Port?: number;
+  /** Present when the pong carries a Geyser default sub-MOTD, so Java players can likely join. */
+  readonly crossplay?: MinecraftCrossplayHint;
 }
 
 /** One player reported by a Cfx FXServer fixed players endpoint. */

@@ -3,6 +3,7 @@
 import { isIP } from "node:net";
 
 import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
+import { javaCrossplay } from "./minecraft-crossplay.js";
 import type { ExecutionScope } from "../runtime/execution.js";
 import { raceAttempts, type AttemptRaceWin } from "../runtime/attempt-race.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
@@ -385,6 +386,7 @@ export async function queryMinecraftJavaProfile(
     ...(queryStat?.software === undefined ? {} : { software: queryStat.software }),
     ...(queryStat?.plugins === undefined ? {} : { plugins: queryStat.plugins }),
     ...(queryStat?.players === undefined ? {} : { players: queryStat.players }),
+    ...javaCrossplay(queryStat?.plugins),
   });
   const sources: readonly [QuerySource, QuerySource, QuerySource] = Object.freeze([
     discovery.report,

@@ -3,6 +3,7 @@
 import type { MinecraftBedrockData } from "../contracts/games.js";
 import type { ExecutionScope } from "../runtime/execution.js";
 import { raceAttempts } from "../runtime/attempt-race.js";
+import { bedrockCrossplay } from "./minecraft-crossplay.js";
 import {
   createMinecraftBedrockClientGuid,
   queryMinecraftBedrockPing,
@@ -116,6 +117,7 @@ export async function queryMinecraftBedrockProfile(
     ...(pong.advertisedIpv6Port === undefined
       ? {}
       : { advertisedIpv6Port: pong.advertisedIpv6Port }),
+    ...bedrockCrossplay(pong.subMotd),
   });
   const sources: readonly [QuerySource] = Object.freeze([ping.report]);
   return Object.freeze({

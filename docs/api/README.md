@@ -55,6 +55,7 @@
 - [Left4Dead2Data](interfaces/Left4Dead2Data.md)
 - [Left4DeadData](interfaces/Left4DeadData.md)
 - [MinecraftBedrockData](interfaces/MinecraftBedrockData.md)
+- [MinecraftCrossplayHint](interfaces/MinecraftCrossplayHint.md)
 - [MinecraftJavaData](interfaces/MinecraftJavaData.md)
 - [MinecraftMotd](interfaces/MinecraftMotd.md)
 - [MinecraftPlugin](interfaces/MinecraftPlugin.md)

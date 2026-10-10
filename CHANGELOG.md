@@ -11,6 +11,7 @@ QueryHost records user-visible package changes in this file.
 - `steamAppId` on registry definitions of named A2S games.
 - `steamGameId` on generic A2S data, the full 64-bit Steam game ID when the server advertises it, since the 16-bit `appId` truncates larger App IDs.
 - An `onSource` callback on `QueryInput` that reports each source as it starts and completes, with the exported `QuerySourceEvent` type. The completed reports match the result's `sources`, nothing is reported after the query resolves, and a callback that throws cannot change the result.
+- A `crossplay` hint on Minecraft Java and Bedrock data, with the exported `MinecraftCrossplayHint` type, when a server advertises a Geyser bridge for players of the other edition: a Geyser or Floodgate plugin in Java Query's plugin list, or Geyser's default sub-MOTD in a Bedrock pong. It costs no extra requests, and its absence does not mean the server is single-edition.
 
 ## [1.6.0] - 2026-10-09
 

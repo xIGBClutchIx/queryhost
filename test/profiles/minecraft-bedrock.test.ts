@@ -169,6 +169,30 @@ describe("Minecraft Bedrock game profile", (): void => {
     expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
   });
 
+  it("hints at Geyser crossplay from its default sub-MOTD", async (): Promise<void> => {
+    const fields: string[] = [...FIELDS];
+    fields[7] = "Geyser";
+    const ping: MinecraftBedrockPingDependencies = {
+      exchange(options) {
+        return Promise.resolve({
+          data: pong(options.request, fields),
+          rttMs: 4,
+          address: options.address,
+          port: options.target.port,
+        });
+      },
+    };
+    const result = await queryWithDependencies(
+      { game: "bedrock", host: "play.example.com" },
+      dependencies(ping),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { crossplay: { bridge: "geyser", evidence: "bedrock-sub-motd" } },
+    });
+  });
+
   it("does not invent fields omitted by a valid partial advertisement", async (): Promise<void> => {
     const ping: MinecraftBedrockPingDependencies = {
       exchange(options) {
@@ -195,6 +219,7 @@ describe("Minecraft Bedrock game profile", (): void => {
       expect(result.server.name).toBeUndefined();
       expect(result.server.players).toBeUndefined();
       expect(result.data.advertisedIpv4Port).toBeUndefined();
+      expect(result.data.crossplay).toBeUndefined();
     }
   });
 
