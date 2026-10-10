@@ -96,7 +96,7 @@ if (detected.ok) {
 }
 ```
 
-A2S servers are matched by the Steam App ID they advertise, FiveM and RedM by their `gamename`, and otherwise by a port only one game uses; when nothing names the game, the result is generic A2S with `evidence: "fallback"`. Detection is bounded: at most `maxProbes` protocol and port pairs (8 by default, up to 16) run four at a time inside one `timeoutMs`, and `probes` reports each planned pair as `matched`, `answered`, `failed`, `cancelled`, or `skipped`. A host where nothing answered resolves with `NOT_DETECTED`. Passing the port players connect to keeps detection fast and precise.
+A2S servers are matched by the Steam App ID they advertise, FiveM and RedM by their `gamename`, and otherwise by a port only one game uses; when nothing names the game, the result is generic A2S with `evidence: "fallback"`. Detection is bounded: at most `maxProbes` protocol and port pairs (8 by default, up to 16) run four at a time inside one `timeoutMs`, and `probes` reports each planned pair as `matched`, `answered`, `failed`, `cancelled`, or `skipped`. A host where nothing answered resolves with `NOT_DETECTED`. Passing the port players connect to keeps detection fast and precise. A port that is no game's default maps to more candidate destinations than the default budget covers, so raise `maxProbes` (up to 16) to try more of them.
 
 For live progress, pass `onSource` with any query. It is called as each source starts and completes, and its completed reports are exactly the result's `sources`.
 

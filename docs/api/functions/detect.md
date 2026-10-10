@@ -12,7 +12,8 @@ Identifies which supported game a server runs, then queries it as that game.
 
 Probes are derived from `GAME_REGISTRY`: each distinct protocol and port pair the registry's
 conventions allow for `port` (or, without one, every game's conventional query port) is ranked
-by how many games use it, and at most `maxProbes` of them run, four at a time. The first probe
+by how many games use it, with `port` read as a game port before it is read as a query port,
+and at most `maxProbes` of them run, four at a time. The first probe
 that answers decides the protocol; the server's advertised Steam App ID or Cfx `gamename`, or a
 port only one game uses, then picks the game. The remaining probes are cancelled, and the
 detected game's query reuses the probe's answer or the address it already resolved.

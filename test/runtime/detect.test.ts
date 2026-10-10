@@ -266,6 +266,18 @@ describe("detection probe plan", (): void => {
     expect(pairs).toContain("a2s@27016");
   });
 
+  it("reads a custom port as a game port before guessing it is a query port", (): void => {
+    const rust = planProbes(29_000).map(({ protocol, port }) => `${protocol}@${port}`);
+    const palworld = planProbes(9000).map(({ protocol, port }) => `${protocol}@${port}`);
+
+    // Rust shifts its game port by two; Eco's query port is the game port + 1.
+    expect(rust.indexOf("a2s@29002")).toBeLessThan(16);
+    expect(rust.indexOf("eco@29001")).toBeLessThan(rust.indexOf("eco@29000"));
+    expect(rust.at(-1)).toBe("eco@29000");
+    // Palworld keeps its fixed query port, which the default budget reaches.
+    expect(palworld.slice(0, 8)).toContain("a2s@27015");
+  });
+
   it("tries the given port itself with every protocol", (): void => {
     const probes = planProbes(40_000);
     const direct = probes.filter(({ port }) => port === 40_000).map(({ protocol }) => protocol);
@@ -442,10 +454,26 @@ describe("detect", (): void => {
     expect(statuses(detected.probes).slice(0, 4)).toEqual([
       "a2s@28017:matched",
       "a2s@28015:cancelled",
+      "cfx@28015:cancelled",
       "minecraft-java@28015:cancelled",
-      "minecraft-bedrock@28015:cancelled",
     ]);
     expect(detected.probes.slice(4).every(({ status }) => status === "skipped")).toBe(true);
+  });
+
+  it("reports a probe that answered alongside the winner as answered", async (): Promise<void> => {
+    const info = sourceInfoPacket({ gameId: 252_490n });
+    const both: A2sAnswer = (options) =>
+      a2sInfoOn(28_017, info)(options) ?? a2sInfoOn(28_015, info)(options);
+    const { dependencies } = harness({ silent: true, a2s: both });
+
+    const detected = await detectWithDependencies(
+      { host: "play.example.com", port: 28_015, mode: "summary", timeoutMs: 30_000 },
+      dependencies,
+    );
+
+    expect(detected.ok).toBe(true);
+    const a2s = detected.probes.filter(({ protocol }) => protocol === "a2s").slice(0, 2);
+    expect(new Set(a2s.map(({ status }) => status))).toEqual(new Set(["matched", "answered"]));
   });
 
   it("stops at the probe budget and reports what was tried when nothing answers", async (): Promise<void> => {

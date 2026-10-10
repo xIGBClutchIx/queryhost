@@ -39,8 +39,6 @@ const PROBE_CONCURRENCY = 4;
 /** Share of the deadline held back from probing for the detected game's own query. */
 const FINAL_QUERY_SHARE = 0.4;
 const MAX_FINAL_QUERY_RESERVE_MS = 2_000;
-/** A pair some game conventionally uses outranks any number of merely possible layouts. */
-const CONVENTIONAL_WEIGHT = 4;
 /** Steam game IDs keep the App ID in their low 24 bits. */
 const GAME_ID_APP_MASK = 0xff_ffffn;
 
@@ -63,7 +61,10 @@ interface PlannedProbe {
   readonly port: number;
   /** Games for which this pair is the conventional query destination of the probed port. */
   readonly conventional: readonly GameId[];
-  readonly weight: number;
+  /** Games whose convention shifts the probed port, read as their game port, to this pair. */
+  readonly derived: number;
+  /** Whether some game could answer here only if the probed port were its query port. */
+  readonly possible: boolean;
   /** Registry position of the first game that proposed the pair, for a stable tie-break. */
   readonly rank: number;
 }
@@ -72,9 +73,12 @@ interface PlanEntry {
   readonly protocol: DetectProtocol;
   readonly port: number;
   readonly conventional: Set<GameId>;
+  readonly derived: Set<GameId>;
   possible: boolean;
   readonly rank: number;
 }
+
+type PlanKind = "conventional" | "derived" | "possible";
 
 interface Identification {
   readonly game: GameId;
@@ -112,7 +116,8 @@ function isPort(port: number): boolean {
 /**
  * Derives every probe from the registry. Without a port each game contributes its conventional
  * query destination. With one, each game contributes the port read as its query port and the port
- * read as its game port. A pair is conventional only when the port is that game's default.
+ * read as its game port. A pair is conventional only when the port is that game's default; the
+ * game-port reading of any other port is derived, and the query-port reading merely possible.
  */
 export function planProbes(port: number | undefined): readonly PlannedProbe[] {
   const entries = new Map<string, PlanEntry>();
@@ -121,7 +126,7 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
     rank: number,
     protocol: DetectProtocol,
     probePort: number,
-    conventional: boolean,
+    kind: PlanKind,
   ): void => {
     if (!isPort(probePort)) {
       return;
@@ -129,13 +134,20 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
     const key = `${protocol}:${probePort}`;
     let entry = entries.get(key);
     if (entry === undefined) {
-      entry = { protocol, port: probePort, conventional: new Set(), possible: false, rank };
+      entry = {
+        protocol,
+        port: probePort,
+        conventional: new Set(),
+        derived: new Set(),
+        possible: false,
+        rank,
+      };
       entries.set(key, entry);
     }
-    if (conventional) {
-      entry.conventional.add(game);
-    } else {
+    if (kind === "possible") {
       entry.possible = true;
+    } else {
+      entry[kind].add(game);
     }
   };
 
@@ -148,17 +160,18 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
     const protocol = probeProtocol(definition.protocol);
     const usualQueryPort = conventionalQueryPort(definition, definition.defaultPort);
     if (port === undefined) {
-      add(game, rank, protocol, usualQueryPort, true);
+      add(game, rank, protocol, usualQueryPort, "conventional");
       continue;
     }
-    add(game, rank, protocol, port, usualQueryPort === port);
-    // A fixed query port stays put for any game port, so it is a candidate for every port.
+    add(game, rank, protocol, port, usualQueryPort === port ? "conventional" : "possible");
+    // Callers usually pass the port players connect to, so the destination each game's convention
+    // derives from it (a fixed query port stays put) outranks guessing that it is a query port.
     add(
       game,
       rank,
       protocol,
       conventionalQueryPort(definition, port),
-      definition.defaultPort === port,
+      definition.defaultPort === port ? "conventional" : "derived",
     );
   }
 
@@ -170,20 +183,32 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
         protocol: entry.protocol,
         port: entry.port,
         conventional: Object.freeze([...entry.conventional]),
-        weight: entry.conventional.size * CONVENTIONAL_WEIGHT + (entry.possible ? 1 : 0),
+        derived: entry.derived.size,
+        possible: entry.possible,
         rank: entry.rank,
       }),
     )
     .sort(
       (a, b) =>
-        b.weight - a.weight || distance(a) - distance(b) || a.rank - b.rank || a.port - b.port,
+        b.conventional.length - a.conventional.length ||
+        b.derived - a.derived ||
+        Number(b.possible) - Number(a.possible) ||
+        distance(a) - distance(b) ||
+        a.rank - b.rank ||
+        a.port - b.port,
     );
-  // Pairs some game conventionally uses run before mere possibilities. Within each tier every
-  // protocol's best pair runs before any protocol's second, so a small budget still asks each
-  // protocol once instead of spending itself on alternative A2S ports.
+  // Pairs some game conventionally uses run first, then pairs derived from the port as a game
+  // port, then mere possibilities. Within each tier every protocol's best pair runs before any
+  // protocol's second, so a small budget still asks each protocol once instead of spending itself
+  // on alternative A2S ports.
   const conventional = ranked.filter((probe) => probe.conventional.length > 0);
-  const possible = ranked.filter((probe) => probe.conventional.length === 0);
-  return Object.freeze([...protocolsFirst(conventional), ...protocolsFirst(possible)]);
+  const derived = ranked.filter((probe) => probe.conventional.length === 0 && probe.derived > 0);
+  const possible = ranked.filter((probe) => probe.conventional.length === 0 && probe.derived === 0);
+  return Object.freeze([
+    ...protocolsFirst(conventional),
+    ...protocolsFirst(derived),
+    ...protocolsFirst(possible),
+  ]);
 }
 
 function protocolsFirst(probes: readonly PlannedProbe[]): readonly PlannedProbe[] {
@@ -510,6 +535,8 @@ export async function detectWithDependencies(
   try {
     const outcomes: (QueryResult | undefined)[] = [];
     let pulled = 0;
+    let started = 0;
+    let decided = false;
     const budget = Math.min(maxProbes, plan.length);
     // Read lazily by the batch, so each probe gets only the probing time still left.
     function* probeInputs(): Generator<QueryInput, void, undefined> {
@@ -530,13 +557,24 @@ export async function detectWithDependencies(
         concurrency: PROBE_CONCURRENCY,
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       },
-      (probe) => queryWithDependencies(probe, probeDependencies),
+      // The batch starts probes in input order, so the start count is the probe's index. Each
+      // outcome is recorded as it settles, so answers settled behind the winner still count as
+      // work; only an abort after the decision is that decision's cancellation.
+      async (probe) => {
+        const index = started;
+        started += 1;
+        const result = await queryWithDependencies(probe, probeDependencies);
+        if (!decided || result.ok || result.error.code !== "ABORTED") {
+          outcomes[index] = result;
+        }
+        return result;
+      },
     );
     // Leaving the loop on the first answer cancels the probes still in flight and awaits cleanup.
     for await (const { index, result } of batch) {
-      outcomes[index] = result;
       if (result.ok) {
         matchIndex = index;
+        decided = true;
         break;
       }
     }
@@ -592,7 +630,8 @@ export async function detectWithDependencies(
  *
  * Probes are derived from `GAME_REGISTRY`: each distinct protocol and port pair the registry's
  * conventions allow for `port` (or, without one, every game's conventional query port) is ranked
- * by how many games use it, and at most `maxProbes` of them run, four at a time. The first probe
+ * by how many games use it, with `port` read as a game port before it is read as a query port,
+ * and at most `maxProbes` of them run, four at a time. The first probe
  * that answers decides the protocol; the server's advertised Steam App ID or Cfx `gamename`, or a
  * port only one game uses, then picks the game. The remaining probes are cancelled, and the
  * detected game's query reuses the probe's answer or the address it already resolved.
