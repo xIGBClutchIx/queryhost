@@ -56,4 +56,6 @@ Review `npm pack --dry-run --json` before creating the release. The package must
 
 Publishing uses npm trusted publishing for `.github/workflows/publish.yml`. The trust relationship is limited to the `xIGBClutchIx/queryhost` repository and the `npm publish` action; the workflow uses GitHub OIDC and does not require a stored npm authentication token.
 
+After each later release, the publish workflow's `rollout` job asks `queryhost-api` and `queryhost-web` to run their `QueryHost release` workflows, which open pull requests moving each exact pin to the new version. The job needs a `QUERYHOST_ROLLOUT_TOKEN` repository secret: a fine-grained token limited to those two repositories with Actions read and write access. Without it the job passes with a notice and both repositories pick the release up on their hourly schedule. Merging those pull requests deploys, so they stay manual.
+
 npm does not permit reuse of a published name and version. If 1.0.0 contains a release defect, deprecate it when appropriate and publish a corrected patch version.

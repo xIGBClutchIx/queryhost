@@ -39,3 +39,26 @@ jobs:
 
       - name: Publish with provenance
         run: npm publish --access public --provenance
+
+  rollout:
+    needs: npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+
+    steps:
+      # Each downstream repository opens its own pin-bump pull request; this only asks them to
+      # start now instead of on their hourly schedule. The token needs Actions write access to
+      # queryhost-api and queryhost-web and nothing else.
+      - name: Request API and web bump pull requests
+        env:
+          GH_TOKEN: ${{ secrets.QUERYHOST_ROLLOUT_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::QUERYHOST_ROLLOUT_TOKEN is not set; the API and web pick up ${TAG} on their hourly schedule."
+            exit 0
+          fi
+          for repo in queryhost-api queryhost-web; do
+            gh workflow run queryhost-release.yml --repo "$GITHUB_REPOSITORY_OWNER/$repo" -f version="${TAG#v}"
+          done
