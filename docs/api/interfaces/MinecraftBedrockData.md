@@ -26,6 +26,14 @@ IPv6 port advertised by the server, when present.
 
 ***
 
+### crossplay?
+
+> `readonly` `optional` **crossplay?**: [`MinecraftCrossplayHint`](MinecraftCrossplayHint.md)
+
+Present when the pong carries a Geyser default sub-MOTD, so Java players can likely join.
+
+***
+
 ### edition?
 
 > `readonly` `optional` **edition?**: `string`

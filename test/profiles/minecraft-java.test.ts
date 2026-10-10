@@ -45,10 +45,13 @@ const SUCCESS_RESPONSE = statusPacket(
   }),
 );
 
-function fullQueryResponse(sessionId: number): Uint8Array {
+function fullQueryResponse(
+  sessionId: number,
+  plugins = "Paper: EssentialsX 2.20.1; LuckPerms",
+): Uint8Array {
   const fields = [
     ["map", "world"],
-    ["plugins", "Paper: EssentialsX 2.20.1; LuckPerms"],
+    ["plugins", plugins],
     ["numplayers", "7"],
     ["maxplayers", "50"],
   ] as const;
@@ -147,7 +150,7 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
   };
 }
 
-function successfulQuery(ports?: number[]): MinecraftQueryDependencies {
+function successfulQuery(ports?: number[], plugins?: string): MinecraftQueryDependencies {
   return {
     converse(options) {
       ports?.push(options.target.port);
@@ -157,7 +160,7 @@ function successfulQuery(ports?: number[]): MinecraftQueryDependencies {
         4,
       ).getInt32(0);
       return Promise.resolve({
-        responses: Object.freeze([Uint8Array.of(9), fullQueryResponse(sessionId)]),
+        responses: Object.freeze([Uint8Array.of(9), fullQueryResponse(sessionId, plugins)]),
         rttMs: 6,
         address: options.address,
         port: options.target.port,
@@ -225,6 +228,22 @@ describe("Minecraft Java game profile", (): void => {
       warnings: [],
       partial: false,
       durationMs: 25,
+    });
+  });
+
+  it("hints at Geyser crossplay when Query lists a Bedrock bridge plugin", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "mc", host: "play.example.com" },
+      dependencies(
+        scriptedTcp({ response: SUCCESS_RESPONSE }),
+        resolver(),
+        successfulQuery(undefined, "Paper: Geyser-Spigot 2.4.1; floodgate 2.2.3"),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { crossplay: { bridge: "geyser", evidence: "query-plugins" } },
     });
   });
 
