@@ -4,12 +4,16 @@
 import { parseQueryArguments } from "./cli/options.js";
 import type { QueryInput } from "./contracts/query.js";
 import { query } from "./runtime/client.js";
+import { detect } from "./runtime/detect.js";
 
 const HELP = `QueryHost game-server query probe
 
 Usage:
   queryhost <game> <host> [port] [options]
+  queryhost auto <host> [port] [options]
   npm run query -- <game> <host> [port] [options]
+
+Use "auto" as the game to detect which supported game answers.
 
 Options:
   --mode <full|summary>  Query all sources or only the required summary (default: full)
@@ -19,6 +23,7 @@ Options:
 
 Examples:
   queryhost a2s play.example.com 27015
+  queryhost auto play.example.com 28015
   queryhost dst play.example.com 10999 --query-port 27016
   queryhost rust play.example.com 28015
   queryhost cs2 play.example.com 27015
@@ -35,7 +40,7 @@ Examples:
   queryhost rust play.example.com --mode summary
   npm run query -- rust play.example.com 28015 --timeout 3000
 
-The command prints the complete parsed QueryResult as JSON. Private, loopback,
+The command prints the complete parsed QueryResult (DetectResult for auto) as JSON. Private, loopback,
 link-local, reserved, and other non-public destinations are blocked.
 `;
 
@@ -61,14 +66,22 @@ async function main(): Promise<number> {
   process.once("SIGINT", cancel);
   try {
     const options = parsed.options;
-    const input: QueryInput = {
-      game: options.game,
+    const common = {
       host: options.host,
       ...(options.port === undefined ? {} : { port: options.port }),
-      ...(options.queryPort === undefined ? {} : { queryPort: options.queryPort }),
       ...(options.mode === undefined ? {} : { mode: options.mode }),
       ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
       signal: cancellation.signal,
+    };
+    if (options.game === "auto") {
+      const detected = await detect(common);
+      process.stdout.write(`${JSON.stringify(detected, null, 2)}\n`);
+      return detected.ok && detected.result.ok ? 0 : 1;
+    }
+    const input: QueryInput = {
+      ...common,
+      game: options.game,
+      ...(options.queryPort === undefined ? {} : { queryPort: options.queryPort }),
     };
     const result = await query(input);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

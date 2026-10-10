@@ -30,6 +30,10 @@
 - [DayZData](interfaces/DayZData.md)
 - [DayZMod](interfaces/DayZMod.md)
 - [DayZRawData](interfaces/DayZRawData.md)
+- [DetectError](interfaces/DetectError.md)
+- [DetectFailure](interfaces/DetectFailure.md)
+- [DetectInput](interfaces/DetectInput.md)
+- [DetectProbe](interfaces/DetectProbe.md)
 - [DontStarveTogetherData](interfaces/DontStarveTogetherData.md)
 - [DontStarveTogetherPlayer](interfaces/DontStarveTogetherPlayer.md)
 - [EcoData](interfaces/EcoData.md)
@@ -101,6 +105,12 @@
 ## Type Aliases
 
 - [CanonicalGameId](type-aliases/CanonicalGameId.md)
+- [DetectErrorCode](type-aliases/DetectErrorCode.md)
+- [DetectEvidence](type-aliases/DetectEvidence.md)
+- [DetectProbeStatus](type-aliases/DetectProbeStatus.md)
+- [DetectProtocol](type-aliases/DetectProtocol.md)
+- [DetectResult](type-aliases/DetectResult.md)
+- [DetectSuccess](type-aliases/DetectSuccess.md)
 - [GameAlias](type-aliases/GameAlias.md)
 - [GameCapability](type-aliases/GameCapability.md)
 - [GameId](type-aliases/GameId.md)
@@ -130,6 +140,7 @@
 ## Functions
 
 - [canonicalGameId](functions/canonicalGameId.md)
+- [detect](functions/detect.md)
 - [getGameDefinition](functions/getGameDefinition.md)
 - [isGameAlias](functions/isGameAlias.md)
 - [isGameId](functions/isGameId.md)

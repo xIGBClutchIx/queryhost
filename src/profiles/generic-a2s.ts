@@ -54,6 +54,9 @@ function genericData(info: A2sInfo, optionalPlayers: readonly A2sPlayer[] | unde
     environment: info.environment,
     vac: info.vac,
     ...(info.format === "source" ? { appId: info.appId } : {}),
+    ...(info.format === "source" && info.gameId !== undefined
+      ? { steamGameId: info.gameId.toString() }
+      : {}),
     ...(info.format === "source" && info.keywords !== undefined
       ? { tags: tags(info.keywords) }
       : {}),
