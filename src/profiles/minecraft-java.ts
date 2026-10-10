@@ -282,9 +282,13 @@ async function pingAddress(
       );
       return Object.freeze({ result, modernStatus });
     } catch (legacyError) {
+      // A winning sibling's cancellation says nothing about this ping, but this attempt's own
+      // deadline is the ping timing out.
       if (!operation.signal.aborted) {
         legacy.lastStatus =
           (legacyError instanceof Error ? fallbackStatus(legacyError) : undefined) ?? "failed";
+      } else if (operation.getError()?.code === "TIMEOUT") {
+        legacy.lastStatus = "timeout";
       }
     }
   }

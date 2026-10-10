@@ -760,6 +760,27 @@ describe("Minecraft Java game profile", (): void => {
     });
   });
 
+  it("reports a legacy ping that runs out its attempt deadline as a timeout", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          // SLP closes at once; the legacy ping gets a partial kick packet and nothing more.
+          response: (request) => (request[0] === 0xfe ? Uint8Array.of(0xff) : undefined),
+        }),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "timeout" },
+      ],
+    });
+  });
+
   it("does not retry with the legacy ping after a modern status timeout", async (): Promise<void> => {
     const requests: string[] = [];
     const result = await queryWithDependencies(
