@@ -10,7 +10,13 @@ import type {
   DetectResult,
   DetectSuccess,
 } from "../contracts/detect.js";
-import type { GameId, QueryInput, QueryResult, QuerySuccess } from "../contracts/query.js";
+import type {
+  GameId,
+  QueryFailure,
+  QueryInput,
+  QueryResult,
+  QuerySuccess,
+} from "../contracts/query.js";
 import { GAME_IDS, GAME_REGISTRY } from "../contracts/registry.js";
 import type { GameProtocol } from "../contracts/registry.js";
 import type { QueryMode } from "../contracts/shared.js";
@@ -106,7 +112,7 @@ function isPort(port: number): boolean {
 /**
  * Derives every probe from the registry. Without a port each game contributes its conventional
  * query destination. With one, each game contributes the port read as its query port and the port
- * read as its game port; a fixed query port only counts when the port is that game's default.
+ * read as its game port. A pair is conventional only when the port is that game's default.
  */
 export function planProbes(port: number | undefined): readonly PlannedProbe[] {
   const entries = new Map<string, PlanEntry>();
@@ -146,15 +152,14 @@ export function planProbes(port: number | undefined): readonly PlannedProbe[] {
       continue;
     }
     add(game, rank, protocol, port, usualQueryPort === port);
-    if (definition.queryPortStrategy !== "fixed" || definition.defaultPort === port) {
-      add(
-        game,
-        rank,
-        protocol,
-        conventionalQueryPort(definition, port),
-        definition.defaultPort === port,
-      );
-    }
+    // A fixed query port stays put for any game port, so it is a candidate for every port.
+    add(
+      game,
+      rank,
+      protocol,
+      conventionalQueryPort(definition, port),
+      definition.defaultPort === port,
+    );
   }
 
   const distance = (probe: PlannedProbe): number =>
@@ -425,6 +430,18 @@ function success<G extends GameId>(
   }) as DetectSuccess;
 }
 
+/** The detected game's result when the deadline left no time to query it. */
+function timedOut<G extends GameId>(game: G, durationMs: number): QueryFailure<G> {
+  return Object.freeze({
+    ok: false,
+    game,
+    error: Object.freeze({ code: "TIMEOUT", message: "The query timed out." }),
+    durationMs,
+    sources: Object.freeze([]),
+    warnings: Object.freeze([]),
+  });
+}
+
 function probeReport(
   probe: PlannedProbe,
   outcome: QueryResult | undefined,
@@ -536,6 +553,13 @@ export async function detectWithDependencies(
         ? success(game, evidence, match, reports, elapsed())
         : failure(NOT_DETECTED_ERROR, reports, elapsed());
     }
+    const remaining = Math.floor(options.timeoutMs - elapsed());
+    if (remaining < 1) {
+      // The deadline bounds all network work, so no final query starts after it has passed.
+      return isResultFor(match, game)
+        ? success(game, evidence, match, reports, elapsed())
+        : success(game, evidence, timedOut(game, elapsed()), reports, elapsed());
+    }
     const result = await queryWithDependencies(
       finalInput(
         game,
@@ -543,7 +567,7 @@ export async function detectWithDependencies(
         probe.port,
         options.port,
         options.mode,
-        Math.max(1, Math.floor(options.timeoutMs - elapsed())),
+        remaining,
         options.signal,
       ),
       probeDependencies,

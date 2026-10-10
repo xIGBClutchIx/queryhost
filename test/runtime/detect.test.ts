@@ -250,6 +250,14 @@ describe("detection probe plan", (): void => {
     expect(planProbes(3000)[0]).toMatchObject({ protocol: "eco", port: 3001 });
   });
 
+  it("keeps fixed query ports as candidates for a custom game port", (): void => {
+    const pairs = planProbes(9000).map(({ protocol, port }) => `${protocol}@${port}`);
+
+    // Palworld and Don't Starve Together keep 27015 and 27016 whatever their game port.
+    expect(pairs).toContain("a2s@27015");
+    expect(pairs).toContain("a2s@27016");
+  });
+
   it("tries the given port itself with every protocol", (): void => {
     const probes = planProbes(40_000);
     const direct = probes.filter(({ port }) => port === 40_000).map(({ protocol }) => protocol);
@@ -384,6 +392,31 @@ describe("detect", (): void => {
       result: { ok: true, data: { response: "liveness" } },
     });
     expect(attempts.filter((attempt) => attempt === "vintage-story@42420")).toHaveLength(1);
+  });
+
+  it("starts no final query once the deadline has passed", async (): Promise<void> => {
+    let late = false;
+    const answer = a2sInfoOn(28_017, sourceInfoPacket({ gameId: 252_490n }));
+    const { dependencies, attempts } = harness({
+      a2s: (options) => {
+        const reply = answer(options);
+        late ||= reply !== undefined;
+        return reply;
+      },
+    });
+    const now = dependencies.now;
+
+    const detected = await detectWithDependencies(
+      { host: "play.example.com", port: 28_015, timeoutMs: 1_000 },
+      { ...dependencies, now: () => now() + (late ? 1_000 : 0) },
+    );
+
+    expect(detected).toMatchObject({
+      ok: true,
+      game: "rust",
+      result: { ok: false, game: "rust", error: { code: "TIMEOUT" } },
+    });
+    expect(attempts.filter((attempt) => attempt === "a2s@28017")).toHaveLength(1);
   });
 
   it("cancels the probes still in flight once one matches", async (): Promise<void> => {
