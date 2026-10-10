@@ -111,9 +111,10 @@ interface StatusSuccess {
   readonly legacy: QuerySource;
 }
 
-interface PingWin {
+/** One address's answer; `modernStatus` is set when SLP failed and the legacy ping answered. */
+interface PingAnswer {
   readonly result: PingResult;
-  readonly attempt: StatusAttempt;
+  readonly modernStatus?: QuerySourceStatus;
 }
 
 interface OptionalQueryResult {
@@ -213,39 +214,7 @@ function attemptGroups(candidates: readonly MinecraftCandidate[]): readonly Stat
   return groups;
 }
 
-async function racePing(
-  options: MinecraftJavaProfileOptions,
-  groups: readonly StatusAttempt[][],
-  source: "minecraft-slp" | "minecraft-legacy-ping",
-): Promise<PingWin> {
-  const ping = source === "minecraft-slp" ? queryMinecraftStatus : queryMinecraftLegacyStatus;
-  let lastError: Error | undefined;
-  for (const group of groups) {
-    try {
-      const win: AttemptRaceWin<StatusAttempt, PingResult> = await raceAttempts(
-        {
-          scope: options.scope,
-          candidates: group,
-          operationTimeoutMs: STATUS_OPERATION_TIMEOUT_MS,
-          source,
-          terminated: () => rootTcpTermination(options.scope),
-          empty: () => new Error("Minecraft Java discovery produced no addresses."),
-        },
-        ({ candidate, address }, operation) =>
-          ping({ scope: operation, target: candidate.target, address }, options.status),
-      );
-      return Object.freeze({ result: win.value, attempt: win.candidate });
-    } catch (error) {
-      if (options.scope.signal.aborted) {
-        throw rootTcpTermination(options.scope);
-      }
-      lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
-    }
-  }
-  throw lastError ?? new Error("Minecraft Java discovery produced no addresses.");
-}
-
-function requiredStatusReport(error: Error): QuerySourceStatus | undefined {
+function fallbackStatus(error: Error): QuerySourceStatus | undefined {
   if (error instanceof TcpTransportError) {
     if (error.code === "TIMEOUT") {
       return "timeout";
@@ -261,81 +230,124 @@ function requiredStatusReport(error: Error): QuerySourceStatus | undefined {
   return undefined;
 }
 
-function statusSuccess(win: PingWin, slp: QuerySource, legacy: QuerySource): StatusSuccess {
-  const { candidate, address } = win.attempt;
-  return Object.freeze({
-    result: win.result,
-    target: candidate.target,
-    address,
-    ...(candidate.srv === undefined ? {} : { srv: candidate.srv }),
-    slp,
-    legacy,
-  });
+/** Legacy fallback progress shared by every concurrent address attempt. */
+interface LegacyTrace {
+  started: boolean;
+  lastStatus?: QuerySourceStatus;
 }
 
 /**
- * Pre-1.7 servers drop or reject the modern handshake, so a status ping that the server closed,
- * refused, or answered with unparseable bytes is retried once with the legacy ping. A timeout is
- * not: a legacy server answers or closes promptly, and retrying an unreachable host would double
- * its wait. The modern error stays the query's error when both pings fail.
+ * Pre-1.7 servers drop or reject the modern handshake, so an address whose status ping was
+ * closed, refused, or answered with unparseable bytes is retried at once with the legacy ping,
+ * inside the same attempt. Deciding per address keeps one hanging sibling from masking a legacy
+ * server, keeps a preferred SRV group's legacy server ahead of its backups, and spends extra
+ * outbound attempts only on addresses that actually rejected SLP. A timeout is not retried: a
+ * legacy server answers or closes promptly, and retrying an unreachable host would double its
+ * wait. When both pings fail, the attempt raises its modern error.
  */
+async function pingAddress(
+  options: MinecraftJavaProfileOptions,
+  attempt: StatusAttempt,
+  operation: ExecutionScope,
+  legacy: LegacyTrace,
+): Promise<PingAnswer> {
+  const request = { scope: operation, target: attempt.candidate.target, address: attempt.address };
+  let modernError: Error;
+  try {
+    return Object.freeze({ result: await queryMinecraftStatus(request, options.status) });
+  } catch (error) {
+    const modernStatus = error instanceof Error ? fallbackStatus(error) : undefined;
+    if (
+      operation.signal.aborted ||
+      !(error instanceof Error) ||
+      modernStatus === undefined ||
+      modernStatus === "timeout"
+    ) {
+      throw error;
+    }
+    modernError = error;
+    if (!legacy.started) {
+      legacy.started = true;
+      options.observer.onSourceStarted("minecraft-legacy-ping");
+    }
+    try {
+      const result = await queryMinecraftLegacyStatus(request, options.status);
+      return Object.freeze({ result, modernStatus });
+    } catch (legacyError) {
+      if (!operation.signal.aborted) {
+        legacy.lastStatus =
+          (legacyError instanceof Error ? fallbackStatus(legacyError) : undefined) ?? "failed";
+      }
+    }
+  }
+  throw modernError;
+}
+
 async function requiredStatus(
   options: MinecraftJavaProfileOptions,
   candidates: readonly MinecraftCandidate[],
 ): Promise<StatusSuccess> {
-  const groups = attemptGroups(candidates);
   options.observer.onSourceStarted("minecraft-slp");
-  let modernError: Error;
-  try {
-    const win = await racePing(options, groups, "minecraft-slp");
-    const slp: QuerySource = Object.freeze({
-      source: "minecraft-slp",
-      status: "ok",
-      rttMs: win.result.rttMs,
-    });
-    options.observer.onSourceCompleted(slp);
-    const legacy: QuerySource = Object.freeze({
-      source: "minecraft-legacy-ping",
-      status: "not-requested",
-    });
-    options.observer.onSourceCompleted(legacy);
-    return statusSuccess(win, slp, legacy);
-  } catch (error) {
-    if (options.scope.signal.aborted || !(error instanceof Error)) {
-      throw error;
+  const legacy: LegacyTrace = { started: false };
+  let win: AttemptRaceWin<StatusAttempt, PingAnswer> | undefined;
+  let lastError: Error | undefined;
+  for (const group of attemptGroups(candidates)) {
+    try {
+      win = await raceAttempts(
+        {
+          scope: options.scope,
+          candidates: group,
+          operationTimeoutMs: STATUS_OPERATION_TIMEOUT_MS,
+          source: "minecraft-slp",
+          terminated: () => rootTcpTermination(options.scope),
+          empty: () => new Error("Minecraft Java discovery produced no addresses."),
+        },
+        (attempt, operation) => pingAddress(options, attempt, operation, legacy),
+      );
+      break;
+    } catch (error) {
+      if (options.scope.signal.aborted) {
+        throw rootTcpTermination(options.scope);
+      }
+      lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
     }
-    modernError = error;
+  }
+  if (win === undefined) {
+    if (legacy.started) {
+      options.observer.onSourceCompleted(
+        Object.freeze({
+          source: "minecraft-legacy-ping",
+          status: legacy.lastStatus ?? "failed",
+        }),
+      );
+    }
+    throw lastError ?? new Error("Minecraft Java discovery produced no addresses.");
   }
 
-  const modernStatus = requiredStatusReport(modernError);
-  if (modernStatus === undefined || modernStatus === "timeout") {
-    throw modernError;
-  }
-  const slp: QuerySource = Object.freeze({ source: "minecraft-slp", status: modernStatus });
+  // Reports describe the attempt that answered: SLP keeps that address's own failure when the
+  // legacy ping answered it, and the legacy ping is not needed once any address answered SLP.
+  const answer = win.value;
+  const slp: QuerySource = Object.freeze(
+    answer.modernStatus === undefined
+      ? { source: "minecraft-slp", status: "ok", rttMs: answer.result.rttMs }
+      : { source: "minecraft-slp", status: answer.modernStatus },
+  );
+  const legacyReport: QuerySource = Object.freeze(
+    answer.modernStatus === undefined
+      ? { source: "minecraft-legacy-ping", status: "not-requested" }
+      : { source: "minecraft-legacy-ping", status: "ok", rttMs: answer.result.rttMs },
+  );
   options.observer.onSourceCompleted(slp);
-  options.observer.onSourceStarted("minecraft-legacy-ping");
-  let win: PingWin;
-  try {
-    win = await racePing(options, groups, "minecraft-legacy-ping");
-  } catch (error) {
-    if (options.scope.signal.aborted || !(error instanceof Error)) {
-      throw error;
-    }
-    options.observer.onSourceCompleted(
-      Object.freeze({
-        source: "minecraft-legacy-ping",
-        status: requiredStatusReport(error) ?? "failed",
-      }),
-    );
-    throw modernError;
-  }
-  const legacy: QuerySource = Object.freeze({
-    source: "minecraft-legacy-ping",
-    status: "ok",
-    rttMs: win.result.rttMs,
+  options.observer.onSourceCompleted(legacyReport);
+  const { candidate, address } = win.candidate;
+  return Object.freeze({
+    result: answer.result,
+    target: candidate.target,
+    address,
+    ...(candidate.srv === undefined ? {} : { srv: candidate.srv }),
+    slp,
+    legacy: legacyReport,
   });
-  options.observer.onSourceCompleted(legacy);
-  return statusSuccess(win, slp, legacy);
 }
 
 function queryTarget(status: StatusSuccess, explicitPort: number | undefined): PinnedTarget {

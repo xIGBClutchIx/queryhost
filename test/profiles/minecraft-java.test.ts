@@ -76,7 +76,8 @@ function resolver(
 
 interface ScriptedTcpOptions {
   /** Bytes sent back for a request; `undefined` closes the connection without a response. */
-  readonly response: Uint8Array | ((request: Uint8Array) => Uint8Array | undefined);
+  readonly response:
+    Uint8Array | ((request: Uint8Array, address: string) => Uint8Array | undefined);
   readonly failAddresses?: ReadonlySet<string>;
   /** Milliseconds before the connection to an address completes. */
   readonly connectDelayMs?: ReadonlyMap<string, number>;
@@ -131,7 +132,9 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
           options.hosts?.push(new TextDecoder().decode(data));
           if (options.failAddresses?.has(selectedAddress) !== true) {
             const response =
-              typeof options.response === "function" ? options.response(data) : options.response;
+              typeof options.response === "function"
+                ? options.response(data, selectedAddress)
+                : options.response;
             queueMicrotask((): void => {
               if (response === undefined) {
                 endListener();
@@ -304,7 +307,9 @@ describe("Minecraft Java game profile", (): void => {
       ok: true,
       data: { srv: { host: "backup.example.com", port: 25_566 } },
     });
-    expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+    // A refused or reset connection may be a pre-1.7 server, so that address also gets the
+    // legacy ping before the next candidate.
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1", "8.8.8.8"]);
   });
 
   it("waits for a slow preferred SRV priority before trying a backup", async (): Promise<void> => {
@@ -426,7 +431,9 @@ describe("Minecraft Java game profile", (): void => {
       ),
     );
     expect(result.ok).toBe(true);
-    expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+    // A refused or reset connection may be a pre-1.7 server, so that address also gets the
+    // legacy ping before the next candidate.
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1", "8.8.8.8"]);
   });
 
   it("caps the multiplied SRV and address fallback set per query", async (): Promise<void> => {
@@ -589,6 +596,75 @@ describe("Minecraft Java game profile", (): void => {
         { source: "minecraft-slp", status: "malformed" },
         { source: "minecraft-legacy-ping", status: "ok" },
         { source: "minecraft-query", status: "ok" },
+      ],
+    });
+  });
+
+  it("tries the legacy ping on a preferred SRV target before a modern backup", async (): Promise<void> => {
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        return Promise.resolve([
+          hostname === "primary.example.com"
+            ? { address: "1.1.1.1", family: 4 }
+            : { address: "8.8.8.8", family: 4 },
+        ]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve([
+          { name: "primary.example.com", port: 25_565, priority: 0, weight: 1 },
+          { name: "backup.example.com", port: 25_566, priority: 10, weight: 1 },
+        ]);
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          addresses,
+          response: (request, address) =>
+            address === "1.1.1.1" ? legacyOnly(request, "Primary\u00a71\u00a78") : SUCCESS_RESPONSE,
+        }),
+        dns,
+      ),
+    );
+
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1"]);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "Primary" }, srv: { host: "primary.example.com" } },
+      sources: [
+        { source: "minecraft-srv", status: "ok" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+  });
+
+  it("decides the legacy fallback per address so a hanging sibling cannot mask it", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request, address) =>
+            address === "1.1.1.1" ? legacyOnly(request, "Old\u00a71\u00a78") : Uint8Array.of(0x05),
+        }),
+        resolver([
+          { address: "1.1.1.1", family: 4 },
+          { address: "8.8.8.8", family: 4 },
+        ]),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "Old" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "not-requested" },
       ],
     });
   });
