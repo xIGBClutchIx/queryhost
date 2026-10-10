@@ -101,6 +101,7 @@ export type {
   Left4DeadData,
   Left4Dead2Data,
   MinecraftBedrockData,
+  MinecraftCrossplayHint,
   MinecraftJavaData,
   MinecraftMotd,
   MinecraftPlugin,

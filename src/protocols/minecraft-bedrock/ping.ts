@@ -48,6 +48,8 @@ export interface MinecraftBedrockPong {
   readonly playersOnline?: number;
   readonly playersMax?: number;
   readonly serverId?: string;
+  /** Second MOTD line; vanilla servers advertise the level name here. */
+  readonly subMotd?: string;
   readonly gameMode?: string;
   readonly advertisedIpv4Port?: number;
   readonly advertisedIpv6Port?: number;
@@ -223,6 +225,7 @@ export function parseMinecraftBedrockPong(
   const advertisedIpv6Port = optionalPort(fields, 11);
   const motd = optionalText(fields, 1);
   const version = optionalText(fields, 3);
+  const subMotd = optionalText(fields, 7);
   const gameMode = optionalText(fields, 8);
   return Object.freeze({
     pingTimestamp,
@@ -234,6 +237,7 @@ export function parseMinecraftBedrockPong(
     ...(playersOnline === undefined ? {} : { playersOnline }),
     ...(playersMax === undefined ? {} : { playersMax }),
     ...(serverId === undefined ? {} : { serverId }),
+    ...(subMotd === undefined ? {} : { subMotd }),
     ...(gameMode === undefined ? {} : { gameMode }),
     ...(advertisedIpv4Port === undefined ? {} : { advertisedIpv4Port }),
     ...(advertisedIpv6Port === undefined ? {} : { advertisedIpv6Port }),

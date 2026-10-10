@@ -9,6 +9,7 @@ QueryHost records user-visible package changes in this file.
 - `queryMany(inputs, options)`, which queries many servers with bounded concurrency (8 by default, at most 64) and yields `{ index, input, result }` entries as each settles. A failed target is a failure entry, never a rejected batch, and a batch `signal` stops starting new inputs and cancels those in flight. Breaking out of the loop early cancels outstanding queries and waits for their cleanup.
 - A Minecraft Java legacy ping fallback for pre-1.7 servers (Beta 1.8 through 1.6). When a server closes or rejects the modern status handshake, the query retries once with the `FE 01` ping and reports it as the new `minecraft-legacy-ping` source; SLP timeouts do not fall back. Legacy results have no favicon, and Beta 1.8 through 1.3 servers report no version or protocol, so those fields are omitted.
 - An `onSource` callback on `QueryInput` that reports each source as it starts and completes, with the exported `QuerySourceEvent` type. The completed reports match the result's `sources`, nothing is reported after the query resolves, and a callback that throws cannot change the result.
+- A `crossplay` hint on Minecraft Java and Bedrock data, with the exported `MinecraftCrossplayHint` type, when a server advertises a Geyser bridge for players of the other edition: a Geyser or Floodgate plugin in Java Query's plugin list, or Geyser's default sub-MOTD in a Bedrock pong. It costs no extra requests, and its absence does not mean the server is single-edition.
 
 ## [1.6.0] - 2026-10-09
 
