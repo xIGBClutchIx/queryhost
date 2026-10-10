@@ -7,6 +7,9 @@ QueryHost records user-visible package changes in this file.
 ### Added
 
 - `queryMany(inputs, options)`, which queries many servers with bounded concurrency (8 by default, at most 64) and yields `{ index, input, result }` entries as each settles. A failed target is a failure entry, never a rejected batch, and a batch `signal` stops starting new inputs and cancels those in flight. Breaking out of the loop early cancels outstanding queries and waits for their cleanup.
+- `detect({ host, port? })`, which identifies the game a server runs without the caller naming it, then returns that game's typed query result. It probes the protocol and port pairs the registry's conventions allow, at most 8 by default (`maxProbes`, up to 16) and four at a time within one `timeoutMs` deadline, resolves the host once, and cancels the remaining probes as soon as one answers. A2S games are told apart by their advertised Steam App ID, Cfx servers by `gamename`, and the result says which `evidence` decided it and lists every planned probe and its outcome.
+- `steamAppId` on registry definitions of named A2S games.
+- `steamGameId` on generic A2S data, the full 64-bit Steam game ID when the server advertises it, since the 16-bit `appId` truncates larger App IDs.
 - An `onSource` callback on `QueryInput` that reports each source as it starts and completes, with the exported `QuerySourceEvent` type. The completed reports match the result's `sources`, nothing is reported after the query resolves, and a callback that throws cannot change the result.
 
 ## [1.6.0] - 2026-10-09

@@ -113,6 +113,22 @@ describe("game registry", () => {
     }
   });
 
+  it("gives every named A2S game a distinct Steam App ID for detection", () => {
+    const appIds = new Map<number, string>();
+    for (const game of GAME_IDS) {
+      const { protocol, steamAppId } = GAME_REGISTRY[game];
+      const named = game !== "a2s" && (protocol === "a2s" || protocol === "a2s-unreal");
+      expect(steamAppId !== undefined).toBe(named);
+      if (steamAppId !== undefined) {
+        expect(Number.isSafeInteger(steamAppId) && steamAppId > 0).toBe(true);
+        expect(appIds.get(steamAppId)).toBeUndefined();
+        appIds.set(steamAppId, game);
+      }
+    }
+    expect(GAME_REGISTRY.rust.steamAppId).toBe(252_490);
+    expect(GAME_REGISTRY["team-fortress-2"].steamAppId).toBe(440);
+  });
+
   it("names the protocol family that selects each shared profile", () => {
     const protocols = (protocol: GameProtocol): readonly string[] =>
       GAME_IDS.filter((game) => GAME_REGISTRY[game].protocol === protocol);

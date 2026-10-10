@@ -13,6 +13,7 @@ const INVALID_ARGUMENT_CASES: readonly (readonly [readonly string[], string])[] 
   [["rust", "play.example.com", "--query-port"], "--query-port requires"],
   [["rust", "play.example.com", "--json"], "Unsupported option"],
   [["rust", "play.example.com", "--mode", "full", "--mode", "summary"], "--mode may only"],
+  [["auto", "play.example.com", "--query-port", "27016"], "--query-port cannot be combined"],
 ];
 
 describe("query command arguments", (): void => {
@@ -44,6 +45,19 @@ describe("query command arguments", (): void => {
         timeoutMs: 3_000,
         queryPort: 28_016,
       },
+    });
+  });
+
+  it("parses auto as a detection with an optional port", (): void => {
+    expect(parseQueryArguments(["auto", "play.example.com", "28015", "--mode", "summary"])).toEqual(
+      {
+        kind: "query",
+        options: { game: "auto", host: "play.example.com", port: 28_015, mode: "summary" },
+      },
+    );
+    expect(parseQueryArguments(["auto", "play.example.com"])).toEqual({
+      kind: "query",
+      options: { game: "auto", host: "play.example.com" },
     });
   });
 

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DnsResolver } from "../../src/network/target.js";
 import { queryWithDependencies } from "../../src/runtime/client.js";
 import type { UdpCollectionResult } from "../../src/transports/udp.js";
+import { packetA2s, sourceInfoPacket } from "../helpers/a2s-packets.js";
 import { dependencies, fixtureA2s } from "../helpers/a2s-profile.js";
 
 describe("generic A2S profile", (): void => {
@@ -39,6 +40,15 @@ describe("generic A2S profile", (): void => {
       rawData: { rules: { "world.seed": "123456" } },
       partial: false,
     });
+  });
+
+  it("keeps the full Steam game ID beside the truncated 16-bit App ID", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "a2s", host: "play.example.com", port: 27_015, mode: "summary" },
+      dependencies(packetA2s({ info: sourceInfoPacket({ appId: 55_882, gameId: 252_490n }) })),
+    );
+
+    expect(result).toMatchObject({ ok: true, data: { appId: 55_882, steamGameId: "252490" } });
   });
 
   it("requires the caller to supply the A2S query port", async (): Promise<void> => {

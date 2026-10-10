@@ -26,8 +26,10 @@ export interface A2sData {
   readonly serverType: "dedicated" | "listen" | "proxy";
   readonly environment: "linux" | "macos" | "windows";
   readonly vac: boolean;
-  /** Present only for modern Source-style Info responses. */
+  /** Present only for modern Source-style Info responses; 16 bits, so larger App IDs truncate. */
   readonly appId?: number;
+  /** Full 64-bit Steam game ID as decimal text, when a Source-style Info response provides it. */
+  readonly steamGameId?: string;
   /** Server-advertised tags, when a Source-style Info response provides them. */
   readonly tags?: readonly string[];
   /** Omitted when Player is skipped or unavailable; empty means the server confirmed no players. */

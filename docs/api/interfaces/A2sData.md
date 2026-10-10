@@ -14,7 +14,7 @@ Protocol facts exposed by the generic Source or GoldSource A2S profile.
 
 > `readonly` `optional` **appId?**: `number`
 
-Present only for modern Source-style Info responses.
+Present only for modern Source-style Info responses; 16 bits, so larger App IDs truncate.
 
 ***
 
@@ -59,6 +59,14 @@ Omitted when Player is skipped or unavailable; empty means the server confirmed 
 ### serverType
 
 > `readonly` **serverType**: `"dedicated"` \| `"listen"` \| `"proxy"`
+
+***
+
+### steamGameId?
+
+> `readonly` `optional` **steamGameId?**: `string`
+
+Full 64-bit Steam game ID as decimal text, when a Source-style Info response provides it.
 
 ***
 

@@ -83,6 +83,21 @@ for await (const { index, result } of queryMany(servers, { concurrency: 4 })) {
 
 Entries arrive in completion order with the input's `index`. Each target keeps its own `timeoutMs` and `signal`, and a failed target is an ordinary failure entry rather than a rejected batch. Passing `signal` in the options stops starting new inputs and cancels queries in flight; leaving the loop early does the same and waits for their cleanup.
 
+Use `detect()` when you know the host but not the game. It probes the protocols and ports the registry's conventions allow for `port` (or, without one, each game's usual query port), stops at the first answer, and queries the server as the game it found:
+
+```ts
+import { detect } from "queryhost";
+
+const detected = await detect({ host: "play.example.com", port: 28015 });
+
+if (detected.ok) {
+  console.log(detected.game, detected.evidence); // "rust", "advertised"
+  if (detected.result.ok) console.log(detected.result.server.name);
+}
+```
+
+A2S servers are matched by the Steam App ID they advertise, FiveM and RedM by their `gamename`, and otherwise by a port only one game uses; when nothing names the game, the result is generic A2S with `evidence: "fallback"`. Detection is bounded: at most `maxProbes` protocol and port pairs (8 by default, up to 16) run four at a time inside one `timeoutMs`, and `probes` reports each planned pair as `matched`, `answered`, `failed`, `cancelled`, or `skipped`. A host where nothing answered resolves with `NOT_DETECTED`. Passing the port players connect to keeps detection fast and precise.
+
 For live progress, pass `onSource` with any query. It is called as each source starts and completes, and its completed reports are exactly the result's `sources`.
 
 Implemented A2S profiles default to `mode: "full"`: Info is required, then supported optional sources run concurrently against the same pinned address. Use `mode: "summary"` to request only Info; skipped optional sources remain visible as `not-requested`.
@@ -183,10 +198,11 @@ For quick real-server testing from this repository:
 npm run query -- rust play.example.com 28015
 ```
 
-The installed package also provides the same command as `queryhost`. It writes the complete parsed `QueryResult` as formatted JSON and exits with 0 for success, 1 for a query failure, or 2 for invalid command arguments.
+The installed package also provides the same command as `queryhost`. Pass `auto` instead of a game to run `detect()` and print its `DetectResult`. It writes the complete parsed `QueryResult` as formatted JSON and exits with 0 for success, 1 for a query failure, or 2 for invalid command arguments.
 
 ```bash
 queryhost a2s play.example.com 27015
+queryhost auto play.example.com 28015
 queryhost dayz play.example.com 2302 --mode full
 queryhost dst play.example.com 10999 --query-port 27016
 queryhost rust play.example.com 28015 --mode full --timeout 3000

@@ -36,6 +36,19 @@ export type {
 } from "./contracts/query.js";
 export { query, queryMany } from "./runtime/client.js";
 export type {
+  DetectError,
+  DetectErrorCode,
+  DetectEvidence,
+  DetectFailure,
+  DetectInput,
+  DetectProbe,
+  DetectProbeStatus,
+  DetectProtocol,
+  DetectResult,
+  DetectSuccess,
+} from "./contracts/detect.js";
+export { detect } from "./runtime/detect.js";
+export type {
   QueryError,
   QueryErrorCode,
   QueryMode,
