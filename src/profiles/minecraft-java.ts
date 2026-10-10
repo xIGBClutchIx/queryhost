@@ -1,12 +1,16 @@
-/** Minecraft Java discovery, required SLP, and optional UDP Query orchestration. */
+/** Minecraft Java discovery, required SLP with legacy fallback, and optional UDP Query. */
 
 import { isIP } from "node:net";
 
 import type { MinecraftJavaData, MinecraftSrvTarget } from "../contracts/games.js";
 import { javaCrossplay } from "./minecraft-crossplay.js";
-import type { ExecutionScope } from "../runtime/execution.js";
+import { OutboundAttemptLimitError, type ExecutionScope } from "../runtime/execution.js";
 import { raceAttempts, type AttemptRaceWin } from "../runtime/attempt-race.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
+import {
+  queryMinecraftLegacyStatus,
+  type MinecraftJavaLegacyStatus,
+} from "../protocols/minecraft-java/legacy.js";
 import {
   createMinecraftQuerySessionId,
   queryMinecraftFullStat,
@@ -15,8 +19,8 @@ import {
 } from "../protocols/minecraft-java/query.js";
 import {
   queryMinecraftStatus,
+  type MinecraftJavaStatus,
   type MinecraftJavaStatusDependencies,
-  type MinecraftJavaStatusQueryResult,
 } from "../protocols/minecraft-java/status.js";
 import type {
   QueryMode,
@@ -60,6 +64,7 @@ export interface MinecraftJavaProfileOptions {
   readonly observer: MinecraftJavaProfileObserver;
   readonly resolver: DnsResolver;
   readonly random?: SrvRandomSource;
+  /** TCP boundaries shared by the modern status ping and its legacy fallback. */
   readonly status?: MinecraftJavaStatusDependencies;
   readonly query?: MinecraftQueryDependencies;
 }
@@ -68,7 +73,7 @@ export interface MinecraftJavaProfileOptions {
 export interface MinecraftJavaProfileResult {
   readonly server: ServerInfo;
   readonly data: MinecraftJavaData;
-  readonly sources: readonly [QuerySource, QuerySource, QuerySource];
+  readonly sources: readonly [QuerySource, QuerySource, QuerySource, QuerySource];
   readonly warnings: readonly QueryWarning[];
   readonly partial: boolean;
 }
@@ -90,12 +95,27 @@ interface DiscoveryResult {
   readonly report: QuerySource;
 }
 
+/** Status facts from whichever ping answered; the legacy ping cannot confirm every field. */
+type PingStatus = MinecraftJavaStatus | MinecraftJavaLegacyStatus;
+
+interface PingResult {
+  readonly status: PingStatus;
+  readonly rttMs: number;
+}
+
 interface StatusSuccess {
-  readonly result: MinecraftJavaStatusQueryResult;
+  readonly result: PingResult;
   readonly target: PinnedTarget;
   readonly address: PinnedAddress;
   readonly srv?: MinecraftSrvTarget;
-  readonly report: QuerySource;
+  readonly slp: QuerySource;
+  readonly legacy: QuerySource;
+}
+
+/** One address's answer; `modernStatus` is set when SLP failed and the legacy ping answered. */
+interface PingAnswer {
+  readonly result: PingResult;
+  readonly modernStatus?: QuerySourceStatus;
 }
 
 interface OptionalQueryResult {
@@ -177,11 +197,7 @@ async function discover(options: MinecraftJavaProfileOptions): Promise<Discovery
   });
 }
 
-async function requiredStatus(
-  options: MinecraftJavaProfileOptions,
-  candidates: readonly MinecraftCandidate[],
-): Promise<StatusSuccess> {
-  options.observer.onSourceStarted("minecraft-slp");
+function attemptGroups(candidates: readonly MinecraftCandidate[]): readonly StatusAttempt[][] {
   // Candidates arrive in SRV order. Addresses race within one priority group; a higher-numbered
   // priority is a backup and starts only after every target in the preferred group has failed.
   const groups: StatusAttempt[][] = [];
@@ -196,10 +212,100 @@ async function requiredStatus(
       current.push(...attempts);
     }
   }
+  return groups;
+}
 
-  let win: AttemptRaceWin<StatusAttempt, MinecraftJavaStatusQueryResult> | undefined;
+function fallbackStatus(error: Error): QuerySourceStatus | undefined {
+  if (error instanceof TcpTransportError) {
+    if (error.code === "TIMEOUT") {
+      return "timeout";
+    }
+    if (error.code === "MALFORMED_RESPONSE" || error.code === "RESPONSE_TOO_LARGE") {
+      return "malformed";
+    }
+    return error.code === "CONNECTION_FAILED" ? "failed" : undefined;
+  }
+  if (error instanceof MinecraftJavaProtocolError) {
+    return error.code === "INVALID_INPUT" ? undefined : "malformed";
+  }
+  return undefined;
+}
+
+/** Legacy fallback progress shared by every concurrent address attempt. */
+interface LegacyTrace {
+  started: boolean;
+  lastStatus?: QuerySourceStatus;
+  /** Set when a legacy ping exhausted the query's attempt budget, whichever address it served. */
+  budgetError?: OutboundAttemptLimitError;
+}
+
+/**
+ * Pre-1.7 servers drop or reject the modern handshake, so an address whose status ping was
+ * closed, refused, or answered with unparseable bytes is retried at once with the legacy ping,
+ * inside the same attempt. Deciding per address keeps one hanging sibling from masking a legacy
+ * server, keeps a preferred SRV group's legacy server ahead of its backups, and spends extra
+ * outbound attempts only on addresses that actually rejected SLP. A timeout is not retried: a
+ * legacy server answers or closes promptly, and retrying an unreachable host would double its
+ * wait. When both pings fail, the attempt raises its modern error.
+ */
+async function pingAddress(
+  options: MinecraftJavaProfileOptions,
+  attempt: StatusAttempt,
+  operation: ExecutionScope,
+  legacy: LegacyTrace,
+): Promise<PingAnswer> {
+  const request = { scope: operation, target: attempt.candidate.target, address: attempt.address };
+  let modernError: Error;
+  try {
+    return Object.freeze({ result: await queryMinecraftStatus(request, options.status) });
+  } catch (error) {
+    const modernStatus = error instanceof Error ? fallbackStatus(error) : undefined;
+    if (
+      operation.signal.aborted ||
+      !(error instanceof Error) ||
+      modernStatus === undefined ||
+      modernStatus === "timeout"
+    ) {
+      throw error;
+    }
+    modernError = error;
+    if (!legacy.started) {
+      legacy.started = true;
+      options.observer.onSourceStarted("minecraft-legacy-ping");
+    }
+    try {
+      const result = await queryMinecraftLegacyStatus(request, options.status);
+      return Object.freeze({ result, modernStatus });
+    } catch (legacyError) {
+      // An exhausted budget is the query's own failure, not this address's. The race keeps only
+      // its last candidate's error, so the trace carries it to `requiredStatus`.
+      if (legacyError instanceof OutboundAttemptLimitError) {
+        legacy.lastStatus = "failed";
+        legacy.budgetError = legacyError;
+        throw legacyError;
+      }
+      // A winning sibling's cancellation says nothing about this ping, but this attempt's own
+      // deadline is the ping timing out.
+      if (!operation.signal.aborted) {
+        legacy.lastStatus =
+          (legacyError instanceof Error ? fallbackStatus(legacyError) : undefined) ?? "failed";
+      } else if (operation.getError()?.code === "TIMEOUT") {
+        legacy.lastStatus = "timeout";
+      }
+    }
+  }
+  throw modernError;
+}
+
+async function requiredStatus(
+  options: MinecraftJavaProfileOptions,
+  candidates: readonly MinecraftCandidate[],
+): Promise<StatusSuccess> {
+  options.observer.onSourceStarted("minecraft-slp");
+  const legacy: LegacyTrace = { started: false };
+  let win: AttemptRaceWin<StatusAttempt, PingAnswer> | undefined;
   let lastError: Error | undefined;
-  for (const group of groups) {
+  for (const group of attemptGroups(candidates)) {
     try {
       win = await raceAttempts(
         {
@@ -210,11 +316,7 @@ async function requiredStatus(
           terminated: () => rootTcpTermination(options.scope),
           empty: () => new Error("Minecraft Java discovery produced no addresses."),
         },
-        ({ candidate: entry, address: selected }, operation) =>
-          queryMinecraftStatus(
-            { scope: operation, target: entry.target, address: selected },
-            options.status,
-          ),
+        (attempt, operation) => pingAddress(options, attempt, operation, legacy),
       );
       break;
     } catch (error) {
@@ -222,27 +324,50 @@ async function requiredStatus(
         throw rootTcpTermination(options.scope);
       }
       lastError = error instanceof Error ? error : new Error("Minecraft Java status failed.");
+      if (legacy.budgetError !== undefined) {
+        lastError = legacy.budgetError;
+        break;
+      }
     }
   }
   if (win === undefined) {
+    if (legacy.started) {
+      options.observer.onSourceCompleted(
+        Object.freeze({
+          source: "minecraft-legacy-ping",
+          status: legacy.lastStatus ?? "failed",
+        }),
+      );
+    }
     throw lastError ?? new Error("Minecraft Java discovery produced no addresses.");
   }
-  const {
-    candidate: { candidate, address },
-    value: result,
-  } = win;
-  const report: QuerySource = Object.freeze({
-    source: "minecraft-slp",
-    status: "ok",
-    rttMs: result.rttMs,
-  });
-  options.observer.onSourceCompleted(report);
+
+  // Reports describe the attempt that answered: SLP keeps that address's own failure when the
+  // legacy ping answered it. Once an address answered SLP the legacy ping was not needed, unless a
+  // sibling had already started one, which then reports how it ended or that it was cut short.
+  const answer = win.value;
+  const slp: QuerySource = Object.freeze(
+    answer.modernStatus === undefined
+      ? { source: "minecraft-slp", status: "ok", rttMs: answer.result.rttMs }
+      : { source: "minecraft-slp", status: answer.modernStatus },
+  );
+  const legacyReport: QuerySource = Object.freeze(
+    answer.modernStatus !== undefined
+      ? { source: "minecraft-legacy-ping", status: "ok", rttMs: answer.result.rttMs }
+      : legacy.started
+        ? { source: "minecraft-legacy-ping", status: legacy.lastStatus ?? "failed" }
+        : { source: "minecraft-legacy-ping", status: "not-requested" },
+  );
+  options.observer.onSourceCompleted(slp);
+  options.observer.onSourceCompleted(legacyReport);
+  const { candidate, address } = win.candidate;
   return Object.freeze({
-    result,
+    result: answer.result,
     target: candidate.target,
     address,
     ...(candidate.srv === undefined ? {} : { srv: candidate.srv }),
-    report,
+    slp,
+    legacy: legacyReport,
   });
 }
 
@@ -363,7 +488,10 @@ function queryWarnings(source: QuerySource): readonly QueryWarning[] {
   ]);
 }
 
-/** Resolves Minecraft discovery, queries required SLP, and optionally enriches with UDP Query. */
+/**
+ * Resolves Minecraft discovery, queries required SLP (falling back to the legacy ping), and
+ * optionally enriches with UDP Query.
+ */
 export async function queryMinecraftJavaProfile(
   options: MinecraftJavaProfileOptions,
 ): Promise<MinecraftJavaProfileResult> {
@@ -371,26 +499,28 @@ export async function queryMinecraftJavaProfile(
   const status = await requiredStatus(options, discovery.candidates);
   const query = await optionalQuery(options, status);
   const value = status.result.status;
+  const favicon = "favicon" in value ? value.favicon : undefined;
   const queryStat = query.result?.stat;
   const server: ServerInfo = Object.freeze({
     ...(queryStat?.map === undefined ? {} : { map: queryStat.map }),
-    version: value.versionName,
+    ...(value.versionName === undefined ? {} : { version: value.versionName }),
     players: Object.freeze({ online: value.playersOnline, max: value.playersMax }),
     queryRttMs: status.result.rttMs,
   });
   const data: MinecraftJavaData = Object.freeze({
     motd: value.motd,
-    protocolVersion: value.protocolVersion,
-    ...(value.favicon === undefined ? {} : { favicon: value.favicon }),
+    ...(value.protocolVersion === undefined ? {} : { protocolVersion: value.protocolVersion }),
+    ...(favicon === undefined ? {} : { favicon }),
     ...(status.srv === undefined ? {} : { srv: status.srv }),
     ...(queryStat?.software === undefined ? {} : { software: queryStat.software }),
     ...(queryStat?.plugins === undefined ? {} : { plugins: queryStat.plugins }),
     ...(queryStat?.players === undefined ? {} : { players: queryStat.players }),
     ...javaCrossplay(queryStat?.plugins),
   });
-  const sources: readonly [QuerySource, QuerySource, QuerySource] = Object.freeze([
+  const sources: readonly [QuerySource, QuerySource, QuerySource, QuerySource] = Object.freeze([
     discovery.report,
-    status.report,
+    status.slp,
+    status.legacy,
     query.report,
   ]);
   const warnings = queryWarnings(query.report);

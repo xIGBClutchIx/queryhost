@@ -78,7 +78,9 @@ function resolver(
 }
 
 interface ScriptedTcpOptions {
-  readonly response: Uint8Array;
+  /** Bytes sent back for a request; `undefined` closes the connection without a response. */
+  readonly response:
+    Uint8Array | ((request: Uint8Array, address: string) => Uint8Array | undefined);
   readonly failAddresses?: ReadonlySet<string>;
   /** Milliseconds before the connection to an address completes. */
   readonly connectDelayMs?: ReadonlyMap<string, number>;
@@ -132,8 +134,16 @@ function scriptedTcp(options: ScriptedTcpOptions): TcpTransportDependencies {
           completion(undefined);
           options.hosts?.push(new TextDecoder().decode(data));
           if (options.failAddresses?.has(selectedAddress) !== true) {
+            const response =
+              typeof options.response === "function"
+                ? options.response(data, selectedAddress)
+                : options.response;
             queueMicrotask((): void => {
-              dataListener(options.response);
+              if (response === undefined) {
+                endListener();
+              } else {
+                dataListener(response);
+              }
             });
           }
         },
@@ -223,6 +233,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "ok", rttMs: 8 },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "ok", rttMs: 6 },
       ],
       warnings: [],
@@ -274,6 +285,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "ok" },
         { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "not-requested" },
       ],
     });
@@ -314,7 +326,9 @@ describe("Minecraft Java game profile", (): void => {
       ok: true,
       data: { srv: { host: "backup.example.com", port: 25_566 } },
     });
-    expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+    // A refused or reset connection may be a pre-1.7 server, so that address also gets the
+    // legacy ping before the next candidate.
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1", "8.8.8.8"]);
   });
 
   it("waits for a slow preferred SRV priority before trying a backup", async (): Promise<void> => {
@@ -436,7 +450,9 @@ describe("Minecraft Java game profile", (): void => {
       ),
     );
     expect(result.ok).toBe(true);
-    expect(addresses).toEqual(["1.1.1.1", "8.8.8.8"]);
+    // A refused or reset connection may be a pre-1.7 server, so that address also gets the
+    // legacy ping before the next candidate.
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1", "8.8.8.8"]);
   });
 
   it("caps the multiplied SRV and address fallback set per query", async (): Promise<void> => {
@@ -490,6 +506,7 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
         { source: "minecraft-query", status: "timeout" },
       ],
       warnings: [{ code: "PARTIAL_RESULT" }, { code: "SOURCE_TIMEOUT", source: "minecraft-query" }],
@@ -518,8 +535,329 @@ describe("Minecraft Java game profile", (): void => {
       sources: [
         { source: "minecraft-srv", status: "unsupported" },
         { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "malformed" },
       ],
       warnings: [],
     });
   });
+
+  it("falls back to the legacy ping when a pre-1.7 server closes the modern handshake", async (): Promise<void> => {
+    const requests: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request) => {
+            requests.push(request[0] === 0xfe ? "legacy" : "modern");
+            return legacyOnly(request, "§1\u000078\u00001.6.4\u0000§6Old §lWorld\u00003\u000020");
+          },
+        }),
+      ),
+    );
+
+    expect(requests).toEqual(["modern", "legacy"]);
+    expect(result).toMatchObject({
+      ok: true,
+      server: { version: "1.6.4", players: { online: 3, max: 20 }, queryRttMs: 8 },
+      data: {
+        motd: {
+          plain: "Old World",
+          html: '<span style="color:#ffaa00">Old </span><span style="color:#ffaa00;font-weight:bold">World</span>',
+        },
+        protocolVersion: 78,
+      },
+      partial: false,
+      warnings: [],
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok", rttMs: 8 },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+    if (result.ok && result.game === "minecraft-java") {
+      expect(result.data.favicon).toBeUndefined();
+    }
+  });
+
+  it("omits version facts a Beta 1.8 to 1.3 legacy response cannot confirm", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({ response: (request) => legacyOnly(request, "A Beta Server§0§10") }),
+      ),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok && result.game === "minecraft-java") {
+      expect(result.server).toEqual({ players: { online: 0, max: 10 }, queryRttMs: 8 });
+      expect(result.data).toEqual({ motd: { plain: "A Beta Server", html: "A Beta Server" } });
+    }
+  });
+
+  it("keeps optional Query after a legacy ping answers in full mode", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com" },
+      dependencies(
+        scriptedTcp({
+          response: (request) =>
+            legacyOnly(request, "§1\u000078\u00001.6.4\u0000Old\u00003\u000020"),
+        }),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      server: { map: "world", version: "1.6.4" },
+      data: { players: ["Alex"], software: { name: "Paper" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "ok" },
+      ],
+    });
+  });
+
+  it("tries the legacy ping on a preferred SRV target before a modern backup", async (): Promise<void> => {
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        return Promise.resolve([
+          hostname === "primary.example.com"
+            ? { address: "1.1.1.1", family: 4 }
+            : { address: "8.8.8.8", family: 4 },
+        ]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve([
+          { name: "primary.example.com", port: 25_565, priority: 0, weight: 1 },
+          { name: "backup.example.com", port: 25_566, priority: 10, weight: 1 },
+        ]);
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          addresses,
+          response: (request, address) =>
+            address === "1.1.1.1" ? legacyOnly(request, "Primary\u00a71\u00a78") : SUCCESS_RESPONSE,
+        }),
+        dns,
+      ),
+    );
+
+    expect(addresses).toEqual(["1.1.1.1", "1.1.1.1"]);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "Primary" }, srv: { host: "primary.example.com" } },
+      sources: [
+        { source: "minecraft-srv", status: "ok" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+  });
+
+  it("reports an attempt budget the legacy ping exhausts as the outbound limit", async (): Promise<void> => {
+    // Discovery spends 9 of the 16 attempts on four SRV targets and every target closes both
+    // pings, so the fourth target's legacy ping is the seventeenth attempt.
+    const hosts = ["a", "b", "c", "d"];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        const index = hosts.indexOf(hostname.split(".")[0] ?? "");
+        return Promise.resolve([{ address: `${String(index + 1)}.1.1.1`, family: 4 }]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve(
+          hosts.map((host, priority) => ({
+            name: `${host}.example.com`,
+            port: 25_565,
+            priority,
+            weight: 1,
+          })),
+        );
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(scriptedTcp({ addresses, response: () => undefined }), dns),
+    );
+
+    expect(addresses).toHaveLength(7);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "The query exceeded its outbound attempt limit." },
+    });
+  });
+
+  it("reports an exhausted attempt budget even when a raced sibling hits it", async (): Promise<void> => {
+    // Four same-priority targets race, and connect delays make their SLP pings fail in reverse
+    // order. The first target's legacy ping is then the seventeenth attempt, while the last
+    // target, whose error the race keeps, failed only its SLP ping.
+    const hosts = ["a", "b", "c", "d"];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        const index = hosts.indexOf(hostname.split(".")[0] ?? "");
+        return Promise.resolve([{ address: `${String(index + 1)}.1.1.1`, family: 4 }]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve(
+          hosts.map((host) => ({
+            name: `${host}.example.com`,
+            port: 25_565,
+            priority: 0,
+            weight: 1,
+          })),
+        );
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          addresses,
+          response: () => undefined,
+          connectDelayMs: new Map([
+            ["1.1.1.1", 790],
+            ["2.1.1.1", 530],
+            ["3.1.1.1", 270],
+            ["4.1.1.1", 10],
+          ]),
+        }),
+        dns,
+      ),
+    );
+
+    expect(addresses).toHaveLength(7);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "The query exceeded its outbound attempt limit." },
+    });
+  });
+
+  it("decides the legacy fallback per address so a hanging sibling cannot mask it", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request, address) =>
+            address === "1.1.1.1" ? legacyOnly(request, "Old\u00a71\u00a78") : Uint8Array.of(0x05),
+        }),
+        resolver([
+          { address: "1.1.1.1", family: 4 },
+          { address: "8.8.8.8", family: 4 },
+        ]),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "Old" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok" },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+  });
+
+  it("reports a legacy ping that a sibling's modern answer cut short", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          // The first address closes SLP and never finishes its legacy ping; the second answers SLP.
+          response: (request, address) =>
+            address === "1.1.1.1"
+              ? request[0] === 0xfe
+                ? Uint8Array.of(0xff)
+                : undefined
+              : SUCCESS_RESPONSE,
+        }),
+        resolver([
+          { address: "1.1.1.1", family: 4 },
+          { address: "8.8.8.8", family: 4 },
+        ]),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "QueryHost" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "failed" },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+  });
+
+  it("reports a legacy ping that runs out its attempt deadline as a timeout", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          // SLP closes at once; the legacy ping gets a partial kick packet and nothing more.
+          response: (request) => (request[0] === 0xfe ? Uint8Array.of(0xff) : undefined),
+        }),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "timeout" },
+      ],
+    });
+  });
+
+  it("does not retry with the legacy ping after a modern status timeout", async (): Promise<void> => {
+    const requests: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          response: (request) => {
+            requests.push(request[0] === 0xfe ? "legacy" : "modern");
+            return Uint8Array.of(0x05);
+          },
+        }),
+      ),
+    );
+
+    expect(requests).toEqual(["modern"]);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "TIMEOUT", source: "minecraft-slp" },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "timeout" },
+      ],
+    });
+  });
 });
+
+function legacyKick(text: string): Uint8Array {
+  const bytes = new Uint8Array(3 + text.length * 2);
+  const view = new DataView(bytes.buffer);
+  view.setUint8(0, 0xff);
+  view.setUint16(1, text.length);
+  for (let index = 0; index < text.length; index += 1) {
+    view.setUint16(3 + index * 2, text.charCodeAt(index));
+  }
+  return bytes;
+}
+
+/** Simulates a pre-1.7 server: it drops the modern handshake and answers only `FE 01`. */
+function legacyOnly(request: Uint8Array, text: string): Uint8Array | undefined {
+  return request[0] === 0xfe ? legacyKick(text) : undefined;
+}

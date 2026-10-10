@@ -598,6 +598,7 @@ void query({
 });
 declare const sourceEvent: QuerySourceEvent;
 expectType<"started" | "completed">(sourceEvent.type);
+expectAssignable<QuerySourceName>("minecraft-legacy-ping");
 
 const detection = await detect({ host: "play.example.com", port: 28015, maxProbes: 4 });
 expectType<DetectResult>(detection);
