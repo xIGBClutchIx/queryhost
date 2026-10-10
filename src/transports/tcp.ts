@@ -71,6 +71,11 @@ export interface TcpExchangeOptions {
   readonly maxResponseBytes: number;
   /** Synchronous framing check over immutable bytes from the selected connection. */
   readonly inspectResponse: (data: Uint8Array) => TcpResponseState;
+  /**
+   * Marks an immediate retry to the same address whose previous exchange in this scope already
+   * counted the outbound attempt, so the retry does not draw from the budget again.
+   */
+  readonly retryOfAttempt?: true;
 }
 
 /** Complete bounded response and transport measurements. */
@@ -183,7 +188,9 @@ export function tcpExchange(
       reject(new TcpTransportError(terminationCode(options.scope)));
       return;
     }
-    options.scope.consumeOutboundAttempts();
+    if (options.retryOfAttempt !== true) {
+      options.scope.consumeOutboundAttempts();
+    }
 
     let socket: TcpSocketAdapter;
     try {

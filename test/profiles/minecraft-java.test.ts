@@ -661,6 +661,46 @@ describe("Minecraft Java game profile", (): void => {
     });
   });
 
+  it("keeps a legacy retry inside its address's attempt so the budget cannot starve it", async (): Promise<void> => {
+    // Discovery spends 9 of the 16 attempts on four SRV targets. Three targets then reject both
+    // pings, which would leave the fourth target's legacy ping no attempt if retries counted.
+    const hosts = ["a", "b", "c", "d"];
+    const dns: DnsResolver = {
+      resolveAddresses(hostname): Promise<readonly DnsAddressRecord[]> {
+        const index = hosts.indexOf(hostname.split(".")[0] ?? "");
+        return Promise.resolve([{ address: `${index + 1}.1.1.1`, family: 4 }]);
+      },
+      resolveSrv(): Promise<readonly DnsSrvRecord[]> {
+        return Promise.resolve(
+          hosts.map((host, priority) => ({
+            name: `${host}.example.com`,
+            port: 25_565,
+            priority,
+            weight: 1,
+          })),
+        );
+      },
+    };
+    const addresses: string[] = [];
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          addresses,
+          response: (request, address) =>
+            address === "4.1.1.1" ? legacyOnly(request, "Old\u00a71\u00a78") : undefined,
+        }),
+        dns,
+      ),
+    );
+
+    expect(addresses).toHaveLength(8);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "Old" }, srv: { host: "d.example.com" } },
+    });
+  });
+
   it("decides the legacy fallback per address so a hanging sibling cannot mask it", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "minecraft-java", host: "play.example.com", mode: "summary" },

@@ -49,6 +49,8 @@ export interface MinecraftJavaLegacyQueryOptions {
   readonly scope: ExecutionScope;
   readonly target: PinnedTarget;
   readonly address: PinnedAddress;
+  /** Set when this ping retries a status ping to the same address that already counted the attempt. */
+  readonly retryOfAttempt?: true;
 }
 
 /** Parsed legacy status and complete connect/request/response round-trip duration. */
