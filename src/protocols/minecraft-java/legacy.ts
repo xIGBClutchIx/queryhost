@@ -179,20 +179,21 @@ export function parseMinecraftLegacyResponse(data: Uint8Array): MinecraftJavaLeg
       motd: normalizeMinecraftMotd(motd ?? ""),
     });
   }
-  // The old layout separates fields with `§`, so its MOTD cannot carry formatting codes. Counts
-  // are always the last two fields; anything before them is the MOTD.
+  // The old layout separates fields with `§`, which is also the formatting-code prefix. Counts are
+  // always the last two fields, so everything before them, `§` codes included, is the MOTD.
   if (text.includes("\u0000")) {
     return failMinecraftJava("MALFORMED_RESPONSE");
   }
   const fields = text.split("§");
-  if (fields.length !== 3) {
+  if (fields.length < 3) {
     return failMinecraftJava("MALFORMED_RESPONSE");
   }
-  const [motd, online, max] = fields;
+  const max = fields.pop();
+  const online = fields.pop();
   return Object.freeze({
     playersOnline: count(online),
     playersMax: count(max),
-    motd: normalizeMinecraftMotd(motd ?? ""),
+    motd: normalizeMinecraftMotd(fields.join("§")),
   });
 }
 

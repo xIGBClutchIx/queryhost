@@ -688,6 +688,38 @@ describe("Minecraft Java game profile", (): void => {
     });
   });
 
+  it("reports a legacy ping that a sibling's modern answer cut short", async (): Promise<void> => {
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com", mode: "summary" },
+      dependencies(
+        scriptedTcp({
+          // The first address closes SLP and never finishes its legacy ping; the second answers SLP.
+          response: (request, address) =>
+            address === "1.1.1.1"
+              ? request[0] === 0xfe
+                ? Uint8Array.of(0xff)
+                : undefined
+              : SUCCESS_RESPONSE,
+        }),
+        resolver([
+          { address: "1.1.1.1", family: 4 },
+          { address: "8.8.8.8", family: 4 },
+        ]),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { motd: { plain: "QueryHost" } },
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "failed" },
+        { source: "minecraft-query", status: "not-requested" },
+      ],
+    });
+  });
+
   it("does not retry with the legacy ping after a modern status timeout", async (): Promise<void> => {
     const requests: string[] = [];
     const result = await queryWithDependencies(

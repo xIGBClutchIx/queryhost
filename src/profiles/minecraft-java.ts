@@ -326,7 +326,8 @@ async function requiredStatus(
   }
 
   // Reports describe the attempt that answered: SLP keeps that address's own failure when the
-  // legacy ping answered it, and the legacy ping is not needed once any address answered SLP.
+  // legacy ping answered it. Once an address answered SLP the legacy ping was not needed, unless a
+  // sibling had already started one, which then reports how it ended or that it was cut short.
   const answer = win.value;
   const slp: QuerySource = Object.freeze(
     answer.modernStatus === undefined
@@ -334,9 +335,11 @@ async function requiredStatus(
       : { source: "minecraft-slp", status: answer.modernStatus },
   );
   const legacyReport: QuerySource = Object.freeze(
-    answer.modernStatus === undefined
-      ? { source: "minecraft-legacy-ping", status: "not-requested" }
-      : { source: "minecraft-legacy-ping", status: "ok", rttMs: answer.result.rttMs },
+    answer.modernStatus !== undefined
+      ? { source: "minecraft-legacy-ping", status: "ok", rttMs: answer.result.rttMs }
+      : legacy.started
+        ? { source: "minecraft-legacy-ping", status: legacy.lastStatus ?? "failed" }
+        : { source: "minecraft-legacy-ping", status: "not-requested" },
   );
   options.observer.onSourceCompleted(slp);
   options.observer.onSourceCompleted(legacyReport);

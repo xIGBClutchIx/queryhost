@@ -105,6 +105,14 @@ describe("Minecraft Java legacy ping", (): void => {
     expect("protocolVersion" in status).toBe(false);
   });
 
+  it("keeps formatting codes in a Beta 1.8 to 1.3 MOTD", (): void => {
+    expect(parseMinecraftLegacyResponse(kick("§aWelcome§5§20"))).toMatchObject({
+      playersOnline: 5,
+      playersMax: 20,
+      motd: { plain: "Welcome" },
+    });
+  });
+
   it.each([
     ["too few 1.4+ fields", "§1\u000078\u00001.6.4\u0000motd\u00002"],
     ["too many 1.4+ fields", `${MODERN}\u00001`],
@@ -114,7 +122,6 @@ describe("Minecraft Java legacy ping", (): void => {
     ["an out-of-range player count", "§1\u000078\u00001.6.4\u0000motd\u00002\u00004294967296"],
     ["an empty player count", "§1\u000078\u00001.6.4\u0000motd\u0000\u000020"],
     ["too few old fields", "motd§2"],
-    ["formatting in an old MOTD", "§amotd§2§20"],
     ["a NUL in the old layout", "mo\u0000td§2§20"],
     ["a lone surrogate", "\ud800§2§20"],
   ])("rejects %s", (_name, text): void => {
