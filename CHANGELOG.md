@@ -2,6 +2,13 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [1.8.0] - 2026-10-16
+
+### Added
+
+- NetherNet HTTP status support for `minecraft-bedrock`, tried before RakNet in summary, full, and auto detection. Queries fall back to RakNet on the same endpoint when NetherNet is unavailable.
+- `data.transport` identifies the responding Bedrock transport; NetherNet also reports its numeric `gameType`. Capability-only responses leave unavailable metadata omitted.
+
 ## [1.7.0] - 2026-10-10
 
 ### Added
@@ -120,6 +127,7 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.8.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.8.0
 [1.7.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.7.0
 [1.6.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.6.0
 [1.5.1]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.5.1

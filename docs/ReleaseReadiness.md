@@ -23,7 +23,7 @@ QueryHost has one direct runtime dependency: `@foxglove/wasm-bz2` for bounded de
 | 7 Days to Die           | A2S Info                  | A2S Player, A2S Rules                                                               | `test/fixtures/seven-days-to-die`                          |
 | DayZ                    | A2S Info                  | A2S Rules; A2S Player is explicitly unsupported                                     | `test/fixtures/dayz`                                       |
 | Minecraft Java          | SLP, else legacy ping     | DNS SRV discovery when applicable, UDP Query in full mode                           | `test/fixtures/minecraft-java`                             |
-| Minecraft Bedrock       | RakNet unconnected ping   | None                                                                                | `test/fixtures/minecraft-bedrock`                          |
+| Minecraft Bedrock       | NetherNet, else RakNet    | None                                                                                | `test/fixtures/minecraft-bedrock`                          |
 | FiveM                   | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/fivem`                                      |
 | RedM                    | Any usable fixed endpoint | `info.json`, `dynamic.json`, and `players.json` are attempted together in full mode | `test/fixtures/redm`                                       |
 | Satisfactory            | Lightweight UDP state     | HTTPS `HealthCheck` in full mode except while loading                               | `test/fixtures/satisfactory`                               |
