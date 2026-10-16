@@ -34,6 +34,7 @@ type CfxAnswer = (
 
 /** What each probed destination does; anything not listed refuses the connection. */
 interface Network {
+  readonly nethernet?: CfxAnswer;
   readonly a2s?: A2sAnswer;
   readonly cfx?: CfxAnswer;
   readonly vintageStory?: Uint8Array;
@@ -156,6 +157,10 @@ function harness(network: Network = {}, addresses = [PUBLIC_ADDRESS]): Harness {
           attempts.push(`minecraft-bedrock@${options.target.port}`);
           return unanswered(options.scope, silent, udpError);
         },
+      },
+      minecraftNetherNet: {
+        exchange: (options) =>
+          network.nethernet?.(options) ?? unanswered(options.scope, silent, httpError),
       },
       fivem: cfx,
       redm: cfx,
@@ -306,6 +311,26 @@ describe("detection probe plan", (): void => {
 });
 
 describe("detect", (): void => {
+  it("identifies NetherNet as Bedrock and reuses its summary response", async (): Promise<void> => {
+    const body = await fixture("minecraft-bedrock/nethernet.json");
+    const exchange = vi.fn(cfxServing({ "/v1/join": body }));
+    const env = harness({ nethernet: exchange });
+    const result = await detectWithDependencies(
+      { host: "play.example.com", port: 19132, mode: "summary", maxProbes: 1 },
+      env.dependencies,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      game: "minecraft-bedrock",
+      result: {
+        ok: true,
+        server: { players: { online: 0, max: 10 } },
+        data: { transport: "nethernet", protocolVersion: 2193 },
+      },
+    });
+    expect(exchange).toHaveBeenCalledOnce();
+    expect(env.attempts).not.toContain("minecraft-bedrock@19132");
+  });
   it("identifies an A2S game from its advertised Steam App ID and queries it as that game", async (): Promise<void> => {
     const { dependencies } = harness({
       a2s: a2sInfoOn(

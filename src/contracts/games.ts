@@ -637,8 +637,12 @@ export interface MinecraftJavaData {
   readonly crossplay?: MinecraftCrossplayHint;
 }
 
-/** Minecraft Bedrock data parsed from a RakNet unconnected pong. */
+/** Minecraft Bedrock metadata from NetherNet HTTP status or a RakNet unconnected pong. */
 export interface MinecraftBedrockData {
+  /** Status transport that answered; NetherNet uses the HTTP capability endpoint. */
+  readonly transport: "raknet" | "nethernet";
+  /** Numeric NetherNet game type, including future values with no known display name. */
+  readonly gameType?: number;
   readonly edition?: string;
   readonly motd?: string;
   readonly protocolVersion?: number;

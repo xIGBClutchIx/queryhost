@@ -27,7 +27,7 @@ The current source tree contains the package foundation and supported profiles:
 - Minecraft Java Server List Ping with strict VarInts, packet framing, bounded JSON, normalized MOTDs, validated favicons, player counts, protocol versions, and query latency
 - a Minecraft Java legacy ping fallback for pre-1.7 servers (Beta 1.8 through 1.6)
 - deterministic Minecraft SRV discovery and optional same-socket UDP Query enrichment for maps, software, plugins, and player names
-- Minecraft Bedrock RakNet status with strict identifiers, bounded UTF-8 fields, advertised ports, and spoofed-peer filtering
+- Minecraft Bedrock NetherNet HTTP status with RakNet fallback, bounded metadata, and pinned destinations
 - a `crossplay` hint on either Minecraft edition when the server advertises a Geyser bridge for the other edition's players, at no extra network cost
 - fixed-path HTTP over pinned addresses with preserved Host/SNI identity, redirect refusal, and bounded bodies
 - concurrent FiveM and RedM `info.json`, `dynamic.json`, and `players.json` queries with explicit partial and blocked-source semantics
@@ -124,7 +124,7 @@ VEIN and Avorion use the same Steam A2S data shape and answer without extra serv
 
 Minecraft Java performs optional SRV discovery followed by one required Server List Ping over TCP. When a pre-1.7 server closes or rejects that handshake, QueryHost retries once with the legacy ping and reports it as the `minecraft-legacy-ping` source; legacy responses have no favicon, and Beta 1.8 through 1.3 servers report no version or protocol, so those fields are omitted. In `full` mode it also attempts optional UDP Query enrichment for the map, software, plugins, and player names. Query failure preserves the successful SLP result as partial; `summary` mode skips Query explicitly.
 
-Minecraft Bedrock sends one required RakNet unconnected ping to UDP 19132 by default. Its pong supplies the normalized name, version, player counts, and Bedrock-specific edition, protocol, game mode, server ID, and advertised IPv4/IPv6 ports. Advertised ports are reported as server data; QueryHost does not follow them or connect to a new destination.
+Minecraft Bedrock first requests NetherNet status over HTTP at `/v1/join`, using port 19132 by default. If that source does not answer successfully, it falls back to a RakNet UDP ping on the same endpoint. Both summary and full mode support these transports, and `data.transport` identifies which answered. NetherNet can supply the name, world, version, player counts, protocol, and game mode; a capability-only response leaves unavailable metadata omitted. RakNet additionally supplies edition, server ID, and advertised ports. Advertised ports remain informational; QueryHost does not follow them. This supports direct HTTP NetherNet endpoints, without opening a WebRTC session or discovering Xbox/LAN worlds.
 
 FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by default. In `full` mode, their fixed `info.json`, `dynamic.json`, and `players.json` endpoints run concurrently against one pinned address. Any usable endpoint can identify a live server; unavailable endpoints remain omitted and produce game-specific partial provenance. `summary` mode requests only `dynamic.json`. Redirects are never followed, and blocked `Nope` responses are reported as blocked rather than empty data.
 

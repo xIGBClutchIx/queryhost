@@ -467,6 +467,8 @@ expectType<string | undefined>(dataMap["minecraft-java"].srv?.host);
 expectType<MinecraftCrossplayHint | undefined>(dataMap["minecraft-java"].crossplay);
 expectType<"geyser" | undefined>(dataMap["minecraft-java"].crossplay?.bridge);
 expectType<MinecraftBedrockData>(dataMap["minecraft-bedrock"]);
+expectType<"raknet" | "nethernet">(dataMap["minecraft-bedrock"].transport);
+expectType<number | undefined>(dataMap["minecraft-bedrock"].gameType);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].edition);
 expectType<string | undefined>(dataMap["minecraft-bedrock"].motd);
 expectType<number | undefined>(dataMap["minecraft-bedrock"].protocolVersion);

@@ -50,6 +50,7 @@ import type { A2sProfileObserver, A2sProfileOptions } from "../profiles/a2s.js";
 import { MinecraftJavaProtocolError } from "../protocols/minecraft-java/errors.js";
 import { MinecraftBedrockProtocolError } from "../protocols/minecraft-bedrock/errors.js";
 import type { MinecraftBedrockPingDependencies } from "../protocols/minecraft-bedrock/ping.js";
+import type { NetherNetDependencies } from "../protocols/minecraft-bedrock/nethernet.js";
 import type { MinecraftQueryDependencies } from "../protocols/minecraft-java/query.js";
 import type { MinecraftJavaStatusDependencies } from "../protocols/minecraft-java/status.js";
 import type { CfxQueryDependencies } from "../protocols/cfx/query.js";
@@ -102,6 +103,7 @@ export interface QueryDependencies {
   readonly minecraftJava?: MinecraftJavaStatusDependencies;
   readonly minecraftQuery?: MinecraftQueryDependencies;
   readonly minecraftBedrock?: MinecraftBedrockPingDependencies;
+  readonly minecraftNetherNet?: NetherNetDependencies;
   readonly fivem?: CfxQueryDependencies;
   readonly redm?: CfxQueryDependencies;
   readonly satisfactory?: SatisfactoryQueryDependencies;
@@ -265,7 +267,7 @@ const GAME_PROFILES: GameProfileTable = Object.freeze({
   ),
   "minecraft-bedrock": createProfileRunner(
     "minecraft-bedrock",
-    ["minecraft-bedrock-raknet"],
+    ["minecraft-bedrock-nethernet", "minecraft-bedrock-raknet"],
     minecraftBedrockProfileRunner,
   ),
   fivem: createProfileRunner(
@@ -508,6 +510,9 @@ async function minecraftBedrockProfileRunner(
     ...(options.dependencies.minecraftBedrock === undefined
       ? {}
       : { ping: options.dependencies.minecraftBedrock }),
+    ...(options.dependencies.minecraftNetherNet === undefined
+      ? {}
+      : { nethernet: options.dependencies.minecraftNetherNet }),
     ...(options.dependencies.random === undefined ? {} : { random: options.dependencies.random }),
   });
 }
@@ -599,7 +604,10 @@ function minecraftJavaProtocolError(error: MinecraftJavaProtocolError): QueryErr
   };
 }
 
-function minecraftBedrockProtocolError(error: MinecraftBedrockProtocolError): QueryError {
+function minecraftBedrockProtocolError(
+  error: MinecraftBedrockProtocolError,
+  trace: SourceTrace,
+): QueryError {
   return {
     code: error.code,
     message:
@@ -608,7 +616,9 @@ function minecraftBedrockProtocolError(error: MinecraftBedrockProtocolError): Qu
         : error.code === "INVALID_INPUT"
           ? "The Minecraft Bedrock query input is invalid."
           : "The Minecraft Bedrock response was malformed.",
-    source: "minecraft-bedrock-raknet",
+    source: trace.started.has("minecraft-bedrock-raknet")
+      ? "minecraft-bedrock-raknet"
+      : "minecraft-bedrock-nethernet",
   };
 }
 
@@ -641,8 +651,11 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     return { code: error.code, message: error.message, source: tcpErrorSource(trace) };
   }
   if (error instanceof HttpTransportError && trace.started.has("eco-frontpage")) {
-    // Eco's page is the only required HTTP source; optional HTTP sources map their own failures.
+    // Required HTTP sources attribute transport failures to the profile that started them.
     return { code: error.code, message: error.message, source: "eco-frontpage" };
+  }
+  if (error instanceof HttpTransportError && trace.started.has("minecraft-bedrock-nethernet")) {
+    return { code: error.code, message: error.message, source: "minecraft-bedrock-nethernet" };
   }
   if (error instanceof EcoProtocolError) {
     return { code: error.code, message: error.message, source: "eco-frontpage" };
@@ -654,7 +667,7 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
     return minecraftJavaProtocolError(error);
   }
   if (error instanceof MinecraftBedrockProtocolError) {
-    return minecraftBedrockProtocolError(error);
+    return minecraftBedrockProtocolError(error, trace);
   }
   if (error instanceof VintageStoryProtocolError) {
     return {

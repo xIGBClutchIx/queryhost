@@ -6,7 +6,7 @@
 
 # Interface: MinecraftBedrockData
 
-Minecraft Bedrock data parsed from a RakNet unconnected pong.
+Minecraft Bedrock metadata from NetherNet HTTP status or a RakNet unconnected pong.
 
 ## Properties
 
@@ -46,6 +46,14 @@ Present when the pong carries a Geyser default sub-MOTD, so Java players can lik
 
 ***
 
+### gameType?
+
+> `readonly` `optional` **gameType?**: `number`
+
+Numeric NetherNet game type, including future values with no known display name.
+
+***
+
 ### motd?
 
 > `readonly` `optional` **motd?**: `string`
@@ -61,3 +69,11 @@ Present when the pong carries a Geyser default sub-MOTD, so Java players can lik
 ### serverId?
 
 > `readonly` `optional` **serverId?**: `string`
+
+***
+
+### transport
+
+> `readonly` **transport**: `"raknet"` \| `"nethernet"`
+
+Status transport that answered; NetherNet uses the HTTP capability endpoint.

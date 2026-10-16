@@ -1,0 +1,9 @@
+{
+  "name": "Dedicated Server",
+  "protocol": 2193,
+  "version": "1.26.52",
+  "level": "Bedrock level",
+  "players": 0,
+  "maxPlayers": 10,
+  "gameType": 0
+}
