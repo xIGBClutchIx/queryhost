@@ -27,6 +27,17 @@ Dependencies flow from game profiles to protocol implementations to bounded tran
 
 See [docs/Internals.md](docs/Internals.md) for module ownership and detailed invariants. Put durable implementation detail there instead of growing this file.
 
+## Related repositories
+
+Sibling repositories live beside this one. Use these absolute paths; relative paths break inside worktrees.
+
+- `C:\Users\camer\repos\queryhost\api` — hosted API (`@queryhost/api`), consumes the published `queryhost` package.
+- `C:\Users\camer\repos\queryhost\web` — public site and docs at `query.host` (`@queryhost/web`), consumes the published `queryhost` package.
+
+Read them to check how a public-contract change lands downstream. Make their changes in their own repository after this package is released, not from here.
+
+Cross-project decisions and their rationale live in [docs/Decisions.md](docs/Decisions.md). Read it before changing project shape or scope.
+
 ## Documentation
 
 - Keep `README.md` focused on users: purpose, current capabilities, public contract, setup, and project status.
