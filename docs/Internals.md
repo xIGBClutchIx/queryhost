@@ -251,7 +251,7 @@ The packaged `queryhost` binary and repository `npm run query --` script share t
 
 New transports should accept an execution scope and a pinned target, impose explicit byte/count limits, validate the responding peer, and close their resources through the scope. They should return transport facts rather than game-specific meaning.
 
-New parsers should consume bounded bytes, reject malformed or excessive structures deterministically, and contain no network access. Protocol fixtures and malformed-input cases belong in the same slice as the parser.
+New parsers should consume bounded bytes, reject malformed or excessive structures deterministically, and contain no network access. Protocol fixtures and malformed-input cases belong in the same slice as the parser. Fixtures are immutable evidence: add a new fixture rather than replacing an existing one.
 
 New game profiles should declare required and optional sources, define merge precedence, preserve provenance, and add their contract to `GameDataMap` and `GAME_REGISTRY` together. A plain A2S game needs no profile module or runtime entry: set its `GameProtocolMap` entry and registry `protocol` to `a2s` or `a2s-unreal` and declare its data interface as an empty extension of `SteamA2sData` (plus `UnrealSessionData` for `a2s-unreal`).
 
