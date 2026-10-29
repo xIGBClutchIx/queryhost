@@ -10,13 +10,16 @@ export type {
 export {
   canonicalGameId,
   GAME_ALIASES,
+  GAME_CAPABILITIES,
   GAME_IDS,
+  GAME_PROTOCOLS,
   GAME_REGISTRY,
   getGameDefinition,
   isGameAlias,
   isGameId,
   isGameInputId,
   listGames,
+  SUPPORT_LEVELS,
 } from "./contracts/registry.js";
 export type {
   CanonicalGameId,
@@ -47,6 +50,7 @@ export type {
   DetectResult,
   DetectSuccess,
 } from "./contracts/detect.js";
+export { DETECT_ERROR_CODES } from "./contracts/detect.js";
 export { detect } from "./runtime/detect.js";
 export type {
   QueryError,
@@ -60,6 +64,13 @@ export type {
   QueryWarningCode,
   ServerInfo,
   ServerPlayers,
+} from "./contracts/shared.js";
+export {
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_LABELS,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
 } from "./contracts/shared.js";
 export type {
   A2sData,

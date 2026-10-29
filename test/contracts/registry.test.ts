@@ -3,37 +3,21 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalGameId,
   GAME_ALIASES,
+  GAME_CAPABILITIES,
   GAME_IDS,
+  GAME_PROTOCOLS,
   GAME_REGISTRY,
   getGameDefinition,
   isGameAlias,
   isGameId,
   isGameInputId,
   listGames,
+  SUPPORT_LEVELS,
   type GameProtocol,
 } from "../../src/index.js";
 
-const CAPABILITIES = [
-  "mods",
-  "players",
-  "plugins",
-  "resources",
-  "rules",
-  "srv",
-  "summary",
-] as const;
-const PROTOCOLS: readonly GameProtocol[] = [
-  "a2s",
-  "a2s-unreal",
-  "minecraft-java",
-  "minecraft-bedrock",
-  "cfx",
-  "satisfactory",
-  "vintage-story",
-  "eco",
-  "project-reclaimer",
-];
-const SUPPORT_LEVELS = new Set(["conditional", "supported", "unsupported"]);
+const CAPABILITIES = [...GAME_CAPABILITIES].sort();
+const LEVELS: ReadonlySet<string> = new Set(SUPPORT_LEVELS);
 
 describe("game registry", () => {
   it("contains every initial game exactly once", () => {
@@ -93,7 +77,7 @@ describe("game registry", () => {
 
       expect(definition.id).toBe(game);
       expect(definition.name.length).toBeGreaterThan(0);
-      expect(PROTOCOLS).toContain(definition.protocol);
+      expect(GAME_PROTOCOLS).toContain(definition.protocol);
       if (definition.defaultPort !== undefined) {
         expect(Number.isInteger(definition.defaultPort)).toBe(true);
         expect(definition.defaultPort).toBeGreaterThan(0);
@@ -109,9 +93,7 @@ describe("game registry", () => {
         expect(["offset", "fixed"]).toContain(definition.queryPortStrategy);
       }
       expect(Object.keys(definition.capabilities).sort()).toEqual(CAPABILITIES);
-      expect(
-        Object.values(definition.capabilities).every((level) => SUPPORT_LEVELS.has(level)),
-      ).toBe(true);
+      expect(Object.values(definition.capabilities).every((level) => LEVELS.has(level))).toBe(true);
     }
   });
 

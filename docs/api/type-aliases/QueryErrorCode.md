@@ -6,6 +6,6 @@
 
 # Type Alias: QueryErrorCode
 
-> **QueryErrorCode** = `"ABORTED"` \| `"CONNECTION_FAILED"` \| `"DNS_FAILED"` \| `"INTERNAL_ERROR"` \| `"INVALID_INPUT"` \| `"MALFORMED_RESPONSE"` \| `"RESPONSE_TOO_LARGE"` \| `"TARGET_BLOCKED"` \| `"TIMEOUT"`
+> **QueryErrorCode** = *typeof* [`QUERY_ERROR_CODES`](../variables/QUERY_ERROR_CODES.md)\[`number`\]
 
 Stable failure codes suitable for programmatic branching.

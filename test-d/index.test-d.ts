@@ -43,8 +43,23 @@ import {
   type DontStarveTogetherData,
   type DontStarveTogetherPlayer,
   canonicalGameId,
+  DETECT_ERROR_CODES,
+  type DetectErrorCode,
+  GAME_CAPABILITIES,
+  type GameCapability,
   type GameProtocol,
   GAME_IDS,
+  GAME_PROTOCOLS,
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_LABELS,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+  type QueryErrorCode,
+  type QuerySourceStatus,
+  type QueryWarningCode,
+  SUPPORT_LEVELS,
+  type SupportLevel,
   getGameDefinition,
   isGameId,
   query,
@@ -140,6 +155,21 @@ expectType<
     "project-reclaimer",
   ]
 >(GAME_IDS);
+
+// Each runtime vocabulary lists exactly its union's members, so mapping over it is exhaustive.
+declare function memberOf<const T extends readonly string[]>(values: T): T[number];
+expectType<GameProtocol>(memberOf(GAME_PROTOCOLS));
+expectType<GameCapability>(memberOf(GAME_CAPABILITIES));
+expectType<SupportLevel>(memberOf(SUPPORT_LEVELS));
+expectType<QuerySourceName>(memberOf(QUERY_SOURCE_NAMES));
+expectType<QuerySourceStatus>(memberOf(QUERY_SOURCE_STATUSES));
+expectType<QueryErrorCode>(memberOf(QUERY_ERROR_CODES));
+expectType<QueryWarningCode>(memberOf(QUERY_WARNING_CODES));
+expectType<DetectErrorCode>(memberOf(DETECT_ERROR_CODES));
+expectType<Readonly<Record<QuerySourceName, string>>>(QUERY_SOURCE_LABELS);
+expectType<string>(QUERY_SOURCE_LABELS["project-reclaimer-status"]);
+expectAssignable<QueryErrorCode>(DETECT_ERROR_CODES[0]);
+expectNotAssignable<QueryErrorCode>(DETECT_ERROR_CODES[4]);
 
 expectType<Promise<QueryResult<"a2s">>>(
   query({ game: "a2s", host: "play.example.com", port: 27_015 }),

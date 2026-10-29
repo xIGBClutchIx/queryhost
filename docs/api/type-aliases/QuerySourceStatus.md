@@ -6,6 +6,6 @@
 
 # Type Alias: QuerySourceStatus
 
-> **QuerySourceStatus** = `"ok"` \| `"timeout"` \| `"blocked"` \| `"malformed"` \| `"unsupported"` \| `"not-requested"` \| `"failed"`
+> **QuerySourceStatus** = *typeof* [`QUERY_SOURCE_STATUSES`](../variables/QUERY_SOURCE_STATUSES.md)\[`number`\]
 
 Outcome of an individual source, independent from the overall query result.

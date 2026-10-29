@@ -34,9 +34,18 @@ function externalImports(
 describe("queryhost/registry entry", () => {
   it("re-exports the root registry values unchanged", () => {
     expect(Object.keys(registry).sort()).toEqual([
+      "DETECT_ERROR_CODES",
       "GAME_ALIASES",
+      "GAME_CAPABILITIES",
       "GAME_IDS",
+      "GAME_PROTOCOLS",
       "GAME_REGISTRY",
+      "QUERY_ERROR_CODES",
+      "QUERY_SOURCE_LABELS",
+      "QUERY_SOURCE_NAMES",
+      "QUERY_SOURCE_STATUSES",
+      "QUERY_WARNING_CODES",
+      "SUPPORT_LEVELS",
       "canonicalGameId",
       "getGameDefinition",
       "isGameAlias",
@@ -46,6 +55,8 @@ describe("queryhost/registry entry", () => {
     ]);
     expect(registry.GAME_REGISTRY).toBe(root.GAME_REGISTRY);
     expect(registry.listGames).toBe(root.listGames);
+    expect(registry.GAME_PROTOCOLS).toBe(root.GAME_PROTOCOLS);
+    expect(registry.QUERY_SOURCE_LABELS).toBe(root.QUERY_SOURCE_LABELS);
   });
 
   it("imports no runtime modules, so browsers can bundle it", () => {

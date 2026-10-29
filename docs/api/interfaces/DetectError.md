@@ -12,7 +12,7 @@ Stable public detection failure; implementation exceptions are never exposed her
 
 ### code
 
-> `readonly` **code**: [`DetectErrorCode`](../type-aliases/DetectErrorCode.md)
+> `readonly` **code**: `"ABORTED"` \| `"DNS_FAILED"` \| `"INVALID_INPUT"` \| `"TARGET_BLOCKED"` \| `"NOT_DETECTED"`
 
 ***
 

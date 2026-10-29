@@ -6,6 +6,6 @@
 
 # Type Alias: DetectErrorCode
 
-> **DetectErrorCode** = `Extract`\<[`QueryErrorCode`](QueryErrorCode.md), `"ABORTED"` \| `"DNS_FAILED"` \| `"INVALID_INPUT"` \| `"TARGET_BLOCKED"`\> \| `"NOT_DETECTED"`
+> **DetectErrorCode** = *typeof* [`DETECT_ERROR_CODES`](../variables/DETECT_ERROR_CODES.md)\[`number`\]
 
 Stable failure codes for a detection in which no game was identified.

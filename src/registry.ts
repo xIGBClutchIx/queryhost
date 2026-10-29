@@ -1,6 +1,7 @@
 /**
- * Browser-safe `queryhost/registry` entry point. It carries only game metadata and alias
- * helpers, so bundlers can include it without the Node.js transports behind `query()`.
+ * Browser-safe `queryhost/registry` entry point. It carries only game metadata, alias helpers, and
+ * the result vocabulary, so bundlers can include it without the Node.js transports behind
+ * `query()`.
  */
 
 export type {
@@ -21,11 +22,29 @@ export type {
 export {
   canonicalGameId,
   GAME_ALIASES,
+  GAME_CAPABILITIES,
   GAME_IDS,
+  GAME_PROTOCOLS,
   GAME_REGISTRY,
   getGameDefinition,
   isGameAlias,
   isGameId,
   isGameInputId,
   listGames,
+  SUPPORT_LEVELS,
 } from "./contracts/registry.js";
+export type { DetectErrorCode } from "./contracts/detect.js";
+export { DETECT_ERROR_CODES } from "./contracts/detect.js";
+export type {
+  QueryErrorCode,
+  QuerySourceName,
+  QuerySourceStatus,
+  QueryWarningCode,
+} from "./contracts/shared.js";
+export {
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_LABELS,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+} from "./contracts/shared.js";

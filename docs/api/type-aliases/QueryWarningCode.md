@@ -6,6 +6,6 @@
 
 # Type Alias: QueryWarningCode
 
-> **QueryWarningCode** = `"PARTIAL_RESULT"` \| `"PLAYER_LIST_UNAVAILABLE"` \| `"SOURCE_BLOCKED"` \| `"SOURCE_FAILED"` \| `"SOURCE_MALFORMED"` \| `"SOURCE_TIMEOUT"`
+> **QueryWarningCode** = *typeof* [`QUERY_WARNING_CODES`](../variables/QUERY_WARNING_CODES.md)\[`number`\]
 
 Machine-readable warning codes for successful but incomplete results.

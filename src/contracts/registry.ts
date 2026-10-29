@@ -9,27 +9,62 @@ import type {
   GameProtocolMap,
 } from "./query.js";
 
+// Each vocabulary union below is derived from its frozen tuple, so the runtime list and the type
+// cannot drift. The explicit tuple annotations are required by `isolatedDeclarations`, and the
+// compiler rejects any value that differs from them in membership or order.
+
+/** Every {@link SupportLevel}, in declaration order. */
+export const SUPPORT_LEVELS: readonly ["supported", "conditional", "unsupported"] = Object.freeze([
+  "supported",
+  "conditional",
+  "unsupported",
+] as const);
+
 /** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
-export type SupportLevel = "supported" | "conditional" | "unsupported";
+export type SupportLevel = (typeof SUPPORT_LEVELS)[number];
+
+/** Every {@link GameCapability}, in declaration order. */
+export const GAME_CAPABILITIES: readonly [
+  "summary",
+  "players",
+  "rules",
+  "mods",
+  "plugins",
+  "resources",
+  "srv",
+] = Object.freeze(["summary", "players", "rules", "mods", "plugins", "resources", "srv"] as const);
 
 /** Features exposed through normalized or game-specific query results. */
-export type GameCapability =
-  "summary" | "players" | "rules" | "mods" | "plugins" | "resources" | "srv";
+export type GameCapability = (typeof GAME_CAPABILITIES)[number];
+
+/** Every {@link GameProtocol}, in declaration order. */
+export const GAME_PROTOCOLS: readonly [
+  "a2s",
+  "a2s-unreal",
+  "minecraft-java",
+  "minecraft-bedrock",
+  "cfx",
+  "satisfactory",
+  "vintage-story",
+  "eco",
+  "project-reclaimer",
+] = Object.freeze([
+  "a2s",
+  "a2s-unreal",
+  "minecraft-java",
+  "minecraft-bedrock",
+  "cfx",
+  "satisfactory",
+  "vintage-story",
+  "eco",
+  "project-reclaimer",
+] as const);
 
 /**
  * Protocol family of a game profile. `a2s-unreal` marks A2S profiles that also decode Unreal Engine
  * session values, such as the build ID and session flags, from keywords and Rules.
  */
-export type GameProtocol =
-  | "a2s"
-  | "a2s-unreal"
-  | "minecraft-java"
-  | "minecraft-bedrock"
-  | "cfx"
-  | "satisfactory"
-  | "vintage-story"
-  | "eco"
-  | "project-reclaimer";
+export type GameProtocol = (typeof GAME_PROTOCOLS)[number];
 
 /** Static metadata for one supported game profile. */
 export interface GameDefinition<G extends GameId = GameId> {
