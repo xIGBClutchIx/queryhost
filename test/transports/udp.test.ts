@@ -121,32 +121,37 @@ afterEach(async (): Promise<void> => {
 });
 
 describe("udpExchange integration", (): void => {
-  it("fails fast when the pinned port is closed", async (): Promise<void> => {
-    const probe = createSocket("udp4");
-    await new Promise<void>((resolve): void => {
-      probe.bind(0, "127.0.0.1", resolve);
-    });
-    const closedPort = probe.address().port;
-    await new Promise<void>((resolve): void => {
-      probe.close(resolve);
-    });
-    const scope = createScope(5_000);
-    const startedMs = performance.now();
+  // libuv disables SIO_UDP_CONNRESET on Windows, so ICMP port-unreachable never reaches the socket
+  // there and a closed port can only time out. The fast failure is a Linux and macOS guarantee.
+  it.skipIf(process.platform === "win32")(
+    "fails fast when the pinned port is closed",
+    async (): Promise<void> => {
+      const probe = createSocket("udp4");
+      await new Promise<void>((resolve): void => {
+        probe.bind(0, "127.0.0.1", resolve);
+      });
+      const closedPort = probe.address().port;
+      await new Promise<void>((resolve): void => {
+        probe.close(resolve);
+      });
+      const scope = createScope(5_000);
+      const startedMs = performance.now();
 
-    await expect(
-      udpExchange({
-        scope,
-        target: createTarget(closedPort),
-        address: LOOPBACK_ADDRESS,
-        request: Uint8Array.of(1),
-        maxResponseBytes: 16,
-      }),
-    ).rejects.toSatisfy(expectTransportCode("CONNECTION_FAILED"));
-    scope.close();
+      await expect(
+        udpExchange({
+          scope,
+          target: createTarget(closedPort),
+          address: LOOPBACK_ADDRESS,
+          request: Uint8Array.of(1),
+          maxResponseBytes: 16,
+        }),
+      ).rejects.toSatisfy(expectTransportCode("CONNECTION_FAILED"));
+      scope.close();
 
-    // ICMP port-unreachable reaches a connected socket; an unconnected one would wait 5 s.
-    expect(performance.now() - startedMs).toBeLessThan(1_000);
-  });
+      // ICMP port-unreachable reaches a connected socket; an unconnected one would wait 5 s.
+      expect(performance.now() - startedMs).toBeLessThan(1_000);
+    },
+  );
 
   it("exchanges one datagram with the selected pinned peer", async (): Promise<void> => {
     const server = await startFakeUdpServer((socket, message, remote): void => {
