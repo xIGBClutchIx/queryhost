@@ -2,6 +2,13 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- `QUERY_ERROR_GUIDANCE`, `DETECT_ERROR_GUIDANCE`, and `QUERY_WARNING_GUIDANCE` from the package root and `queryhost/registry`, giving every error and warning code a deeply frozen `CodeGuidance` entry with its `meaning` and typical `response`. Detection codes shared with query failures reuse the same entries. Consumers can render code tables without hand-keeping text that breaks when a release adds a code.
+- The `CodeGuidance` type.
+
 ## [1.10.0] - 2026-10-29
 
 ### Added

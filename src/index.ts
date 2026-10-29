@@ -50,9 +50,10 @@ export type {
   DetectResult,
   DetectSuccess,
 } from "./contracts/detect.js";
-export { DETECT_ERROR_CODES } from "./contracts/detect.js";
+export { DETECT_ERROR_CODES, DETECT_ERROR_GUIDANCE } from "./contracts/detect.js";
 export { detect } from "./runtime/detect.js";
 export type {
+  CodeGuidance,
   QueryError,
   QueryErrorCode,
   QueryMode,
@@ -67,10 +68,12 @@ export type {
 } from "./contracts/shared.js";
 export {
   QUERY_ERROR_CODES,
+  QUERY_ERROR_GUIDANCE,
   QUERY_SOURCE_LABELS,
   QUERY_SOURCE_NAMES,
   QUERY_SOURCE_STATUSES,
   QUERY_WARNING_CODES,
+  QUERY_WARNING_GUIDANCE,
 } from "./contracts/shared.js";
 export type {
   A2sData,

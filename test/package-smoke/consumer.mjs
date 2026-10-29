@@ -5,16 +5,19 @@ import * as registry from "queryhost/registry";
 
 const expectedExports = [
   "DETECT_ERROR_CODES",
+  "DETECT_ERROR_GUIDANCE",
   "GAME_ALIASES",
   "GAME_CAPABILITIES",
   "GAME_IDS",
   "GAME_PROTOCOLS",
   "GAME_REGISTRY",
   "QUERY_ERROR_CODES",
+  "QUERY_ERROR_GUIDANCE",
   "QUERY_SOURCE_LABELS",
   "QUERY_SOURCE_NAMES",
   "QUERY_SOURCE_STATUSES",
   "QUERY_WARNING_CODES",
+  "QUERY_WARNING_GUIDANCE",
   "SUPPORT_LEVELS",
   "canonicalGameId",
   "detect",
@@ -39,6 +42,28 @@ if (
   QUERY_SOURCE_NAMES.some((source) => typeof QUERY_SOURCE_LABELS[source] !== "string")
 ) {
   throw new Error("The packed result vocabulary is not frozen or lacks a source label.");
+}
+
+for (const [codes, guidance] of [
+  [queryhost.QUERY_ERROR_CODES, queryhost.QUERY_ERROR_GUIDANCE],
+  [queryhost.DETECT_ERROR_CODES, queryhost.DETECT_ERROR_GUIDANCE],
+  [queryhost.QUERY_WARNING_CODES, queryhost.QUERY_WARNING_GUIDANCE],
+]) {
+  if (
+    !Object.isFrozen(guidance) ||
+    JSON.stringify(Object.keys(guidance)) !== JSON.stringify(codes) ||
+    codes.some(
+      (code) =>
+        !Object.isFrozen(guidance[code]) ||
+        typeof guidance[code].meaning !== "string" ||
+        typeof guidance[code].response !== "string",
+    )
+  ) {
+    throw new Error("The packed code guidance is not frozen or does not cover its codes.");
+  }
+}
+if (queryhost.DETECT_ERROR_GUIDANCE.ABORTED !== queryhost.QUERY_ERROR_GUIDANCE.ABORTED) {
+  throw new Error("The packed detection guidance copies a shared query entry.");
 }
 
 if (!GAME_IDS.includes("fivem") || !GAME_IDS.includes("dont-starve-together")) {

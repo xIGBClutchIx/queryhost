@@ -35,16 +35,19 @@ describe("queryhost/registry entry", () => {
   it("re-exports the root registry values unchanged", () => {
     expect(Object.keys(registry).sort()).toEqual([
       "DETECT_ERROR_CODES",
+      "DETECT_ERROR_GUIDANCE",
       "GAME_ALIASES",
       "GAME_CAPABILITIES",
       "GAME_IDS",
       "GAME_PROTOCOLS",
       "GAME_REGISTRY",
       "QUERY_ERROR_CODES",
+      "QUERY_ERROR_GUIDANCE",
       "QUERY_SOURCE_LABELS",
       "QUERY_SOURCE_NAMES",
       "QUERY_SOURCE_STATUSES",
       "QUERY_WARNING_CODES",
+      "QUERY_WARNING_GUIDANCE",
       "SUPPORT_LEVELS",
       "canonicalGameId",
       "getGameDefinition",
@@ -57,6 +60,9 @@ describe("queryhost/registry entry", () => {
     expect(registry.listGames).toBe(root.listGames);
     expect(registry.GAME_PROTOCOLS).toBe(root.GAME_PROTOCOLS);
     expect(registry.QUERY_SOURCE_LABELS).toBe(root.QUERY_SOURCE_LABELS);
+    expect(registry.QUERY_ERROR_GUIDANCE).toBe(root.QUERY_ERROR_GUIDANCE);
+    expect(registry.DETECT_ERROR_GUIDANCE).toBe(root.DETECT_ERROR_GUIDANCE);
+    expect(registry.QUERY_WARNING_GUIDANCE).toBe(root.QUERY_WARNING_GUIDANCE);
   });
 
   it("imports no runtime modules, so browsers can bundle it", () => {

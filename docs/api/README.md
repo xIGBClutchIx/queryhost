@@ -23,6 +23,7 @@
 - [AvorionData](interfaces/AvorionData.md)
 - [CfxData](interfaces/CfxData.md)
 - [CfxPlayer](interfaces/CfxPlayer.md)
+- [CodeGuidance](interfaces/CodeGuidance.md)
 - [ConanExilesData](interfaces/ConanExilesData.md)
 - [CounterStrike2Data](interfaces/CounterStrike2Data.md)
 - [CounterStrikeSourceData](interfaces/CounterStrikeSourceData.md)
@@ -138,16 +139,19 @@
 ## Variables
 
 - [DETECT\_ERROR\_CODES](variables/DETECT_ERROR_CODES.md)
+- [DETECT\_ERROR\_GUIDANCE](variables/DETECT_ERROR_GUIDANCE.md)
 - [GAME\_ALIASES](variables/GAME_ALIASES.md)
 - [GAME\_CAPABILITIES](variables/GAME_CAPABILITIES.md)
 - [GAME\_IDS](variables/GAME_IDS.md)
 - [GAME\_PROTOCOLS](variables/GAME_PROTOCOLS.md)
 - [GAME\_REGISTRY](variables/GAME_REGISTRY.md)
 - [QUERY\_ERROR\_CODES](variables/QUERY_ERROR_CODES.md)
+- [QUERY\_ERROR\_GUIDANCE](variables/QUERY_ERROR_GUIDANCE.md)
 - [QUERY\_SOURCE\_LABELS](variables/QUERY_SOURCE_LABELS.md)
 - [QUERY\_SOURCE\_NAMES](variables/QUERY_SOURCE_NAMES.md)
 - [QUERY\_SOURCE\_STATUSES](variables/QUERY_SOURCE_STATUSES.md)
 - [QUERY\_WARNING\_CODES](variables/QUERY_WARNING_CODES.md)
+- [QUERY\_WARNING\_GUIDANCE](variables/QUERY_WARNING_GUIDANCE.md)
 - [SUPPORT\_LEVELS](variables/SUPPORT_LEVELS.md)
 
 ## Functions

@@ -269,6 +269,15 @@ import { QUERY_SOURCE_LABELS, QUERY_SOURCE_NAMES } from "queryhost";
 QUERY_SOURCE_NAMES.map((source) => QUERY_SOURCE_LABELS[source]); // ["Info", "Players", ...]
 ```
 
+`QUERY_ERROR_GUIDANCE`, `DETECT_ERROR_GUIDANCE`, and `QUERY_WARNING_GUIDANCE` give every code a deeply frozen `CodeGuidance` entry: a one-sentence `meaning` and the typical `response`. Detection codes shared with query failures reuse the query entries:
+
+```ts
+import { QUERY_ERROR_CODES, QUERY_ERROR_GUIDANCE } from "queryhost";
+
+QUERY_ERROR_CODES.map((code) => [code, QUERY_ERROR_GUIDANCE[code].meaning]);
+// [["ABORTED", "The caller's signal cancelled the query."], ...]
+```
+
 Browser and edge code can import the same metadata from `queryhost/registry`. That entry point contains only the registry, the alias helpers, the result vocabulary, and their types, so bundlers never pull in the Node.js transports behind `query()`:
 
 ```ts

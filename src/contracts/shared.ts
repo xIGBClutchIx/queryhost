@@ -144,6 +144,22 @@ export type QuerySourceEvent =
   | { readonly type: "started"; readonly source: QuerySourceName }
   | { readonly type: "completed"; readonly report: QuerySource };
 
+/**
+ * What a stable error or warning code means and how a caller typically responds to it, as short
+ * English sentences for documentation and user interfaces.
+ */
+export interface CodeGuidance {
+  /** What happened when a result carries the code. */
+  readonly meaning: string;
+  /** What a caller typically does about it. */
+  readonly response: string;
+}
+
+/** Builds one frozen guidance entry, so a published table cannot be changed at run time. */
+export function codeGuidance(meaning: string, response: string): CodeGuidance {
+  return Object.freeze({ meaning, response });
+}
+
 /** Every {@link QueryWarningCode}, in declaration order. */
 export const QUERY_WARNING_CODES: readonly [
   "PARTIAL_RESULT",
@@ -170,6 +186,35 @@ export interface QueryWarning {
   readonly message: string;
   readonly source?: QuerySourceName;
 }
+
+/** What each {@link QueryWarningCode} means and the typical response, in declaration order. */
+export const QUERY_WARNING_GUIDANCE: Readonly<Record<QueryWarningCode, CodeGuidance>> =
+  Object.freeze({
+    PARTIAL_RESULT: codeGuidance(
+      "One or more optional sources did not complete.",
+      "Use the result; check sources for what is missing.",
+    ),
+    PLAYER_LIST_UNAVAILABLE: codeGuidance(
+      "The player list could not be read; counts may still be present.",
+      "Show the count without names.",
+    ),
+    SOURCE_BLOCKED: codeGuidance(
+      "An optional source's destination was not allowed.",
+      "Use the result without that source.",
+    ),
+    SOURCE_FAILED: codeGuidance(
+      "An optional source failed to connect or answer.",
+      "Use the result without that source.",
+    ),
+    SOURCE_MALFORMED: codeGuidance(
+      "An optional source answered with data that does not match its protocol.",
+      "Use the result without that source.",
+    ),
+    SOURCE_TIMEOUT: codeGuidance(
+      "An optional source did not answer before the deadline.",
+      "Use the result, or retry with a longer timeoutMs.",
+    ),
+  });
 
 /** Every {@link QueryErrorCode}, in declaration order. */
 export const QUERY_ERROR_CODES: readonly [
@@ -203,3 +248,43 @@ export interface QueryError {
   readonly message: string;
   readonly source?: QuerySourceName;
 }
+
+/** What each {@link QueryErrorCode} means and the typical response, in declaration order. */
+export const QUERY_ERROR_GUIDANCE: Readonly<Record<QueryErrorCode, CodeGuidance>> = Object.freeze({
+  ABORTED: codeGuidance(
+    "The caller's signal cancelled the query.",
+    "Respect the cancellation; do not retry on the caller's behalf.",
+  ),
+  CONNECTION_FAILED: codeGuidance(
+    "The server refused or closed the connection, or answered with an error status.",
+    "Retry later; the server may be down or the port closed.",
+  ),
+  DNS_FAILED: codeGuidance(
+    "The hostname did not resolve to a usable address.",
+    "Check the hostname; retry only if DNS may be briefly unavailable.",
+  ),
+  INTERNAL_ERROR: codeGuidance(
+    "An unexpected implementation failure, kept out of the result's details.",
+    "Log it outside the result and report it.",
+  ),
+  INVALID_INPUT: codeGuidance(
+    "The game, host, port, mode, or deadline is not valid.",
+    "Correct the request; do not retry unchanged.",
+  ),
+  MALFORMED_RESPONSE: codeGuidance(
+    "The server answered with data that does not match its protocol.",
+    "Treat the source as unusable; check the game and port.",
+  ),
+  RESPONSE_TOO_LARGE: codeGuidance(
+    "The response exceeded the protocol's size limits.",
+    "Treat the source as unusable; limits are not negotiable.",
+  ),
+  TARGET_BLOCKED: codeGuidance(
+    "The destination is not a public address the safety policy allows.",
+    "Use a public host; do not retry unchanged.",
+  ),
+  TIMEOUT: codeGuidance(
+    "The required source did not answer before the query deadline.",
+    "Retry with backoff, or raise timeoutMs.",
+  ),
+});
