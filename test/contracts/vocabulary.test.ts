@@ -1,16 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type CodeGuidance,
   DETECT_ERROR_CODES,
+  DETECT_ERROR_GUIDANCE,
   GAME_CAPABILITIES,
   GAME_IDS,
   GAME_PROTOCOLS,
   GAME_REGISTRY,
   QUERY_ERROR_CODES,
+  QUERY_ERROR_GUIDANCE,
   QUERY_SOURCE_LABELS,
   QUERY_SOURCE_NAMES,
   QUERY_SOURCE_STATUSES,
   QUERY_WARNING_CODES,
+  QUERY_WARNING_GUIDANCE,
   SUPPORT_LEVELS,
 } from "../../src/index.js";
 
@@ -143,5 +147,58 @@ describe("query source labels", () => {
     expect(QUERY_SOURCE_LABELS["eco-frontpage"]).toBe("Front page");
     expect(QUERY_SOURCE_LABELS["project-reclaimer-status"]).toBe("Server browser");
     expect(QUERY_SOURCE_LABELS["minecraft-srv"]).toBe("SRV");
+  });
+});
+
+const GUIDANCE: readonly (readonly [
+  string,
+  readonly string[],
+  Readonly<Record<string, CodeGuidance>>,
+])[] = [
+  ["QUERY_ERROR_GUIDANCE", QUERY_ERROR_CODES, QUERY_ERROR_GUIDANCE],
+  ["DETECT_ERROR_GUIDANCE", DETECT_ERROR_CODES, DETECT_ERROR_GUIDANCE],
+  ["QUERY_WARNING_GUIDANCE", QUERY_WARNING_CODES, QUERY_WARNING_GUIDANCE],
+];
+
+describe("code guidance", () => {
+  it.each(GUIDANCE)("%s covers exactly its codes, in their order", (_, codes, guidance) => {
+    expect(Object.keys(guidance)).toEqual(codes);
+  });
+
+  it.each(GUIDANCE)("%s is deeply frozen with trimmed, non-empty text", (_, codes, guidance) => {
+    expect(Object.isFrozen(guidance)).toBe(true);
+    for (const code of codes) {
+      const entry = guidance[code];
+      expect(entry).toBeDefined();
+      if (entry === undefined) continue;
+      expect(Object.isFrozen(entry)).toBe(true);
+      expect(Object.keys(entry)).toEqual(["meaning", "response"]);
+      for (const text of [entry.meaning, entry.response]) {
+        expect(text.length).toBeGreaterThan(0);
+        expect(text).toBe(text.trim());
+        expect(text).toMatch(/\.$/u);
+      }
+    }
+  });
+
+  it("reuses the query entries for detection codes shared with query failures", () => {
+    for (const code of DETECT_ERROR_CODES) {
+      if (code === "NOT_DETECTED") continue;
+      expect(DETECT_ERROR_GUIDANCE[code]).toBe(QUERY_ERROR_GUIDANCE[code]);
+    }
+    expect(DETECT_ERROR_GUIDANCE.NOT_DETECTED).toEqual({
+      meaning: "No planned probe identified a supported game.",
+      response: "Pass the port players connect to, or raise maxProbes.",
+    });
+  });
+
+  it("rejects changes at run time", () => {
+    const entry: { meaning: string } = QUERY_ERROR_GUIDANCE.TIMEOUT;
+    expect(() => {
+      entry.meaning = "changed";
+    }).toThrow(TypeError);
+    expect(QUERY_ERROR_GUIDANCE.TIMEOUT.meaning).toBe(
+      "The required source did not answer before the query deadline.",
+    );
   });
 });

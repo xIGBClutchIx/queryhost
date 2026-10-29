@@ -2,7 +2,8 @@
 
 import type { GameId, QueryResult } from "./query.js";
 import type { GameProtocol } from "./registry.js";
-import type { QueryErrorCode, QueryMode } from "./shared.js";
+import type { CodeGuidance, QueryErrorCode, QueryMode } from "./shared.js";
+import { codeGuidance, QUERY_ERROR_GUIDANCE } from "./shared.js";
 
 /** Input accepted by `detect()`, which identifies the game instead of taking it from the caller. */
 export interface DetectInput {
@@ -77,6 +78,23 @@ export const DETECT_ERROR_CODES: readonly [
 
 /** Stable failure codes for a detection in which no game was identified. */
 export type DetectErrorCode = (typeof DETECT_ERROR_CODES)[number];
+
+/**
+ * What each {@link DetectErrorCode} means and the typical response, in declaration order. Codes
+ * shared with query failures reuse the same {@link QUERY_ERROR_GUIDANCE} entries.
+ */
+export const DETECT_ERROR_GUIDANCE: Readonly<Record<DetectErrorCode, CodeGuidance>> = Object.freeze(
+  {
+    ABORTED: QUERY_ERROR_GUIDANCE.ABORTED,
+    DNS_FAILED: QUERY_ERROR_GUIDANCE.DNS_FAILED,
+    INVALID_INPUT: QUERY_ERROR_GUIDANCE.INVALID_INPUT,
+    TARGET_BLOCKED: QUERY_ERROR_GUIDANCE.TARGET_BLOCKED,
+    NOT_DETECTED: codeGuidance(
+      "No planned probe identified a supported game.",
+      "Pass the port players connect to, or raise maxProbes.",
+    ),
+  },
+);
 
 /** Stable public detection failure; implementation exceptions are never exposed here. */
 export interface DetectError {

@@ -43,7 +43,9 @@ import {
   type DontStarveTogetherData,
   type DontStarveTogetherPlayer,
   canonicalGameId,
+  type CodeGuidance,
   DETECT_ERROR_CODES,
+  DETECT_ERROR_GUIDANCE,
   type DetectErrorCode,
   GAME_CAPABILITIES,
   type GameCapability,
@@ -51,10 +53,12 @@ import {
   GAME_IDS,
   GAME_PROTOCOLS,
   QUERY_ERROR_CODES,
+  QUERY_ERROR_GUIDANCE,
   QUERY_SOURCE_LABELS,
   QUERY_SOURCE_NAMES,
   QUERY_SOURCE_STATUSES,
   QUERY_WARNING_CODES,
+  QUERY_WARNING_GUIDANCE,
   type QueryErrorCode,
   type QuerySourceStatus,
   type QueryWarningCode,
@@ -170,6 +174,16 @@ expectType<Readonly<Record<QuerySourceName, string>>>(QUERY_SOURCE_LABELS);
 expectType<string>(QUERY_SOURCE_LABELS["project-reclaimer-status"]);
 expectAssignable<QueryErrorCode>(DETECT_ERROR_CODES[0]);
 expectNotAssignable<QueryErrorCode>(DETECT_ERROR_CODES[4]);
+
+// Guidance is keyed by exactly each code union, so a table built from it is exhaustive.
+expectType<Readonly<Record<QueryErrorCode, CodeGuidance>>>(QUERY_ERROR_GUIDANCE);
+expectType<Readonly<Record<DetectErrorCode, CodeGuidance>>>(DETECT_ERROR_GUIDANCE);
+expectType<Readonly<Record<QueryWarningCode, CodeGuidance>>>(QUERY_WARNING_GUIDANCE);
+expectType<string>(QUERY_ERROR_GUIDANCE.TIMEOUT.meaning);
+expectType<string>(DETECT_ERROR_GUIDANCE.NOT_DETECTED.response);
+expectError(DETECT_ERROR_GUIDANCE.TIMEOUT);
+expectError((QUERY_WARNING_GUIDANCE.SOURCE_TIMEOUT.meaning = "changed"));
+expectError((QUERY_ERROR_GUIDANCE.ABORTED = QUERY_ERROR_GUIDANCE.TIMEOUT));
 
 expectType<Promise<QueryResult<"a2s">>>(
   query({ game: "a2s", host: "play.example.com", port: 27_015 }),

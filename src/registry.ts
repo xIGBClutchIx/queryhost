@@ -34,8 +34,9 @@ export {
   SUPPORT_LEVELS,
 } from "./contracts/registry.js";
 export type { DetectErrorCode } from "./contracts/detect.js";
-export { DETECT_ERROR_CODES } from "./contracts/detect.js";
+export { DETECT_ERROR_CODES, DETECT_ERROR_GUIDANCE } from "./contracts/detect.js";
 export type {
+  CodeGuidance,
   QueryErrorCode,
   QuerySourceName,
   QuerySourceStatus,
@@ -43,8 +44,10 @@ export type {
 } from "./contracts/shared.js";
 export {
   QUERY_ERROR_CODES,
+  QUERY_ERROR_GUIDANCE,
   QUERY_SOURCE_LABELS,
   QUERY_SOURCE_NAMES,
   QUERY_SOURCE_STATUSES,
   QUERY_WARNING_CODES,
+  QUERY_WARNING_GUIDANCE,
 } from "./contracts/shared.js";
