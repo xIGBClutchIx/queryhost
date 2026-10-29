@@ -4,9 +4,18 @@ import * as queryhost from "queryhost";
 import * as registry from "queryhost/registry";
 
 const expectedExports = [
+  "DETECT_ERROR_CODES",
   "GAME_ALIASES",
+  "GAME_CAPABILITIES",
   "GAME_IDS",
+  "GAME_PROTOCOLS",
   "GAME_REGISTRY",
+  "QUERY_ERROR_CODES",
+  "QUERY_SOURCE_LABELS",
+  "QUERY_SOURCE_NAMES",
+  "QUERY_SOURCE_STATUSES",
+  "QUERY_WARNING_CODES",
+  "SUPPORT_LEVELS",
   "canonicalGameId",
   "detect",
   "getGameDefinition",
@@ -22,7 +31,15 @@ if (JSON.stringify(actualExports) !== JSON.stringify(expectedExports)) {
   throw new Error(`The packed public exports changed: ${actualExports.join(", ")}.`);
 }
 
-const { GAME_IDS, GAME_REGISTRY, canonicalGameId } = queryhost;
+const { GAME_IDS, GAME_REGISTRY, QUERY_SOURCE_LABELS, QUERY_SOURCE_NAMES, canonicalGameId } =
+  queryhost;
+
+if (
+  !Object.isFrozen(QUERY_SOURCE_NAMES) ||
+  QUERY_SOURCE_NAMES.some((source) => typeof QUERY_SOURCE_LABELS[source] !== "string")
+) {
+  throw new Error("The packed result vocabulary is not frozen or lacks a source label.");
+}
 
 if (!GAME_IDS.includes("fivem") || !GAME_IDS.includes("dont-starve-together")) {
   throw new Error("The packed JavaScript entry point omitted a supported profile.");

@@ -261,7 +261,15 @@ isGameId("rust"); // true
 
 The registry is exhaustive over `GameId`. Adding a game requires a typed data model and registry definition; consumers should not maintain a second game list.
 
-Browser and edge code can import the same metadata from `queryhost/registry`. That entry point contains only the registry, the alias helpers, and their types, so bundlers never pull in the Node.js transports behind `query()`:
+The result vocabulary is exported the same way, as frozen tuples that list every member of their union in declaration order: `GAME_PROTOCOLS`, `GAME_CAPABILITIES`, `SUPPORT_LEVELS`, `QUERY_SOURCE_NAMES`, `QUERY_SOURCE_STATUSES`, `QUERY_ERROR_CODES`, `QUERY_WARNING_CODES`, and `DETECT_ERROR_CODES`. Each union type is derived from its tuple, so schemas, validators, and documentation built from them gain new members with the package instead of a hand-kept copy. `QUERY_SOURCE_LABELS` gives each query source a short display label:
+
+```ts
+import { QUERY_SOURCE_LABELS, QUERY_SOURCE_NAMES } from "queryhost";
+
+QUERY_SOURCE_NAMES.map((source) => QUERY_SOURCE_LABELS[source]); // ["Info", "Players", ...]
+```
+
+Browser and edge code can import the same metadata from `queryhost/registry`. That entry point contains only the registry, the alias helpers, the result vocabulary, and their types, so bundlers never pull in the Node.js transports behind `query()`:
 
 ```ts
 import { listGames } from "queryhost/registry";

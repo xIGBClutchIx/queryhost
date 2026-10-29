@@ -12,7 +12,7 @@ One protocol and port pair `detect()` planned, in the order it was prioritized.
 
 ### error?
 
-> `readonly` `optional` **error?**: [`QueryErrorCode`](../type-aliases/QueryErrorCode.md)
+> `readonly` `optional` **error?**: `"ABORTED"` \| `"CONNECTION_FAILED"` \| `"DNS_FAILED"` \| `"INTERNAL_ERROR"` \| `"INVALID_INPUT"` \| `"MALFORMED_RESPONSE"` \| `"RESPONSE_TOO_LARGE"` \| `"TARGET_BLOCKED"` \| `"TIMEOUT"`
 
 Present only when `status` is `failed`.
 

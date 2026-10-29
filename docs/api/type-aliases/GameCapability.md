@@ -6,6 +6,6 @@
 
 # Type Alias: GameCapability
 
-> **GameCapability** = `"summary"` \| `"players"` \| `"rules"` \| `"mods"` \| `"plugins"` \| `"resources"` \| `"srv"`
+> **GameCapability** = *typeof* [`GAME_CAPABILITIES`](../variables/GAME_CAPABILITIES.md)\[`number`\]
 
 Features exposed through normalized or game-specific query results.

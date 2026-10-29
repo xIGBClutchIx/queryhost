@@ -2,6 +2,17 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- Runtime result vocabulary from the package root and `queryhost/registry`: `GAME_PROTOCOLS`, `GAME_CAPABILITIES`, `SUPPORT_LEVELS`, `QUERY_SOURCE_NAMES`, `QUERY_SOURCE_STATUSES`, `QUERY_ERROR_CODES`, `QUERY_WARNING_CODES`, and `DETECT_ERROR_CODES`, each a frozen tuple of every member of its union in declaration order. Consumers can build schemas and exhaustive tables from them instead of keeping copies that break when a release adds a member.
+- `QUERY_SOURCE_LABELS`, a short display label for each query source, such as `Front page` for `eco-frontpage`.
+
+### Changed
+
+- `GameProtocol`, `GameCapability`, `SupportLevel`, `QuerySourceName`, `QuerySourceStatus`, `QueryErrorCode`, `QueryWarningCode`, and `DetectErrorCode` are now derived from those tuples. Their members are unchanged.
+
 ## [1.9.0] - 2026-10-29
 
 ### Added

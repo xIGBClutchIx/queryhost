@@ -59,10 +59,24 @@ export interface DetectProbe {
  */
 export type DetectEvidence = "protocol" | "advertised" | "port" | "fallback";
 
+/** Every {@link DetectErrorCode}, in declaration order. */
+export const DETECT_ERROR_CODES: readonly [
+  "ABORTED",
+  "DNS_FAILED",
+  "INVALID_INPUT",
+  "TARGET_BLOCKED",
+  "NOT_DETECTED",
+] = Object.freeze([
+  "ABORTED",
+  "DNS_FAILED",
+  "INVALID_INPUT",
+  "TARGET_BLOCKED",
+  "NOT_DETECTED",
+  // Every code but `NOT_DETECTED` must keep the meaning it has as a query failure.
+] as const satisfies readonly (QueryErrorCode | "NOT_DETECTED")[]);
+
 /** Stable failure codes for a detection in which no game was identified. */
-export type DetectErrorCode =
-  | Extract<QueryErrorCode, "ABORTED" | "DNS_FAILED" | "INVALID_INPUT" | "TARGET_BLOCKED">
-  | "NOT_DETECTED";
+export type DetectErrorCode = (typeof DETECT_ERROR_CODES)[number];
 
 /** Stable public detection failure; implementation exceptions are never exposed here. */
 export interface DetectError {
