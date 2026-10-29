@@ -22,7 +22,7 @@ export interface DetectInput {
   readonly timeoutMs?: number;
   /** Caller cancellation propagated to every outstanding probe and query. */
   readonly signal?: AbortSignal;
-  /** Distinct protocol and port pairs to probe, from 1 through 16; defaults to 8. */
+  /** Distinct protocol and port pairs to probe, from 1 through 16; defaults to 9. */
   readonly maxProbes?: number;
 }
 

@@ -34,6 +34,8 @@ The current source tree contains the package foundation and supported profiles:
 - Satisfactory lightweight UDP status with optional authentication-free HTTPS health enrichment
 - direct Vintage Story TCP queries with stock-server liveness detection and typed richer status responses
 - Eco queries over the dedicated server's web `/frontpage` status page
+- a dependency-free QUIC v1 client (TLS 1.3 over Node's built-in crypto) for bounded single-stream exchanges, used by Project Reclaimer's server-browser status
+- Project Reclaimer (Halo 3) server-browser status with host, game type, variant, player-name, mod, and ODST facts
 - bounded property tests, generated API references, reviewed package boundaries, and clean JavaScript and TypeScript consumer smoke tests
 
 The 1.0.0 release establishes the reviewed package-root contract. QueryHost follows semantic versioning for changes to that contract.
@@ -98,7 +100,7 @@ if (detected.ok) {
 }
 ```
 
-A2S servers are matched by the Steam App ID they advertise, FiveM and RedM by their `gamename`, and otherwise by a port only one game uses; when nothing names the game, the result is generic A2S with `evidence: "fallback"`. Detection is bounded: at most `maxProbes` protocol and port pairs (8 by default, up to 16) run four at a time inside one `timeoutMs`, and `probes` reports each planned pair as `matched`, `answered`, `failed`, `cancelled`, or `skipped`. A host where nothing answered resolves with `NOT_DETECTED`. Passing the port players connect to keeps detection fast and precise. A port that is no game's default maps to more candidate destinations than the default budget covers, so raise `maxProbes` (up to 16) to try more of them.
+A2S servers are matched by the Steam App ID they advertise, FiveM and RedM by their `gamename`, and otherwise by a port only one game uses; when nothing names the game, the result is generic A2S with `evidence: "fallback"`. Detection is bounded: at most `maxProbes` protocol and port pairs (9 by default, up to 16) run four at a time inside one `timeoutMs`, and `probes` reports each planned pair as `matched`, `answered`, `failed`, `cancelled`, or `skipped`. A host where nothing answered resolves with `NOT_DETECTED`. Passing the port players connect to keeps detection fast and precise. A port that is no game's default maps to more candidate destinations than the default budget covers, so raise `maxProbes` (up to 16) to try more of them.
 
 For live progress, pass `onSource` with any query. It is called as each source starts and completes, and its completed reports are exactly the result's `sources`.
 
@@ -131,6 +133,8 @@ FiveM and RedM use the shared Cfx FXServer HTTP endpoint family on port 30120 by
 Vintage Story uses its normal TCP game port, 42420 by default. Current stock servers acknowledge the direct status request without disclosing metadata, producing `data.response: "liveness"`; compatible servers may return the protocol's richer status answer with name, MOTD, player counts, mode, password state, and version. QueryHost connects only to the caller's validated, pinned target and does not consult the public server list or another central service.
 
 Eco reads the dedicated server's unauthenticated `GET /frontpage` status page from its web server, TCP 3001 by default. `port` is the UDP game port (3000 by default) and the web port follows it at `+1`; set `queryPort` when `WebServerPort` is configured separately. The page supplies the normalized name (with Unity rich-text tags removed), version, password state, and online count, plus online player names and world facts such as the meteor countdown, laws, animals, and plants. Eco reports how many players have ever joined the world rather than a slot limit, so `server.players.max` is omitted and that count is `data.totalPlayers`. The name and long description exactly as served, tags included, are kept under `rawData`.
+
+Project Reclaimer, the fan-made Halo 3 multiplayer client, answers its server browser over QUIC on the dedicated server's UDP game port, 49176 for the first server a `dedicated init` configuration defines. QueryHost sends the same length-framed `{"status":2}` request the in-game browser sends and returns the server name, map, version, password state, and player counts, plus the host name, game type, game and map variants, readiness, VPN blocking, ping limit, connected player names, listed mods with their maps, and Halo 3: ODST settings when the server reports them. Servers present a fresh self-signed certificate, so certificate identity validation is disabled; the TLS 1.3 handshake is still encrypted and authenticated against the key the server presented, and the connection goes only to the validated, pinned address. QueryHost does not read the public master servers' listings, which hold only signed addresses.
 
 Satisfactory uses the dedicated server's shared UDP/TCP game port, 7777 by default. Its lightweight UDP API is the required status source and returns the server name, lifecycle state, network changelist, modded flag, and substate revisions without authentication. Full mode additionally calls the authentication-free HTTPS `HealthCheck`; summary mode and the documented `loading` state skip HTTPS. Vanilla servers generate self-signed certificates by default, so this narrowly scoped request disables certificate identity validation while retaining TLS encryption and the validated pinned destination. QueryHost never attempts password login, requests an API token, or calls authenticated management functions.
 
@@ -185,6 +189,7 @@ Game inputs accept documented aliases while results always use the canonical ID.
 | `eco`                      | —                                                            |
 | `vein`                     | —                                                            |
 | `avorion`                  | —                                                            |
+| `project-reclaimer`        | `reclaimer`                                                  |
 
 Project Zomboid interprets its description, PvP state, game version, and semicolon-delimited mod IDs from Rules. Its game-specific Rules version takes precedence over the generic A2S Info version. 7 Days to Die interprets its description, game name, world, mode, server clock, and website.
 
@@ -230,6 +235,7 @@ queryhost vs play.example.com 42420
 queryhost eco play.example.com 3000
 queryhost vein play.example.com 7777
 queryhost avorion play.example.com 27000
+queryhost reclaimer play.example.com 49176
 ```
 
 Run `npm run query -- --help` or `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.

@@ -28,7 +28,8 @@ export type GameProtocol =
   | "cfx"
   | "satisfactory"
   | "vintage-story"
-  | "eco";
+  | "eco"
+  | "project-reclaimer";
 
 /** Static metadata for one supported game profile. */
 export interface GameDefinition<G extends GameId = GameId> {
@@ -106,6 +107,7 @@ export const GAME_IDS: readonly [
   "eco",
   "vein",
   "avorion",
+  "project-reclaimer",
 ] = [
   "a2s",
   "dont-starve-together",
@@ -150,6 +152,7 @@ export const GAME_IDS: readonly [
   "eco",
   "vein",
   "avorion",
+  "project-reclaimer",
 ] as const;
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
@@ -213,6 +216,7 @@ export const GAME_ALIASES: GameAliasMap = Object.freeze({
   reforger: "arma-reforger",
   spaceengineers: "space-engineers",
   vrising: "v-rising",
+  reclaimer: "project-reclaimer",
 });
 
 /** Steam A2S games whose Player and Rules answers depend on server configuration or build. */
@@ -748,6 +752,21 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultQueryPort: 27_020,
     queryPortStrategy: "fixed",
     capabilities: STEAM_A2S_CAPABILITIES,
+  },
+  "project-reclaimer": {
+    id: "project-reclaimer",
+    name: "Project Reclaimer",
+    protocol: "project-reclaimer",
+    defaultPort: 49_176,
+    capabilities: {
+      summary: "supported",
+      players: "conditional",
+      rules: "unsupported",
+      mods: "conditional",
+      plugins: "unsupported",
+      resources: "unsupported",
+      srv: "unsupported",
+    },
   },
 };
 

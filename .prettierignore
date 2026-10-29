@@ -3,3 +3,5 @@ docs/api/
 node_modules/
 .npm-cache/
 package-lock.json
+# Byte-exact server captures; reformatting would no longer match what servers sent.
+test/fixtures/project-reclaimer/*.json

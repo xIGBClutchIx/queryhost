@@ -49,6 +49,7 @@ import type {
   ValheimData,
   EcoData,
   EcoRawData,
+  ProjectReclaimerData,
 } from "./games.js";
 import type {
   QueryError,
@@ -108,6 +109,7 @@ export interface GameDataMap {
   readonly eco: EcoData;
   readonly vein: VeinData;
   readonly avorion: AvorionData;
+  readonly "project-reclaimer": ProjectReclaimerData;
 }
 
 /** Associates implemented games with their untouched protocol payloads. */
@@ -155,6 +157,7 @@ export interface GameRawDataMap {
   readonly eco: EcoRawData;
   readonly vein: A2sRawData;
   readonly avorion: A2sRawData;
+  readonly "project-reclaimer": never;
 }
 
 /**
@@ -205,6 +208,7 @@ export interface GameProtocolMap {
   readonly eco: "eco";
   readonly vein: "a2s";
   readonly avorion: "a2s";
+  readonly "project-reclaimer": "project-reclaimer";
 }
 
 /** Every game identifier supported by the typed public contract. */
@@ -271,6 +275,7 @@ export interface GameAliasMap {
   readonly reforger: "arma-reforger";
   readonly spaceengineers: "space-engineers";
   readonly vrising: "v-rising";
+  readonly reclaimer: "project-reclaimer";
 }
 
 /** Accepted non-canonical game identifier. */

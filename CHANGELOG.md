@@ -2,6 +2,18 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [Unreleased]
+
+### Added
+
+- Project Reclaimer (Halo 3) queries as `project-reclaimer` (alias `reclaimer`), over the server-browser status exchange on the dedicated server's UDP game port (49176 by default). Results include the server name, map, version, password state, and player counts, plus the host name, game type, game and map variants, readiness, VPN blocking, ping limit, connected player names, listed mods with their maps and sizes, and Halo 3: ODST settings, as `ProjectReclaimerData`, `ProjectReclaimerMod`, `ProjectReclaimerModMap`, and `ProjectReclaimerOdst`.
+- `project-reclaimer` in the `GameProtocol` union and a `project-reclaimer-status` query source.
+- A bounded QUIC v1 client transport with a TLS 1.3 handshake built on `node:crypto`, adding no dependency, for game protocols that answer over QUIC.
+
+### Changed
+
+- `detect()` now probes at most 9 protocol and port pairs by default (`maxProbes`, still up to 16), up from 8, so the default budget still reaches the shared Steam query ports after every protocol family's own pair.
+
 ## [1.8.0] - 2026-10-16
 
 ### Added

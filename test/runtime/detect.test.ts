@@ -14,6 +14,7 @@ import {
   type FixedHttpExchangeOptions,
   type FixedHttpExchangeResult,
 } from "../../src/transports/http.js";
+import { QuicTransportError } from "../../src/transports/quic.js";
 import type { TcpSocketAdapter, TcpTransportDependencies } from "../../src/transports/tcp.js";
 import {
   UdpTransportError,
@@ -72,6 +73,7 @@ function unanswered<T>(
 
 const udpError = (code: "ABORTED" | "CONNECTION_FAILED"): Error => new UdpTransportError(code);
 const httpError = (code: "ABORTED" | "CONNECTION_FAILED"): Error => new HttpTransportError(code);
+const quicError = (code: "ABORTED" | "CONNECTION_FAILED"): Error => new QuicTransportError(code);
 
 function tcp(
   protocol: DetectProtocol,
@@ -173,6 +175,12 @@ function harness(network: Network = {}, addresses = [PUBLIC_ADDRESS]): Harness {
       },
       vintageStory: tcp("vintage-story", attempts, network.vintageStory, silent),
       eco: { exchange: http("eco") },
+      projectReclaimer: {
+        exchange(options) {
+          attempts.push(`project-reclaimer@${options.target.port}`);
+          return unanswered(options.scope, silent, quicError);
+        },
+      },
       now(): number {
         clock += 1;
         return clock;
@@ -237,7 +245,8 @@ describe("detection probe plan", (): void => {
     }
     expect(new Set(plan).size).toBe(plan.length);
     // The most shared A2S port leads, and every protocol is asked once before any is asked twice.
-    expect(plan.slice(0, 7)).toEqual([
+    // The default budget of 9 then reaches the second most shared A2S port.
+    expect(plan.slice(0, 9)).toEqual([
       "a2s@27015",
       "cfx@30120",
       "minecraft-java@25565",
@@ -245,6 +254,8 @@ describe("detection probe plan", (): void => {
       "satisfactory@7777",
       "vintage-story@42420",
       "eco@3001",
+      "project-reclaimer@49176",
+      "a2s@27016",
     ]);
   });
 
@@ -279,8 +290,9 @@ describe("detection probe plan", (): void => {
     expect(rust.indexOf("a2s@29002")).toBeLessThan(16);
     expect(rust.indexOf("eco@29001")).toBeLessThan(rust.indexOf("eco@29000"));
     expect(rust.at(-1)).toBe("eco@29000");
-    // Palworld keeps its fixed query port, which the default budget reaches.
-    expect(palworld.slice(0, 8)).toContain("a2s@27015");
+    // Palworld keeps its fixed query port, which the default budget of 9 reaches.
+    expect(palworld.slice(0, 9)).toContain("a2s@27015");
+    expect(palworld.indexOf("project-reclaimer@9000")).toBeLessThan(9);
   });
 
   it("tries the given port itself with every protocol", (): void => {
@@ -296,6 +308,7 @@ describe("detection probe plan", (): void => {
         "satisfactory",
         "vintage-story",
         "eco",
+        "project-reclaimer",
       ]),
     );
   });

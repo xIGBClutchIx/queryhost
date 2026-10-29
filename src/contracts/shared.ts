@@ -45,7 +45,8 @@ export type QuerySourceName =
   | "satisfactory-lightweight"
   | "satisfactory-health"
   | "vintage-story-query"
-  | "eco-frontpage";
+  | "eco-frontpage"
+  | "project-reclaimer-status";
 
 /** Outcome of an individual source, independent from the overall query result. */
 export type QuerySourceStatus =

@@ -28,6 +28,11 @@ import { EcoProtocolError } from "../../src/protocols/eco/errors.js";
 import { parseEcoFrontpage } from "../../src/protocols/eco/frontpage.js";
 import { VintageStoryProtocolError } from "../../src/protocols/vintage-story/errors.js";
 import { parseVintageStoryQueryResponse } from "../../src/protocols/vintage-story/query.js";
+import { ProjectReclaimerProtocolError } from "../../src/protocols/project-reclaimer/errors.js";
+import { parseProjectReclaimerStatusResponse } from "../../src/protocols/project-reclaimer/status.js";
+import { QuicClientConnection } from "../../src/transports/quic/connection.js";
+import { QuicTransportError } from "../../src/transports/quic/errors.js";
+import { parseFrames } from "../../src/transports/quic/frames.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -164,6 +169,103 @@ describe("bounded parser properties", (): void => {
           }, EcoProtocolError);
         },
       ),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary Project Reclaimer frames to stable protocol errors", (): void => {
+    const framed = (body: Uint8Array): Uint8Array => {
+      const frame = new Uint8Array(4 + body.byteLength);
+      new DataView(frame.buffer).setUint32(0, body.byteLength);
+      frame.set(body, 4);
+      return frame;
+    };
+    const statusLike = fc
+      .record(
+        {
+          name: fc.oneof(fc.string(), fc.integer(), fc.constant(null)),
+          players: fc.oneof(fc.integer(), fc.double(), fc.string()),
+          player_names: fc.array(fc.oneof(fc.string(), fc.integer())),
+          mods: fc.array(
+            fc.dictionary(fc.constantFrom("id", "title", "maps", "size"), fc.jsonValue()),
+          ),
+          odst: fc.jsonValue(),
+        },
+        { requiredKeys: [] },
+      )
+      .map((value) => new TextEncoder().encode(JSON.stringify(value)));
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          bytes,
+          fc.json().map((json) => framed(new TextEncoder().encode(json))),
+          statusLike.map(framed),
+        ),
+        (data): void => {
+          acceptsOnlyStableFailure((): void => {
+            parseProjectReclaimerStatusResponse(data);
+          }, ProjectReclaimerProtocolError);
+        },
+      ),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary QUIC frames to stable transport errors", (): void => {
+    fc.assert(
+      fc.property(bytes, fc.constantFrom("initial", "handshake", "application"), (data, space) => {
+        acceptsOnlyStableFailure((): void => {
+          parseFrames(data, space);
+        }, QuicTransportError);
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("keeps a QUIC connection to dropped packets or stable errors on arbitrary datagrams", (): void => {
+    // Long headers for version 1 reach header, Retry, and coalescing paths that random bytes rarely do.
+    const longHeader = fc
+      .tuple(
+        fc.integer({ min: 0xc0, max: 0xff }),
+        fc.uint8Array({ maxLength: 20 }),
+        fc.uint8Array({ maxLength: 20 }),
+        fc.uint8Array({ maxLength: 1_400 }),
+      )
+      .map(
+        ([first, destination, source, rest]) =>
+          new Uint8Array([
+            first,
+            0,
+            0,
+            0,
+            1,
+            destination.byteLength,
+            ...destination,
+            source.byteLength,
+            ...source,
+            ...rest,
+          ]),
+      );
+    let seed = 0;
+    fc.assert(
+      fc.property(fc.array(fc.oneof(bytes, longHeader), { maxLength: 6 }), (incoming): void => {
+        const connection = new QuicClientConnection({
+          serverName: "reclaimer",
+          alpn: [],
+          request: Uint8Array.of(1),
+          maxResponseBytes: 1_024,
+          inspectResponse: () => "incomplete",
+          randomBytes: (length) => new Uint8Array(length).map(() => (seed = (seed * 31 + 7) % 251)),
+        });
+        connection.start();
+        acceptsOnlyStableFailure((): void => {
+          for (const datagram of incoming) {
+            connection.receive(datagram);
+          }
+          connection.probe();
+        }, QuicTransportError);
+        expect(connection.response).toBeUndefined();
+      }),
       PROPERTY_OPTIONS,
     );
   });

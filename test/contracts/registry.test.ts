@@ -31,6 +31,7 @@ const PROTOCOLS: readonly GameProtocol[] = [
   "satisfactory",
   "vintage-story",
   "eco",
+  "project-reclaimer",
 ];
 const SUPPORT_LEVELS = new Set(["conditional", "supported", "unsupported"]);
 
@@ -80,6 +81,7 @@ describe("game registry", () => {
       "eco",
       "vein",
       "avorion",
+      "project-reclaimer",
     ]);
     expect(new Set(GAME_IDS).size).toBe(GAME_IDS.length);
     expect(Object.keys(GAME_REGISTRY).sort()).toEqual([...GAME_IDS].sort());
@@ -149,6 +151,7 @@ describe("game registry", () => {
     expect(GAME_REGISTRY.satisfactory.protocol).toBe("satisfactory");
     expect(GAME_REGISTRY["vintage-story"].protocol).toBe("vintage-story");
     expect(GAME_REGISTRY.eco.protocol).toBe("eco");
+    expect(GAME_REGISTRY["project-reclaimer"].protocol).toBe("project-reclaimer");
     expect(GAME_REGISTRY["counter-strike-2"].protocol).toBe("a2s");
   });
 
@@ -260,6 +263,17 @@ describe("game registry", () => {
       },
     });
     expect(getGameDefinition("eco").queryPortStrategy).toBeUndefined();
+    expect(getGameDefinition("reclaimer")).toMatchObject({
+      name: "Project Reclaimer",
+      defaultPort: 49_176,
+      capabilities: {
+        summary: "supported",
+        players: "conditional",
+        mods: "conditional",
+        rules: "unsupported",
+      },
+    });
+    expect(getGameDefinition("project-reclaimer").defaultQueryPort).toBeUndefined();
   });
 
   it.each([
@@ -424,6 +438,7 @@ describe("game registry", () => {
       reforger: "arma-reforger",
       spaceengineers: "space-engineers",
       vrising: "v-rising",
+      reclaimer: "project-reclaimer",
     });
     expect(isGameAlias("7d2d")).toBe(true);
     expect(isGameAlias("7-days-to-die")).toBe(false);

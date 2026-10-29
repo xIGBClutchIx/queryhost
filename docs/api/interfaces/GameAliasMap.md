@@ -280,6 +280,12 @@ Alternate input spellings mapped to one stable game identity.
 
 ***
 
+### reclaimer
+
+> `readonly` **reclaimer**: `"project-reclaimer"`
+
+***
+
 ### red-m
 
 > `readonly` **red-m**: `"redm"`
