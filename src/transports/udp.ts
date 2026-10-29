@@ -157,16 +157,18 @@ function createNodeSocketAdapter(family: IpFamily): UdpSocketAdapter {
   };
 }
 
-const NODE_DEPENDENCIES: UdpTransportDependencies = {
+/** Production socket and clock boundaries, shared with transports layered over UDP. */
+export const NODE_UDP_DEPENDENCIES: UdpTransportDependencies = Object.freeze({
   createSocket: createNodeSocketAdapter,
   now: performance.now.bind(performance),
-};
+});
 
 function fail(code: UdpTransportErrorCode): never {
   throw new UdpTransportError(code);
 }
 
-function addressesMatch(left: PinnedAddress, right: PinnedAddress): boolean {
+/** Whether two pinned addresses name the same IP literal in the same family. */
+export function addressesMatch(left: PinnedAddress, right: PinnedAddress): boolean {
   const normalizedLeft = normalizeIpAddress(left.address);
   const normalizedRight = normalizeIpAddress(right.address);
   return (
@@ -228,7 +230,8 @@ function validateRequest(request: Uint8Array): void {
   }
 }
 
-function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: number): boolean {
+/** Whether a datagram came from the selected pinned address and port. */
+export function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: number): boolean {
   const normalizedPeer = normalizeIpAddress(peer.address);
   const normalizedTarget = normalizeIpAddress(address.address);
   return normalizedPeer !== undefined && normalizedPeer === normalizedTarget && peer.port === port;
@@ -268,7 +271,7 @@ function connectSocket(
  */
 export async function udpExchange(
   options: UdpExchangeOptions,
-  dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
+  dependencies: UdpTransportDependencies = NODE_UDP_DEPENDENCIES,
 ): Promise<UdpExchangeResult> {
   const result = await udpCollect(
     {
@@ -294,7 +297,7 @@ export async function udpExchange(
  */
 export function udpConversation(
   options: UdpConversationOptions,
-  dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
+  dependencies: UdpTransportDependencies = NODE_UDP_DEPENDENCIES,
 ): Promise<UdpConversationResult> {
   return new Promise((resolve, reject): void => {
     validateConversationOptions(options);
@@ -443,7 +446,7 @@ export function udpConversation(
  */
 export function udpCollect(
   options: UdpCollectionOptions,
-  dependencies: UdpTransportDependencies = NODE_DEPENDENCIES,
+  dependencies: UdpTransportDependencies = NODE_UDP_DEPENDENCIES,
 ): Promise<UdpCollectionResult> {
   return new Promise((resolve, reject): void => {
     validateCollectionOptions(options);

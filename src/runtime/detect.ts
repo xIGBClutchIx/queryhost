@@ -32,7 +32,11 @@ import { conventionalQueryPort, queryWithDependencies, type QueryDependencies } 
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_PROBES = 8;
+/**
+ * Every protocol family's best pair, plus the next A2S pair: the shared Steam query port 27016
+ * without a port, or the fixed query port 27015 when a custom game port shifts the others.
+ */
+const DEFAULT_MAX_PROBES = 9;
 const MAX_PROBES = 16;
 /** Probes in flight at once, so a detection never bursts its whole probe budget at one host. */
 const PROBE_CONCURRENCY = 4;
@@ -93,7 +97,8 @@ type ProbeGame =
   | "fivem"
   | "satisfactory"
   | "vintage-story"
-  | "eco";
+  | "eco"
+  | "project-reclaimer";
 
 const PROBE_GAMES: { readonly [P in DetectProtocol]: ProbeGame } = Object.freeze({
   a2s: "a2s",
@@ -103,6 +108,7 @@ const PROBE_GAMES: { readonly [P in DetectProtocol]: ProbeGame } = Object.freeze
   satisfactory: "satisfactory",
   "vintage-story": "vintage-story",
   eco: "eco",
+  "project-reclaimer": "project-reclaimer",
 });
 
 function probeProtocol(protocol: GameProtocol): DetectProtocol {

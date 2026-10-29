@@ -22,6 +22,9 @@ import {
   type EcoRawData,
   type VeinData,
   type AvorionData,
+  type ProjectReclaimerData,
+  type ProjectReclaimerMod,
+  type ProjectReclaimerOdst,
   type ArkSurvivalEvolvedData,
   type ConanExilesData,
   type KillingFloor2Data,
@@ -134,6 +137,7 @@ expectType<
     "eco",
     "vein",
     "avorion",
+    "project-reclaimer",
   ]
 >(GAME_IDS);
 
@@ -187,6 +191,9 @@ expectType<Promise<QueryResult<"satisfactory">>>(
 expectType<Promise<QueryResult<"vintage-story">>>(query({ game: "vs", host: "play.example.com" }));
 expectType<Promise<QueryResult<"eco">>>(
   query({ game: "eco", host: "play.example.com", queryPort: 3001 }),
+);
+expectType<Promise<QueryResult<"project-reclaimer">>>(
+  query({ game: "reclaimer", host: "play.example.com", port: 49_177 }),
 );
 expectType<Promise<QueryResult<"counter-strike-2">>>(
   query({ game: "cs2", host: "play.example.com" }),
@@ -260,6 +267,8 @@ expectType<"cfx">(getGameDefinition("fivem").protocol);
 expectType<"eco">(getGameDefinition("eco").protocol);
 expectType<"a2s">(getGameDefinition("vein").protocol);
 expectType<"a2s">(getGameDefinition("avorion").protocol);
+expectType<"project-reclaimer">(getGameDefinition("reclaimer").protocol);
+expectType<"project-reclaimer">(canonicalGameId("reclaimer"));
 declare const dynamicGameId: GameId;
 expectType<GameProtocol>(getGameDefinition(dynamicGameId).protocol);
 expectAssignable<GameProtocol>("a2s-unreal");
@@ -419,6 +428,10 @@ if (dynamicResult.ok) {
     case "avorion":
       expectType<AvorionData>(dynamicResult.data);
       break;
+    case "project-reclaimer":
+      expectType<ProjectReclaimerData>(dynamicResult.data);
+      expectType<undefined>(dynamicResult.rawData);
+      break;
   }
 } else {
   expectType<QueryError>(dynamicResult.error);
@@ -505,6 +518,14 @@ expectType<readonly string[] | undefined>(dataMap.eco.players);
 expectType<number | undefined>(dataMap.eco.totalPlayers);
 expectType<boolean | undefined>(dataMap.eco.meteor);
 expectType<string | undefined>(rawDataMap.eco.description);
+expectType<ProjectReclaimerData>(dataMap["project-reclaimer"]);
+expectType<readonly string[] | undefined>(dataMap["project-reclaimer"].players);
+expectType<number | undefined>(dataMap["project-reclaimer"].maxPingMs);
+expectType<readonly ProjectReclaimerMod[] | undefined>(dataMap["project-reclaimer"].mods);
+expectType<string>(dataMap["project-reclaimer"].mods?.[0]?.id ?? "");
+expectType<number | undefined>(dataMap["project-reclaimer"].mods?.[0]?.sizeBytes);
+expectType<ProjectReclaimerOdst | undefined>(dataMap["project-reclaimer"].odst);
+expectType<never>(rawDataMap["project-reclaimer"]);
 expectAssignable<SteamA2sData>(dataMap.vein);
 expectAssignable<SteamA2sData>(dataMap.avorion);
 expectType<Readonly<Record<string, string>>>(rawDataMap.avorion.rules);

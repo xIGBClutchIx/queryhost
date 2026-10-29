@@ -179,6 +179,12 @@ profile is its protocol's shared A2S profile must have exactly that profile's da
 
 ***
 
+### project-reclaimer
+
+> `readonly` **project-reclaimer**: `"project-reclaimer"`
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: `"a2s"`

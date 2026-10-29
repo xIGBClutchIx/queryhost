@@ -180,6 +180,12 @@ Adding a game here forces the registry and callers using exhaustive switches to 
 
 ***
 
+### project-reclaimer
+
+> `readonly` **project-reclaimer**: [`ProjectReclaimerData`](ProjectReclaimerData.md)
+
+***
+
 ### project-zomboid
 
 > `readonly` **project-zomboid**: [`ProjectZomboidData`](ProjectZomboidData.md)

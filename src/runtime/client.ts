@@ -88,6 +88,10 @@ import { querySoulmaskProfile } from "../profiles/soulmask.js";
 import { queryEcoProfile } from "../profiles/eco.js";
 import { EcoProtocolError } from "../protocols/eco/errors.js";
 import type { EcoQueryDependencies } from "../protocols/eco/frontpage.js";
+import { QuicTransportError } from "../transports/quic.js";
+import { ProjectReclaimerProtocolError } from "../protocols/project-reclaimer/errors.js";
+import type { ProjectReclaimerQueryDependencies } from "../protocols/project-reclaimer/status.js";
+import { queryProjectReclaimerProfile } from "../profiles/project-reclaimer.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -109,6 +113,7 @@ export interface QueryDependencies {
   readonly satisfactory?: SatisfactoryQueryDependencies;
   readonly vintageStory?: VintageStoryQueryDependencies;
   readonly eco?: EcoQueryDependencies;
+  readonly projectReclaimer?: ProjectReclaimerQueryDependencies;
   readonly random?: () => number;
   readonly now: () => number;
 }
@@ -329,6 +334,11 @@ const GAME_PROFILES: GameProfileTable = Object.freeze({
     a2sProfileRunner(queryInsurgencySandstormProfile),
   ),
   eco: createProfileRunner("eco", ["eco-frontpage"], ecoProfileRunner),
+  "project-reclaimer": createProfileRunner(
+    "project-reclaimer",
+    ["project-reclaimer-status"],
+    projectReclaimerProfileRunner,
+  ),
 });
 
 function sharedA2sRegistration(game: GameId): AnyProfileRegistration {
@@ -574,6 +584,19 @@ async function ecoProfileRunner(options: ProfileRunOptions): Promise<GameProfile
   });
 }
 
+async function projectReclaimerProfileRunner(
+  options: ProfileRunOptions,
+): Promise<GameProfileResult<"project-reclaimer">> {
+  return queryProjectReclaimerProfile({
+    scope: options.scope,
+    target: await pinnedTarget(options.input, options.scope, options.resolver),
+    observer: options.observer,
+    ...(options.dependencies.projectReclaimer === undefined
+      ? {}
+      : { query: options.dependencies.projectReclaimer }),
+  });
+}
+
 function a2sProtocolError(error: A2sProtocolError): QueryError {
   const code =
     error.code === "RESPONSE_TOO_LARGE"
@@ -659,6 +682,10 @@ function mapQueryError(error: Error, trace: SourceTrace): QueryError | undefined
   }
   if (error instanceof EcoProtocolError) {
     return { code: error.code, message: error.message, source: "eco-frontpage" };
+  }
+  // Project Reclaimer status is the only QUIC source, so its transport failures are its own.
+  if (error instanceof QuicTransportError || error instanceof ProjectReclaimerProtocolError) {
+    return { code: error.code, message: error.message, source: "project-reclaimer-status" };
   }
   if (error instanceof A2sProtocolError) {
     return a2sProtocolError(error);

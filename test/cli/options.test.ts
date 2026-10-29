@@ -78,6 +78,7 @@ describe("query command arguments", (): void => {
     ["red-m", "redm"],
     ["rdr3", "redm"],
     ["vs", "vintage-story"],
+    ["reclaimer", "project-reclaimer"],
     ["cs2", "counter-strike-2"],
     ["css", "counter-strike-source"],
     ["tf2", "team-fortress-2"],

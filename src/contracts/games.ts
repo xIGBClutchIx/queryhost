@@ -770,3 +770,62 @@ export interface EcoRawData {
   readonly description?: string;
   readonly detailedDescription?: string;
 }
+
+/** One map file a Project Reclaimer mod provides. */
+export interface ProjectReclaimerModMap {
+  /** Map file name without its extension, such as `goliath`. */
+  readonly stem: string;
+  /** Content digest the server advertises for the map file. */
+  readonly digest: string;
+}
+
+/** A mod a Project Reclaimer server lists in its server-browser status. */
+export interface ProjectReclaimerMod {
+  /** Content identifier of the mod. */
+  readonly id: string;
+  readonly title?: string;
+  readonly maps?: readonly ProjectReclaimerModMap[];
+  readonly sizeBytes?: number;
+  /** Whether the server sends the mod's files to joining players that lack them. */
+  readonly shared?: boolean;
+  /** Whether a player must have the mod to join. */
+  readonly required?: boolean;
+  /** Whether the mod supplies character customization. */
+  readonly customization?: boolean;
+}
+
+/** Halo 3: ODST settings of a server running ODST content. */
+export interface ProjectReclaimerOdst {
+  /** `firefight` for Firefight servers, as configured on the server. */
+  readonly mode?: string;
+  /** ODST mission number, such as `6110`. */
+  readonly mission?: number;
+  readonly insertion?: number;
+  /** Difficulty name, such as `legendary`. */
+  readonly difficulty?: string;
+  /** Game variant file name, such as `odst_ff_classic`. */
+  readonly variant?: string;
+}
+
+/** Project Reclaimer (Halo 3) facts from the server-browser status answer. */
+export interface ProjectReclaimerData {
+  /** Name of the host or community running the server, separate from the server's own name. */
+  readonly hostName?: string;
+  /** Game type shown in the browser, such as `Capture the Flag` or `Firefight (Legendary)`. */
+  readonly mode?: string;
+  /** Game variant name. */
+  readonly variant?: string;
+  /** Forge map variant name, present when the map is a saved variant. */
+  readonly mapVariant?: string;
+  /** Whether the server has finished preparing its map and can admit players. */
+  readonly ready?: boolean;
+  /** Whether the server refuses players on a VPN, proxy, or hosting network. */
+  readonly blocksVpn?: boolean;
+  /** Highest ping a joining player may have; omitted when the server sets no limit. */
+  readonly maxPingMs?: number;
+  /** Connected player names; servers have been seen sending them only while players are on. */
+  readonly players?: readonly string[];
+  /** Mods the server lists; omitted when it lists none. */
+  readonly mods?: readonly ProjectReclaimerMod[];
+  readonly odst?: ProjectReclaimerOdst;
+}

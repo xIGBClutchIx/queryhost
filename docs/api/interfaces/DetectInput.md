@@ -22,7 +22,7 @@ DNS hostname or IP literal. URL syntax is intentionally not accepted.
 
 > `readonly` `optional` **maxProbes?**: `number`
 
-Distinct protocol and port pairs to probe, from 1 through 16; defaults to 8.
+Distinct protocol and port pairs to probe, from 1 through 16; defaults to 9.
 
 ***
 
