@@ -57,4 +57,10 @@ Review `npm pack --dry-run --json` before creating the release. The package must
 
 Publishing uses npm trusted publishing for `.github/workflows/publish.yml`. The trust relationship is limited to the `xIGBClutchIx/queryhost` repository and the `npm publish` action; the workflow uses GitHub OIDC and does not require a stored npm authentication token.
 
+### Consumer pickup
+
+The API and web repositories pin exact versions and move them through their own `QueryHost release` workflows. Both call one reusable bump workflow, `.github/workflows/consumer-bump.yml` in `xIGBClutchIx/queryhost-api`, which opens the bump pull request and later merges it once CI and its other checks pass. That workflow, its merge conditions, and its deployment gates belong to the consumers and are documented in their `docs/Operations.md`; this repository holds no deployment policy and only announces each release.
+
+After `npm publish` succeeds, the `consumers` job in `publish.yml` runs `gh workflow run queryhost-release.yml -f version=<version>` in `xIGBClutchIx/queryhost-api` and then `xIGBClutchIx/queryhost-web`, so the bump pull requests open without waiting for the consumers' 15-minute schedules. The dispatch carries only the version; what happens next is up to each consumer. Those schedules remain the fallback and run the merge checks. The job uses the `QUERYHOST_CONSUMER_DISPATCH_TOKEN` repository secret in this repository (Settings, Secrets and variables, Actions): a fine-grained personal access token owned by the repository owner, limited to the `queryhost-api` and `queryhost-web` repositories with **Actions: Read and write** and nothing else beyond the **Metadata: Read** GitHub always adds. The publish job never sees it. When the secret is absent, the job leaves a notice and succeeds; when a dispatch fails, the job fails after trying both consumers, and the schedules still pick the release up. Renew the token before it expires.
+
 npm does not permit reuse of a published name and version. If 1.0.0 contains a release defect, deprecate it when appropriate and publish a corrected patch version.

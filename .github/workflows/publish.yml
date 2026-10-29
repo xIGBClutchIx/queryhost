@@ -39,3 +39,41 @@ jobs:
 
       - name: Publish with provenance
         run: npm publish --access public --provenance
+
+  # Starts each hosted consumer's `QueryHost release` workflow with the version just
+  # published, so the bump pull request opens without waiting for its 15-minute schedule,
+  # which stays as the fallback. A separate job keeps the dispatch token away from the
+  # publish job, and this job checks out and runs nothing from the release.
+  consumers:
+    needs: npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+
+    steps:
+      - name: Start the consumer bumps
+        env:
+          # Fine-grained token limited to Actions read and write on the two consumers.
+          GH_TOKEN: ${{ secrets.QUERYHOST_CONSUMER_DISPATCH_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::QUERYHOST_CONSUMER_DISPATCH_TOKEN is not set; the consumers' schedules pick this release up."
+            exit 0
+          fi
+          version="${TAG#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Not an exact release version: $TAG"
+            exit 1
+          fi
+          # Try every consumer even if one fails, then fail so the miss is visible.
+          failed=0
+          for repo in xIGBClutchIx/queryhost-api xIGBClutchIx/queryhost-web; do
+            if gh workflow run queryhost-release.yml -R "$repo" -f version="$version"; then
+              echo "Started the queryhost $version bump in $repo."
+            else
+              echo "::error::Could not start the queryhost $version bump in $repo; its schedule still picks it up."
+              failed=1
+            fi
+          done
+          exit "$failed"
