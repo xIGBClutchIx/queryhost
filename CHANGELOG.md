@@ -2,7 +2,7 @@
 
 QueryHost records user-visible package changes in this file.
 
-## [Unreleased]
+## [1.9.0] - 2026-10-29
 
 ### Added
 
@@ -139,6 +139,7 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.9.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.9.0
 [1.8.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.8.0
 [1.7.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.7.0
 [1.6.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.6.0
