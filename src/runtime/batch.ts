@@ -131,8 +131,10 @@ async function* runBatch<G extends GameInputId>(
   let exhausted = false;
   let nextIndex = 0;
 
-  // The next caller input, or `undefined` once the iterable is exhausted.
-  const readNext = (source: Iterator<QueryInput<G>>): QueryInput<G> | undefined => {
+  // The next caller input step. Exhaustion is reported by `done`, never by the value, because an
+  // untyped caller's input (or an array hole) can itself be `undefined` and must still yield an
+  // entry of its own.
+  const readNext = (source: Iterator<QueryInput<G>>): IteratorResult<QueryInput<G>> => {
     let step: IteratorResult<QueryInput<G>>;
     try {
       step = source.next();
@@ -142,9 +144,8 @@ async function* runBatch<G extends GameInputId>(
     }
     if (step.done === true) {
       exhausted = true;
-      return undefined;
     }
-    return step.value;
+    return step;
   };
 
   try {
@@ -153,10 +154,11 @@ async function* runBatch<G extends GameInputId>(
       // A result waiting for the consumer still holds its slot, so a slow consumer applies
       // backpressure and buffered results never exceed the concurrency limit.
       while (!exhausted && !batchSignal.aborted && running.size < concurrency) {
-        const input = readNext(iterator);
-        if (input === undefined) {
+        const step = readNext(iterator);
+        if (step.done === true) {
           break;
         }
+        const input = step.value;
         const index = nextIndex++;
         running.set(
           index,
@@ -172,10 +174,11 @@ async function* runBatch<G extends GameInputId>(
         // ABORTED without starting it, so every input still yields exactly one entry. Reading
         // stays paced by the consumer, which can stop iterating at any time.
         while (!exhausted) {
-          const input = readNext(iterator);
-          if (input === undefined) {
+          const step = readNext(iterator);
+          if (step.done === true) {
             break;
           }
+          const input = step.value;
           yield Object.freeze({
             index: nextIndex++,
             input,

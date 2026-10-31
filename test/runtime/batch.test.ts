@@ -353,4 +353,18 @@ describe("queryMany batching", (): void => {
 
     expect(entry?.result).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
   });
+
+  it("yields an entry for an undefined untyped input instead of treating it as the end", async (): Promise<void> => {
+    const servers = untypedInputs([
+      undefined,
+      { game: "rust", host: "play.example.com", timeoutMs: 0 },
+    ]);
+
+    const entries = await collect(queryMany(servers));
+
+    expect(entries.map((entry) => entry.index).sort((left, right) => left - right)).toEqual([0, 1]);
+    for (const entry of entries) {
+      expect(entry.result).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+    }
+  });
 });
