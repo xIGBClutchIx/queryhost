@@ -426,6 +426,36 @@ describe("udpCollect integration", (): void => {
     expect(result.datagrams).toEqual([Uint8Array.of(1), Uint8Array.of(2)]);
   });
 
+  it("gives the completion check a frozen snapshot of copies", async (): Promise<void> => {
+    const server = await startFakeUdpServer((socket, _message, remote): void => {
+      send(socket, Uint8Array.of(1), remote.port, remote.address);
+      send(socket, Uint8Array.of(2), remote.port, remote.address);
+    });
+    const scope = createScope();
+    const frozen: boolean[] = [];
+
+    const result = await udpCollect({
+      scope,
+      target: createTarget(server.port),
+      address: LOOPBACK_ADDRESS,
+      request: Uint8Array.of(9),
+      maxResponseBytes: 4,
+      maxDatagrams: 2,
+      maxTotalResponseBytes: 8,
+      isComplete: (datagrams): boolean => {
+        frozen.push(Object.isFrozen(datagrams));
+        for (const datagram of datagrams) {
+          datagram.fill(0xff);
+        }
+        return datagrams.length === 2;
+      },
+    });
+    scope.close();
+
+    expect(frozen).toEqual([true, true]);
+    expect(result.datagrams).toEqual([Uint8Array.of(1), Uint8Array.of(2)]);
+  });
+
   it("fails closed when a sender exceeds the datagram-count bound", async (): Promise<void> => {
     const server = await startFakeUdpServer((socket, _message, remote): void => {
       send(socket, Uint8Array.of(1), remote.port, remote.address);

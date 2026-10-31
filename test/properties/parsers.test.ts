@@ -33,6 +33,9 @@ import { parseProjectReclaimerStatusResponse } from "../../src/protocols/project
 import { QuicClientConnection } from "../../src/transports/quic/connection.js";
 import { QuicTransportError } from "../../src/transports/quic/errors.js";
 import { parseFrames } from "../../src/transports/quic/frames.js";
+import { splitDatagram } from "../../src/transports/quic/packet.js";
+import { readHandshakeMessages } from "../../src/transports/quic/tls.js";
+import { parsePeerTransportParameters } from "../../src/transports/quic/transport-parameters.js";
 
 const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
 const bytes = fc.uint8Array({ maxLength: 4_096 });
@@ -216,6 +219,64 @@ describe("bounded parser properties", (): void => {
       fc.property(bytes, fc.constantFrom("initial", "handshake", "application"), (data, space) => {
         acceptsOnlyStableFailure((): void => {
           parseFrames(data, space);
+        }, QuicTransportError);
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary QUIC datagrams to packets or stable transport errors", (): void => {
+    fc.assert(
+      fc.property(bytes, fc.integer({ min: 0, max: 20 }), (data, localIdLength): void => {
+        acceptsOnlyStableFailure((): void => {
+          splitDatagram(data, localIdLength);
+        }, QuicTransportError);
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary TLS handshake bytes to messages or stable transport errors", (): void => {
+    // A plausible header (type, 24-bit length) reaches the bounds checks random bytes rarely do.
+    const messageLike = fc
+      .tuple(fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 40_000 }), bytes)
+      .map(
+        ([type, length, body]) =>
+          new Uint8Array([
+            type,
+            (length >> 16) & 0xff,
+            (length >> 8) & 0xff,
+            length & 0xff,
+            ...body,
+          ]),
+      );
+    fc.assert(
+      fc.property(fc.oneof(bytes, messageLike), (data): void => {
+        acceptsOnlyStableFailure((): void => {
+          readHandshakeMessages(data);
+        }, QuicTransportError);
+      }),
+      PROPERTY_OPTIONS,
+    );
+  });
+
+  it("reduces arbitrary QUIC transport parameters to values or stable transport errors", (): void => {
+    const ids = {
+      originalDestination: Uint8Array.of(1, 2, 3, 4, 5, 6, 7, 8),
+      initialSource: Uint8Array.of(9, 9, 9, 9),
+      retrySource: undefined,
+    };
+    // Well-formed id/length/value records reach the per-parameter validation.
+    const parameter = fc
+      .tuple(fc.integer({ min: 0, max: 0x20 }), fc.uint8Array({ maxLength: 20 }))
+      .map(([id, value]) => new Uint8Array([id, value.byteLength, ...value]));
+    const parameters = fc
+      .array(fc.oneof(parameter, fc.uint8Array({ maxLength: 8 })), { maxLength: 24 })
+      .map((records) => Uint8Array.from(records.flatMap((record) => [...record])));
+    fc.assert(
+      fc.property(fc.oneof(bytes, parameters), (data): void => {
+        acceptsOnlyStableFailure((): void => {
+          parsePeerTransportParameters(data, ids);
         }, QuicTransportError);
       }),
       PROPERTY_OPTIONS,

@@ -10,6 +10,7 @@ import {
   type QuicExchangeOptions,
   type QuicResponseState,
 } from "../../src/transports/quic.js";
+import { encodeStream } from "../../src/transports/quic/frames.js";
 import {
   startFakeQuicServer,
   stopAllFakeQuicServers,
@@ -305,5 +306,82 @@ describe("QUIC transport", (): void => {
 
     await expect(result).rejects.toSatisfy(expectCode("ABORTED"));
     expect(server.datagrams()).toBe(1);
+  });
+});
+
+describe("QUIC stream reassembly", (): void => {
+  it("inspects only when the contiguous prefix grows", async (): Promise<void> => {
+    const body = framed(new TextEncoder().encode("0123456789"));
+    const inspected: number[] = [];
+    const { result } = await exchange(
+      {
+        respond: () => body,
+        responsePackets: (response) => [
+          [
+            encodeStream(0, 0, response.subarray(0, 2), false),
+            ...Array.from({ length: 40 }, () => encodeStream(0, 2, new Uint8Array(0), false)),
+            ...Array.from({ length: 40 }, () => encodeStream(0, 0, response.subarray(0, 2), false)),
+            encodeStream(0, 2, response.subarray(2), true),
+          ],
+        ],
+      },
+      {
+        inspectResponse: (data) => {
+          inspected.push(data.byteLength);
+          return inspectFramed(data);
+        },
+      },
+    );
+
+    expect(await result).toEqual(body);
+    expect(inspected).toEqual([2, body.byteLength]);
+  });
+
+  it("rejects a zero-length FIN that ends an incomplete prefix", async (): Promise<void> => {
+    const body = framed(new Uint8Array(10));
+    const { result } = await exchange({
+      respond: () => body,
+      responsePackets: (response) => [
+        [encodeStream(0, 0, response.subarray(0, 8), false)],
+        [encodeStream(0, 8, new Uint8Array(0), true)],
+      ],
+    });
+
+    await expect(result).rejects.toSatisfy(expectCode("MALFORMED_RESPONSE"));
+  });
+
+  it("reports a reset of the request stream as a connection failure", async (): Promise<void> => {
+    const { result } = await exchange({
+      responsePackets: () => [[Uint8Array.of(0x04, 0x00, 0x00, 0x00)]],
+    });
+
+    await expect(result).rejects.toSatisfy(expectCode("CONNECTION_FAILED"));
+  });
+
+  it("reassembles 64 disjoint ranges but rejects a 65th", async (): Promise<void> => {
+    // 64 odd single-byte ranges, then the even bytes that join them.
+    const body = framed(new Uint8Array(125).map((_, index) => index));
+    const scattered = (response: Uint8Array, count: number): Uint8Array[] =>
+      Array.from({ length: count }, (_, index) =>
+        encodeStream(0, 1 + index * 2, response.subarray(1 + index * 2, 2 + index * 2), false),
+      );
+    const accepted = await exchange({
+      respond: () => body,
+      responsePackets: (response) => [
+        scattered(response, 64),
+        Array.from({ length: 65 }, (_, index) =>
+          encodeStream(0, index * 2, response.subarray(index * 2, index * 2 + 1), index === 64),
+        ),
+      ],
+    });
+    expect(await accepted.result).toEqual(body);
+
+    const rejected = await exchange({
+      respond: () => body,
+      responsePackets: (response) => [
+        [...scattered(response, 64), encodeStream(0, 129, Uint8Array.of(0), false)],
+      ],
+    });
+    await expect(rejected.result).rejects.toSatisfy(expectCode("MALFORMED_RESPONSE"));
   });
 });

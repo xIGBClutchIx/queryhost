@@ -6,8 +6,8 @@ import type { PinnedAddress, PinnedTarget } from "../network/target.js";
 import type { ExecutionScope } from "../runtime/execution.js";
 import { QuicClientConnection, type QuicResponseState } from "./quic/connection.js";
 import { QuicTransportError } from "./quic/errors.js";
+import { addressesMatch, terminationCode } from "./shared.js";
 import {
-  addressesMatch,
   NODE_UDP_DEPENDENCIES,
   peerMatches,
   type UdpSocketAdapter,
@@ -70,7 +70,11 @@ export interface QuicExchangeOptions {
   readonly request: Uint8Array;
   /** Maximum response bytes from 1 through 1 MiB; also the stream's flow-control limit. */
   readonly maxResponseBytes: number;
-  /** Synchronous framing check over immutable bytes; must report `complete` by stream end. */
+  /**
+   * Synchronous framing check, called each time the contiguous response prefix grows; must report
+   * `complete` by stream end. It receives a view of the transport's buffer that is valid only for
+   * the call and must be neither retained nor modified.
+   */
   readonly inspectResponse: (data: Uint8Array) => QuicResponseState;
 }
 
@@ -98,10 +102,6 @@ function validateOptions(options: QuicExchangeOptions): void {
   ) {
     throw new QuicTransportError("INVALID_INPUT");
   }
-}
-
-function terminationCode(scope: ExecutionScope): "ABORTED" | "TIMEOUT" {
-  return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
 }
 
 /**
