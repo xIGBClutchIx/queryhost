@@ -66,14 +66,11 @@ export function parseA2sPlayerPacket(packet: Uint8Array): A2sPlayerPacket {
   }
 
   const count = reader.readUint8();
-  const indexes = new Set<number>();
   const players: A2sPlayer[] = [];
   for (let position = 0; position < count; position += 1) {
+    // Many Source servers send index 0 for every player, so the reported index is kept as-is
+    // rather than treated as a unique key.
     const index = reader.readUint8();
-    if (indexes.has(index)) {
-      return failA2s("MALFORMED_RESPONSE");
-    }
-    indexes.add(index);
     const name = reader.readString(MAX_PLAYER_NAME_BYTES);
     const score = reader.readInt32();
     const durationSeconds = reader.readFloat32();

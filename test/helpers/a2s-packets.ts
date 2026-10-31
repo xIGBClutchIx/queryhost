@@ -6,18 +6,26 @@ import { packetType } from "./a2s-profile.js";
 
 /** Source-format Info fields; optional ones set the matching extra-data flag. */
 export interface SourceInfoFields {
-  readonly name?: string;
+  readonly protocol?: number;
+  /** Raw bytes let a test send engine-truncated UTF-8. */
+  readonly name?: string | Uint8Array;
   readonly map?: string;
   readonly folder?: string;
   readonly game?: string;
   readonly appId?: number;
   readonly players?: number;
   readonly maxPlayers?: number;
+  readonly bots?: number;
+  readonly serverType?: "d" | "l" | "p";
   readonly environment?: "l" | "w" | "m";
   readonly password?: boolean;
+  readonly vac?: boolean;
+  /** The Ship's mode, witnesses, and duration bytes; written only when supplied. */
+  readonly ship?: readonly [number, number, number];
   readonly version?: string;
   readonly port?: number;
   readonly steamId?: bigint;
+  readonly sourceTv?: { readonly port: number; readonly name: string };
   readonly keywords?: string;
   readonly gameId?: bigint;
 }
@@ -64,22 +72,36 @@ export function sourceInfoPacket(fields: SourceInfoFields = {}): Uint8Array {
   const flags =
     (fields.port === undefined ? 0 : 0x80) |
     (fields.steamId === undefined ? 0 : 0x10) |
+    (fields.sourceTv === undefined ? 0 : 0x40) |
     (fields.keywords === undefined ? 0 : 0x20) |
     (fields.gameId === undefined ? 0 : 0x01);
   return join([
     HEADER,
-    [0x49, 17],
+    [0x49, fields.protocol ?? 17],
     cString(fields.name ?? "QueryHost Packet Fixture"),
     cString(fields.map ?? "map"),
     cString(fields.folder ?? "folder"),
     cString(fields.game ?? "Game"),
     uint16(fields.appId ?? 0),
-    [fields.players ?? 0, fields.maxPlayers ?? 16, 0, 0x64],
-    [(fields.environment ?? "l").charCodeAt(0), fields.password === true ? 1 : 0, 0],
+    [
+      fields.players ?? 0,
+      fields.maxPlayers ?? 16,
+      fields.bots ?? 0,
+      (fields.serverType ?? "d").charCodeAt(0),
+    ],
+    [
+      (fields.environment ?? "l").charCodeAt(0),
+      fields.password === true ? 1 : 0,
+      fields.vac === true ? 1 : 0,
+    ],
+    ...(fields.ship === undefined ? [] : [fields.ship]),
     cString(fields.version ?? "1.0.0.0"),
     ...(flags === 0 ? [] : [[flags]]),
     ...(fields.port === undefined ? [] : [uint16(fields.port)]),
     ...(fields.steamId === undefined ? [] : [uint64(fields.steamId)]),
+    ...(fields.sourceTv === undefined
+      ? []
+      : [uint16(fields.sourceTv.port), cString(fields.sourceTv.name)]),
     ...(fields.keywords === undefined ? [] : [cString(fields.keywords)]),
     ...(fields.gameId === undefined ? [] : [uint64(fields.gameId)]),
   ]);
