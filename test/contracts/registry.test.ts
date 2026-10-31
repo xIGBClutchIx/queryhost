@@ -188,7 +188,7 @@ describe("game registry", () => {
       defaultPort: 25_565,
       capabilities: {
         summary: "supported",
-        players: "supported",
+        players: "conditional",
         rules: "unsupported",
         plugins: "conditional",
         srv: "conditional",
@@ -198,7 +198,7 @@ describe("game registry", () => {
       defaultPort: 19_132,
       capabilities: {
         summary: "supported",
-        players: "supported",
+        players: "unsupported",
         rules: "unsupported",
         plugins: "unsupported",
         srv: "unsupported",
@@ -234,7 +234,7 @@ describe("game registry", () => {
       defaultPort: 42_420,
       capabilities: {
         summary: "supported",
-        players: "conditional",
+        players: "unsupported",
         rules: "unsupported",
       },
     });

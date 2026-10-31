@@ -20,7 +20,14 @@ export const SUPPORT_LEVELS: readonly ["supported", "conditional", "unsupported"
   "unsupported",
 ] as const);
 
-/** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
+/**
+ * Whether a profile can return a capability's data:
+ *
+ * - `supported`: returned whenever the profile's required source answers.
+ * - `conditional`: returned only when server configuration, server build, or an optional source
+ *   allows it; otherwise the field is omitted.
+ * - `unsupported`: never returned by this profile.
+ */
 export type SupportLevel = (typeof SUPPORT_LEVELS)[number];
 
 /** Every {@link GameCapability}, in declaration order. */
@@ -34,7 +41,20 @@ export const GAME_CAPABILITIES: readonly [
   "srv",
 ] = Object.freeze(["summary", "players", "rules", "mods", "plugins", "resources", "srv"] as const);
 
-/** Features exposed through normalized or game-specific query results. */
+/**
+ * Features exposed through normalized or game-specific query results:
+ *
+ * - `summary`: normalized server facts under `server`.
+ * - `players`: a player list (names, possibly empty strings when the server hides them) under
+ *   `data.players`. Aggregate counts in `server.players` are part of `summary`, not this
+ *   capability, so a game can report counts while `players` is `unsupported`.
+ * - `rules`: server-reported rule or setting key-value pairs, such as A2S Rules in
+ *   `rawData.rules` or Cfx server variables in `data.variables`.
+ * - `mods`: server mod or Workshop metadata in a game-specific `data` field.
+ * - `plugins`: a list of server plugins in `data.plugins`.
+ * - `resources`: a list of server resources in `data.resources`.
+ * - `srv`: DNS SRV discovery of the query destination, reported in `data.srv`.
+ */
 export type GameCapability = (typeof GAME_CAPABILITIES)[number];
 
 /** Every {@link GameProtocol}, in declaration order. */
@@ -421,7 +441,8 @@ export const GAME_REGISTRY: GameRegistry = freezeRegistry({
     defaultPort: 25565,
     capabilities: {
       summary: "supported",
-      players: "supported",
+      // Names come only from optional UDP Query, which servers commonly leave disabled.
+      players: "conditional",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "conditional",
@@ -436,7 +457,8 @@ export const GAME_REGISTRY: GameRegistry = freezeRegistry({
     defaultPort: 19132,
     capabilities: {
       summary: "supported",
-      players: "supported",
+      // NetherNet status and RakNet pongs carry counts but never names.
+      players: "unsupported",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",
@@ -496,7 +518,8 @@ export const GAME_REGISTRY: GameRegistry = freezeRegistry({
     defaultPort: 42420,
     capabilities: {
       summary: "supported",
-      players: "conditional",
+      // The query answer carries counts but never names.
+      players: "unsupported",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",
