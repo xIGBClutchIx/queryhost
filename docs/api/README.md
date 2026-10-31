@@ -73,6 +73,7 @@
 - [QueryError](interfaces/QueryError.md)
 - [QueryFailure](interfaces/QueryFailure.md)
 - [QueryManyOptions](interfaces/QueryManyOptions.md)
+- [QueryPortInput](interfaces/QueryPortInput.md)
 - [QuerySource](interfaces/QuerySource.md)
 - [QuerySuccess](interfaces/QuerySuccess.md)
 - [QueryWarning](interfaces/QueryWarning.md)
@@ -165,3 +166,4 @@
 - [listGames](functions/listGames.md)
 - [query](functions/query.md)
 - [queryMany](functions/queryMany.md)
+- [resolveQueryPort](functions/resolveQueryPort.md)
