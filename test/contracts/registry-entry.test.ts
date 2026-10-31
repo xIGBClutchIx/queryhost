@@ -55,9 +55,11 @@ describe("queryhost/registry entry", () => {
       "isGameId",
       "isGameInputId",
       "listGames",
+      "resolveQueryPort",
     ]);
     expect(registry.GAME_REGISTRY).toBe(root.GAME_REGISTRY);
     expect(registry.listGames).toBe(root.listGames);
+    expect(registry.resolveQueryPort).toBe(root.resolveQueryPort);
     expect(registry.GAME_PROTOCOLS).toBe(root.GAME_PROTOCOLS);
     expect(registry.QUERY_SOURCE_LABELS).toBe(root.QUERY_SOURCE_LABELS);
     expect(registry.QUERY_ERROR_GUIDANCE).toBe(root.QUERY_ERROR_GUIDANCE);

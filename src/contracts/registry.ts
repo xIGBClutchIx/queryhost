@@ -871,6 +871,87 @@ export function getGameDefinition<G extends GameInputId>(
   return GAME_REGISTRY[canonicalGameId(game)];
 }
 
+/**
+ * Query port the registry convention derives from a game port: the port itself for a game with no
+ * separate query port, the fixed query port, or the game port shifted by the conventional offset.
+ * The result can fall outside the valid port range for a custom game port. Internal: callers use
+ * {@link resolveQueryPort}.
+ */
+export function conventionalQueryPort(definition: GameDefinition, gamePort: number): number {
+  if (definition.defaultPort === undefined) {
+    return gamePort;
+  }
+  if (definition.queryPortStrategy === "fixed" && definition.defaultQueryPort !== undefined) {
+    return definition.defaultQueryPort;
+  }
+  return (
+    gamePort + (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort
+  );
+}
+
+function isPort(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 65_535;
+}
+
+/** Port fields that decide a query's destination, as accepted by `query()`. */
+export interface QueryPortInput {
+  /** Game or service port players connect to; defaults to the game's `defaultPort`. */
+  readonly port?: number;
+  /** Explicit query destination; always wins over the derived port when present. */
+  readonly queryPort?: number;
+}
+
+/**
+ * Returns the port `query()` sends its required source to for `game` and the given ports, using
+ * the same registry convention: an explicit `queryPort` wins; otherwise the game port (or the
+ * game's `defaultPort`) maps to the fixed query port, the port shifted by the conventional offset,
+ * or the port itself for games without a separate query port.
+ *
+ * Returns `undefined` when a given port is not an integer from 1 through 65535, when the game has
+ * no default port and no `port` is given (generic `a2s`, whose destination is always `port`), or
+ * when the offset moves a custom game port
+ * outside that range; `query()` rejects those inputs as `INVALID_INPUT`. Minecraft: Java Edition
+ * may still follow DNS SRV to another port when no explicit `port` is given, and its explicit
+ * `queryPort` applies only to the optional UDP Query source.
+ *
+ * Pure and browser-safe: it reads only {@link GAME_REGISTRY}.
+ *
+ * @example
+ * ```ts
+ * resolveQueryPort("rust"); // 28017
+ * resolveQueryPort("rust", { port: 28_100 }); // 28102
+ * resolveQueryPort("palworld", { port: 8_300 }); // 27015 (fixed)
+ * resolveQueryPort("a2s"); // undefined: generic A2S has no default
+ * ```
+ */
+export function resolveQueryPort(
+  game: GameInputId,
+  ports: QueryPortInput = {},
+): number | undefined {
+  const { port, queryPort } = ports;
+  // Untyped JavaScript callers can pass any string as the game.
+  if (!isGameInputId(game)) {
+    return undefined;
+  }
+  if ((port !== undefined && !isPort(port)) || (queryPort !== undefined && !isPort(queryPort))) {
+    return undefined;
+  }
+  const definition = getGameDefinition(game);
+  // Generic A2S takes its destination only as `port`, as `query()` requires.
+  if (definition.defaultPort === undefined && port === undefined) {
+    return undefined;
+  }
+  if (queryPort !== undefined) {
+    return queryPort;
+  }
+  const gamePort = port ?? definition.defaultPort;
+  if (gamePort === undefined) {
+    return undefined;
+  }
+  const derived = conventionalQueryPort(definition, gamePort);
+  return isPort(derived) ? derived : undefined;
+}
+
 const GAME_LIST: readonly GameDefinition[] = Object.freeze(
   GAME_IDS.map((game): GameDefinition => GAME_REGISTRY[game]),
 );

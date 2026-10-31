@@ -3,10 +3,9 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 
 import type { DetectProbe, DetectProtocol } from "../../src/contracts/detect.js";
-import { GAME_IDS, GAME_REGISTRY } from "../../src/contracts/registry.js";
+import { conventionalQueryPort, GAME_IDS, GAME_REGISTRY } from "../../src/contracts/registry.js";
 import type { DnsAddressRecord, DnsResolver } from "../../src/network/target.js";
 import type { QueryDependencies } from "../../src/runtime/client.js";
-import { conventionalQueryPort } from "../../src/runtime/client.js";
 import { detectWithDependencies, planProbes } from "../../src/runtime/detect.js";
 import type { ExecutionScope } from "../../src/runtime/execution.js";
 import {

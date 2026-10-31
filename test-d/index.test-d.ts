@@ -1,4 +1,5 @@
 import { expectAssignable, expectError, expectNotAssignable, expectType } from "tsd";
+import { resolveQueryPort as resolveRegistryQueryPort } from "queryhost/registry";
 
 import {
   type ArkSurvivalEvolvedMod,
@@ -65,7 +66,11 @@ import {
   SUPPORT_LEVELS,
   type SupportLevel,
   getGameDefinition,
+  GAME_REGISTRY,
   isGameId,
+  listGames,
+  type QueryPortInput,
+  resolveQueryPort,
   query,
   queryMany,
   detect,
@@ -684,3 +689,18 @@ if (detection.ok) {
 expectError(detect({ game: "rust", host: "play.example.com" }));
 expectError(detect({ host: "play.example.com", mode: "verbose" }));
 expectType<number | undefined>(getGameDefinition("rust").steamAppId);
+
+expectType<number | undefined>(resolveQueryPort("rust"));
+expectType<number | undefined>(resolveQueryPort("dst", { port: 11_000 }));
+expectType<number | undefined>(resolveQueryPort("a2s", { port: 27_015 }));
+expectAssignable<QueryPortInput>({ port: 1, queryPort: 2 });
+expectAssignable<QueryPortInput>({});
+expectError(resolveQueryPort("counter-strike"));
+expectError(resolveQueryPort("rust", { port: "27015" }));
+expectError(resolveQueryPort("rust", { host: "play.example.com" }));
+expectType<number | undefined>(resolveRegistryQueryPort("rust"));
+
+// The shared registry is frozen at runtime and read-only in its types.
+expectError((GAME_REGISTRY.rust.capabilities.players = "supported"));
+expectError((GAME_REGISTRY.rust.defaultPort = 1));
+expectError((listGames()[0] = GAME_REGISTRY.rust));

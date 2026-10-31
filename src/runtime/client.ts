@@ -21,8 +21,13 @@ import type {
   QuerySuccess,
 } from "../contracts/query.js";
 import type { A2sRawData, SteamA2sData, UnrealSessionData } from "../contracts/games.js";
-import type { GameDefinition } from "../contracts/registry.js";
-import { canonicalGameId, GAME_IDS, GAME_REGISTRY, isGameInputId } from "../contracts/registry.js";
+import {
+  canonicalGameId,
+  conventionalQueryPort,
+  GAME_IDS,
+  GAME_REGISTRY,
+  isGameInputId,
+} from "../contracts/registry.js";
 import type {
   QueryError,
   QueryMode,
@@ -435,23 +440,6 @@ function validateInput(input: QueryInput): void {
   if (input.queryPort !== undefined) {
     validatePort(input.queryPort);
   }
-}
-
-/**
- * Query port the registry convention derives from a game port: the port itself for a game with no
- * separate query port, the fixed query port, or the game port shifted by the conventional offset.
- * The result can fall outside the valid port range for a custom game port.
- */
-export function conventionalQueryPort(definition: GameDefinition, gamePort: number): number {
-  if (definition.defaultPort === undefined) {
-    return gamePort;
-  }
-  if (definition.queryPortStrategy === "fixed" && definition.defaultQueryPort !== undefined) {
-    return definition.defaultQueryPort;
-  }
-  return (
-    gamePort + (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort
-  );
 }
 
 function queryPort(input: QueryInput<GameId>): number {

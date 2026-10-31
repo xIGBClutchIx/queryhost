@@ -17,7 +17,7 @@ import type {
   QueryResult,
   QuerySuccess,
 } from "../contracts/query.js";
-import { GAME_IDS, GAME_REGISTRY } from "../contracts/registry.js";
+import { conventionalQueryPort, GAME_IDS, GAME_REGISTRY } from "../contracts/registry.js";
 import type { GameProtocol } from "../contracts/registry.js";
 import type { QueryMode } from "../contracts/shared.js";
 import {
@@ -28,7 +28,7 @@ import {
   type DnsResolver,
 } from "../network/target.js";
 import { queryManyWith } from "./batch.js";
-import { conventionalQueryPort, queryWithDependencies, type QueryDependencies } from "./client.js";
+import { queryWithDependencies, type QueryDependencies } from "./client.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;

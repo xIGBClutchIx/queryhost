@@ -28,6 +28,7 @@ const expectedExports = [
   "listGames",
   "query",
   "queryMany",
+  "resolveQueryPort",
 ].sort();
 const actualExports = Object.keys(queryhost).sort();
 if (JSON.stringify(actualExports) !== JSON.stringify(expectedExports)) {
@@ -122,6 +123,9 @@ const registryExports = expectedExports.filter((name) => !runtimeExports.has(nam
 const actualRegistryExports = Object.keys(registry).sort();
 if (JSON.stringify(actualRegistryExports) !== JSON.stringify(registryExports)) {
   throw new Error(`The packed registry exports changed: ${actualRegistryExports.join(", ")}.`);
+}
+if (registry.resolveQueryPort("rust", { port: 28_100 }) !== 28_102) {
+  throw new Error("The packed registry derived the wrong Rust query port.");
 }
 if (registry.GAME_REGISTRY !== GAME_REGISTRY) {
   throw new Error("The registry entry returned a second copy of the game registry.");
