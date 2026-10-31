@@ -102,7 +102,9 @@ function colorStyle(object: JsonObject, inherited: string | undefined): string |
   if (/^#[0-9a-f]{6}$/iu.test(value)) {
     return value.toLowerCase();
   }
-  return failMinecraftJava("MALFORMED_RESPONSE");
+  // Color is display-only: an unknown name (a future or modded color) leaves the text unstyled
+  // rather than failing the required status source.
+  return undefined;
 }
 
 function componentStyle(object: JsonObject, inherited: TextStyle): TextStyle {
@@ -243,26 +245,33 @@ function componentText(object: JsonObject): string {
   return failMinecraftJava("MALFORMED_RESPONSE");
 }
 
+/** Walks one component and returns its own style, which an enclosing array's later items inherit. */
 function walkComponent(
   value: JsonValue,
   inherited: TextStyle,
   depth: number,
   segments: TextSegment[],
   state: WalkState,
-): void {
+): TextStyle {
   state.nodes += 1;
   if (depth > MAX_COMPONENT_DEPTH || state.nodes > MAX_COMPONENT_NODES) {
     failMinecraftJava("RESPONSE_TOO_LARGE");
   }
   if (typeof value === "string") {
     legacySegments(value, inherited, segments, state);
-    return;
+    return inherited;
   }
   if (isJsonArray(value)) {
-    for (const child of value) {
-      walkComponent(child, inherited, depth + 1, segments, state);
-    }
-    return;
+    // Vanilla reads an array as its first item with the rest appended as that item's `extra`, so
+    // later items inherit the first item's style.
+    let parent = inherited;
+    value.forEach((child, index) => {
+      const style = walkComponent(child, parent, depth + 1, segments, state);
+      if (index === 0) {
+        parent = style;
+      }
+    });
+    return parent;
   }
   if (!isJsonObject(value)) {
     failMinecraftJava("MALFORMED_RESPONSE");
@@ -288,6 +297,7 @@ function walkComponent(
       walkComponent(child, style, depth + 1, segments, state);
     }
   }
+  return style;
 }
 
 function escapeHtml(text: string): string {

@@ -14,6 +14,7 @@ import {
 } from "../../../src/protocols/a2s/info.js";
 import { createExecutionContext } from "../../../src/runtime/execution.js";
 import type { UdpCollectionOptions, UdpCollectionResult } from "../../../src/transports/udp.js";
+import { sourceInfoPacket } from "../../helpers/a2s-packets.js";
 import { startFakeUdpServer, stopAllFakeUdpServers } from "../../helpers/fake-udp-server.js";
 
 const LOOPBACK_ADDRESS: PinnedAddress = Object.freeze({ address: "127.0.0.1", family: 4 });
@@ -150,6 +151,31 @@ describe("A2S Info parsing", (): void => {
         gameId: 221_100n,
       },
     });
+  });
+
+  it("reads The Ship's extra fields before the version when the App ID is 2400", (): void => {
+    const packet = parseA2sInfoPacket(
+      sourceInfoPacket({ appId: 2_400, ship: [3, 2, 10], version: "1.0", keywords: "ship" }),
+    );
+    expect(packet).toMatchObject({
+      kind: "info",
+      info: { appId: 2_400, ship: { mode: 3, witnesses: 2, duration: 10 }, version: "1.0" },
+    });
+    const other = parseA2sInfoPacket(sourceInfoPacket({ appId: 2_401 }));
+    expect(other.kind === "info" && "ship" in other.info).toBe(false);
+  });
+
+  it("accepts a hostname the engine cut inside a multi-byte character", (): void => {
+    // ARK truncates hostnames at 63 bytes; here "€" (e2 82 ac) loses its last byte.
+    const name = Uint8Array.of(...new TextEncoder().encode("x".repeat(61)), 0xe2, 0x82);
+    expect(parseA2sInfoPacket(sourceInfoPacket({ name }))).toMatchObject({
+      kind: "info",
+      info: { name: "x".repeat(61) },
+    });
+    expectProtocolFailure(
+      () => parseA2sInfoPacket(sourceInfoPacket({ name: Uint8Array.of(0xe2, 0x82, 0x41) })),
+      "MALFORMED_RESPONSE",
+    );
   });
 
   it("parses SourceTV and legacy macOS environment fields", async (): Promise<void> => {

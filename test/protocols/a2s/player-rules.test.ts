@@ -142,25 +142,50 @@ describe("A2S Player", (): void => {
     });
   });
 
-  it("rejects truncation, trailing bytes, duplicate indexes, and invalid durations", (): void => {
+  it("keeps duplicate indexes because many Source servers send 0 for every player", (): void => {
+    const packet = parseA2sPlayerPacket(
+      join([
+        HEADER,
+        Uint8Array.of(0x44, 2, 0),
+        string("A"),
+        int32(1),
+        float32(1),
+        Uint8Array.of(0),
+        string("B"),
+        int32(2),
+        float32(2),
+      ]),
+    );
+    expect(packet).toEqual({
+      kind: "data",
+      value: [
+        { index: 0, name: "A", score: 1, durationSeconds: 1 },
+        { index: 0, name: "B", score: 2, durationSeconds: 2 },
+      ],
+    });
+  });
+
+  it("drops a name's final character when the engine cut it mid-sequence", (): void => {
+    // "Zoë" truncated after the first byte of "ë" (0xc3 0xab).
+    const name = Uint8Array.of(0x5a, 0x6f, 0xc3, 0);
+    expect(
+      parseA2sPlayerPacket(join([HEADER, Uint8Array.of(0x44, 1, 0), name, int32(0), float32(1)])),
+    ).toEqual({
+      kind: "data",
+      value: [{ index: 0, name: "Zo", score: 0, durationSeconds: 1 }],
+    });
+    // An invalid byte before the end still fails.
+    expectMalformed(() =>
+      parseA2sPlayerPacket(
+        join([HEADER, Uint8Array.of(0x44, 1, 0, 0xc3, 0x5a, 0), int32(0), float32(1)]),
+      ),
+    );
+  });
+
+  it("rejects truncation, trailing bytes, and invalid durations", (): void => {
     const valid = playerResponse();
     expectMalformed(() => parseA2sPlayerPacket(valid.subarray(0, valid.byteLength - 1)));
     expectMalformed(() => parseA2sPlayerPacket(join([valid, Uint8Array.of(0)])));
-    expectMalformed(() =>
-      parseA2sPlayerPacket(
-        join([
-          HEADER,
-          Uint8Array.of(0x44, 2, 1),
-          string("A"),
-          int32(0),
-          float32(1),
-          Uint8Array.of(1),
-          string("B"),
-          int32(0),
-          float32(1),
-        ]),
-      ),
-    );
     expectMalformed(() =>
       parseA2sPlayerPacket(
         join([HEADER, Uint8Array.of(0x44, 1, 0), string("A"), int32(0), float32(-1)]),

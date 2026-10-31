@@ -8,20 +8,21 @@ import {
   type FixedHttpExchangeResult,
   type HttpTransportDependencies,
 } from "../../transports/http.js";
+import {
+  isJsonObject,
+  withinJsonBudget,
+  type JsonBudget,
+  type JsonObject,
+  type JsonValue,
+} from "../json.js";
 import { failEco } from "./errors.js";
 
 const FRONTPAGE_PATH = "/frontpage";
 /** Upper bound for one status page; real pages are a few kilobytes. */
 export const ECO_FRONTPAGE_MAX_BYTES = 262_144;
-const MAX_JSON_DEPTH = 16;
-const MAX_JSON_NODES = 16_384;
+const JSON_BUDGET: JsonBudget = { maxDepth: 16, maxNodes: 16_384 };
 const MAX_PLAYER_NAMES = 4_096;
 const MAX_STRING_LENGTH = 16_384;
-
-type JsonValue = boolean | null | number | string | JsonValue[] | JsonObject;
-interface JsonObject {
-  [key: string]: JsonValue;
-}
 
 /**
  * Facts read from the `Info` object. Every field is optional because Eco releases add and drop
@@ -86,30 +87,6 @@ export interface EcoQueryDependencies {
   ) => Promise<FixedHttpExchangeResult>;
 }
 
-function isObject(value: JsonValue | undefined): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function validateJsonBudget(value: JsonValue): void {
-  let nodes = 0;
-  const visit = (current: JsonValue, depth: number): void => {
-    nodes += 1;
-    if (nodes > MAX_JSON_NODES || depth > MAX_JSON_DEPTH) {
-      failEco("MALFORMED_RESPONSE");
-    }
-    if (Array.isArray(current)) {
-      for (const entry of current) {
-        visit(entry, depth + 1);
-      }
-    } else if (isObject(current)) {
-      for (const entry of Object.values(current)) {
-        visit(entry, depth + 1);
-      }
-    }
-  };
-  visit(value, 0);
-}
-
 function parseJson(data: Uint8Array): JsonValue {
   let value: JsonValue;
   try {
@@ -118,8 +95,7 @@ function parseJson(data: Uint8Array): JsonValue {
   } catch {
     return failEco("MALFORMED_RESPONSE");
   }
-  validateJsonBudget(value);
-  return value;
+  return withinJsonBudget(value, JSON_BUDGET) ? value : failEco("MALFORMED_RESPONSE");
 }
 
 function present(info: JsonObject, key: string): JsonValue | undefined {
@@ -214,8 +190,8 @@ function withoutOmitted(fields: EcoFrontpageFields): EcoFrontpage {
 /** Parses one bounded `/frontpage` body without retaining unknown fields. */
 export function parseEcoFrontpage(data: Uint8Array): EcoFrontpage {
   const root = parseJson(data);
-  const info = isObject(root) ? root["Info"] : undefined;
-  if (!isObject(info)) {
+  const info = isJsonObject(root) ? root["Info"] : undefined;
+  if (!isJsonObject(info)) {
     return failEco("MALFORMED_RESPONSE");
   }
   return withoutOmitted({

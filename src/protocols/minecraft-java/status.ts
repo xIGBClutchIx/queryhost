@@ -224,31 +224,33 @@ function validatePng(bytes: Uint8Array): void {
   failMinecraftJava("MALFORMED_RESPONSE");
 }
 
+/**
+ * Validates a favicon and returns it as a normalized data URL, or `undefined` when it is not a
+ * usable icon. The favicon is display-only, so a bad one is omitted rather than failing the
+ * required status source.
+ */
 function validateFavicon(value: JsonValue | undefined): string | undefined {
-  if (value === undefined) {
+  if (typeof value !== "string" || !value.startsWith(FAVICON_PREFIX)) {
     return undefined;
   }
-  if (typeof value !== "string" || !value.startsWith(FAVICON_PREFIX)) {
-    return failMinecraftJava("MALFORMED_RESPONSE");
-  }
-  const payload = value.slice(FAVICON_PREFIX.length);
+  // Servers from 1.7 through 1.12 wrap the base64 text with a line break every 76 characters.
+  const payload = value.slice(FAVICON_PREFIX.length).replaceAll(/\r?\n/gu, "");
   if (
     payload.length === 0 ||
     payload.length > Math.ceil(MAX_FAVICON_BYTES / 3) * 4 ||
     !/^(?:[a-z0-9+/]{4})*(?:[a-z0-9+/]{2}==|[a-z0-9+/]{3}=)?$/iu.test(payload)
   ) {
-    return failMinecraftJava(
-      payload.length > Math.ceil(MAX_FAVICON_BYTES / 3) * 4
-        ? "RESPONSE_TOO_LARGE"
-        : "MALFORMED_RESPONSE",
-    );
+    return undefined;
   }
-  const bytes = Uint8Array.from(Buffer.from(payload, "base64"));
-  if (bytes.byteLength > MAX_FAVICON_BYTES) {
-    return failMinecraftJava("RESPONSE_TOO_LARGE");
+  try {
+    validatePng(Uint8Array.from(Buffer.from(payload, "base64")));
+  } catch (error) {
+    if (error instanceof MinecraftJavaProtocolError) {
+      return undefined;
+    }
+    throw error;
   }
-  validatePng(bytes);
-  return value;
+  return FAVICON_PREFIX + payload;
 }
 
 function statusDocument(value: JsonValue): MinecraftJavaStatus {
