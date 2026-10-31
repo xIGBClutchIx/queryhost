@@ -17,7 +17,7 @@ import type {
   QueryResult,
   QuerySuccess,
 } from "../contracts/query.js";
-import { GAME_IDS, GAME_REGISTRY } from "../contracts/registry.js";
+import { conventionalQueryPort, GAME_IDS, GAME_REGISTRY } from "../contracts/registry.js";
 import type { GameProtocol } from "../contracts/registry.js";
 import type { QueryMode } from "../contracts/shared.js";
 import {
@@ -28,7 +28,7 @@ import {
   type DnsResolver,
 } from "../network/target.js";
 import { queryManyWith } from "./batch.js";
-import { conventionalQueryPort, queryWithDependencies, type QueryDependencies } from "./client.js";
+import { queryWithDependencies, type QueryDependencies } from "./client.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -43,6 +43,8 @@ const PROBE_CONCURRENCY = 4;
 /** Share of the deadline held back from probing for the detected game's own query. */
 const FINAL_QUERY_SHARE = 0.4;
 const MAX_FINAL_QUERY_RESERVE_MS = 2_000;
+/** Smallest per-probe window, so a large probe budget does not shrink each probe to nothing. */
+const MIN_PROBE_TIMEOUT_MS = 250;
 /** Steam game IDs keep the App ID in their low 24 bits. */
 const GAME_ID_APP_MASK = 0xff_ffffn;
 
@@ -513,6 +515,11 @@ function aggregateError(outcomes: readonly (QueryResult | undefined)[]): DetectE
   return codes.size === 1 && shared !== undefined ? Object.freeze(shared) : NOT_DETECTED_ERROR;
 }
 
+// A function call, so the compiler does not carry a narrowed `aborted` across an `await`.
+function callerAborted(signal: AbortSignal | undefined): boolean {
+  return signal?.aborted === true;
+}
+
 /** Internal dependency-injected form of {@link detect}; not exported from the package root. */
 export async function detectWithDependencies(
   input: DetectInput,
@@ -525,7 +532,7 @@ export async function detectWithDependencies(
     return failure(INPUT_ERROR, [], elapsed());
   }
 
-  const { host, maxProbes, port } = options;
+  const { host, maxProbes, port, signal } = options;
   const plan = planProbes(port);
   const lifetime = new AbortController();
   const probeDependencies: QueryDependencies = {
@@ -544,15 +551,21 @@ export async function detectWithDependencies(
     let started = 0;
     let decided = false;
     const budget = Math.min(maxProbes, plan.length);
-    // Read lazily by the batch, so each probe gets only the probing time still left.
+    // Each probe's window is the probing time split across the waves the concurrency limit forms,
+    // so silent destinations early in the plan cannot use up the time of the probes after them.
+    const waves = Math.ceil(budget / PROBE_CONCURRENCY);
+    const probeCap = Math.max(MIN_PROBE_TIMEOUT_MS, Math.floor(probeBudget / waves));
+    // Read lazily by the batch, so each probe also gets no more than the probing time still left.
     function* probeInputs(): Generator<QueryInput, void, undefined> {
       for (const probe of plan.slice(0, budget)) {
         const remaining = Math.floor(probeBudget - elapsed());
-        if (remaining < 1) {
+        // After cancellation the batch reports unread inputs as ABORTED; ending here keeps the
+        // probes that never started reported as skipped.
+        if (remaining < 1 || callerAborted(signal)) {
           return;
         }
         pulled += 1;
-        yield probeInput(probe, host, port, remaining);
+        yield probeInput(probe, host, port, Math.min(remaining, probeCap));
       }
     }
 
@@ -590,7 +603,7 @@ export async function detectWithDependencies(
     );
     const match = matchIndex === undefined ? undefined : outcomes[matchIndex];
     const probe = matchIndex === undefined ? undefined : plan[matchIndex];
-    if (options.signal?.aborted === true) {
+    if (callerAborted(options.signal)) {
       return failure(ABORTED_ERROR, reports, elapsed());
     }
     if (match === undefined || !match.ok || probe === undefined) {
@@ -623,6 +636,10 @@ export async function detectWithDependencies(
       ),
       probeDependencies,
     );
+    // Cancellation reads the same whether it lands while probing or during the final query.
+    if (callerAborted(options.signal)) {
+      return failure(ABORTED_ERROR, reports, elapsed());
+    }
     return isResultFor(result, game)
       ? success(game, evidence, result, reports, elapsed())
       : failure(NOT_DETECTED_ERROR, reports, elapsed());

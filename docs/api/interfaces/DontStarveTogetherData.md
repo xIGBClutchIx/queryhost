@@ -22,6 +22,8 @@ Truncated 16-bit App ID carried by the base Source Info layout.
 
 > `readonly` **bots**: `number`
 
+Bots A2S Info reports; they are also counted in `server.players.online`.
+
 ***
 
 ### environment

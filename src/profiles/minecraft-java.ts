@@ -454,48 +454,39 @@ async function optionalQuery(
 
   options.observer.onSourceStarted("minecraft-query");
   const target = queryTarget(status, options.queryPort);
-  const addresses = [
-    status.address,
-    ...target.addresses.filter(
-      (address) =>
-        address.address !== status.address.address || address.family !== status.address.family,
-    ),
-  ];
-  let lastError: Error | undefined;
-  for (const address of addresses) {
-    const operation = options.scope.createOperation(QUERY_OPERATION_TIMEOUT_MS, "minecraft-query");
-    try {
-      const result = await queryMinecraftFullStat(
-        {
-          scope: operation,
-          target,
-          address,
-          sessionId: createMinecraftQuerySessionId(options.random ?? Math.random),
-        },
-        options.query,
-      );
-      const report: QuerySource = Object.freeze({
-        source: "minecraft-query",
-        status: "ok",
-        rttMs: result.rttMs,
-      });
-      options.observer.onSourceCompleted(report);
-      return Object.freeze({ result, report });
-    } catch (error) {
-      if (options.scope.signal.aborted) {
-        throw rootUdpTermination(options.scope);
-      }
-      lastError = error instanceof Error ? error : new Error("Minecraft Query failed.");
-    } finally {
-      operation.close();
+  // Query stays on the address that answered SLP. Another pinned address may be a different server
+  // instance, and merging its map, plugins, or players into this SLP result would mix two servers.
+  const operation = options.scope.createOperation(QUERY_OPERATION_TIMEOUT_MS, "minecraft-query");
+  try {
+    const result = await queryMinecraftFullStat(
+      {
+        scope: operation,
+        target,
+        address: status.address,
+        sessionId: createMinecraftQuerySessionId(options.random ?? Math.random),
+      },
+      options.query,
+    );
+    const report: QuerySource = Object.freeze({
+      source: "minecraft-query",
+      status: "ok",
+      rttMs: result.rttMs,
+    });
+    options.observer.onSourceCompleted(report);
+    return Object.freeze({ result, report });
+  } catch (error) {
+    if (options.scope.signal.aborted) {
+      throw rootUdpTermination(options.scope);
     }
+    const report: QuerySource = Object.freeze({
+      source: "minecraft-query",
+      status: optionalStatus(error instanceof Error ? error : new Error("Minecraft Query failed.")),
+    });
+    options.observer.onSourceCompleted(report);
+    return Object.freeze({ report });
+  } finally {
+    operation.close();
   }
-  const report: QuerySource = Object.freeze({
-    source: "minecraft-query",
-    status: optionalStatus(lastError ?? new Error("Minecraft Query had no addresses.")),
-  });
-  options.observer.onSourceCompleted(report);
-  return Object.freeze({ report });
 }
 
 function queryWarnings(source: QuerySource): readonly QueryWarning[] {

@@ -54,6 +54,8 @@ the server sends one, because the base Info field is 16 bits and truncates large
 
 > `readonly` **bots**: `number`
 
+Bots A2S Info reports; they are also counted in `server.players.online`.
+
 ***
 
 ### environment

@@ -14,13 +14,23 @@ const INVALID_ARGUMENT_CASES: readonly (readonly [readonly string[], string])[] 
   [["rust", "play.example.com", "--json"], "Unsupported option"],
   [["rust", "play.example.com", "--mode", "full", "--mode", "summary"], "--mode may only"],
   [["auto", "play.example.com", "--query-port", "27016"], "--query-port cannot be combined"],
+  [["a2s", "play.example.com"], "a2s requires the server's A2S query port"],
+  [["a2s", "play.example.com", "27015", "--query-port", "27016"], "For a2s the port is"],
+  [["rust", "play.example.com", "65534"], "derived from that port is outside"],
+  [["rust", "play.example.com", "--mode", "-h"], "--mode must be"],
+  [["rust", "-x"], "Unsupported option: -x"],
+  [["rust", "-play.example.com"], "Unsupported option: -play.example.com"],
+  [["rust", "play.example.com", "-1"], "Unsupported option: -1"],
+  [["rust", "play.example.com", "--compact", "--compact"], "--compact may only"],
+  [["--list-games", "rust"], "--list-games accepts only --compact"],
+  [["--list-games", "--timeout", "100"], "--list-games accepts only --compact"],
 ];
 
 describe("query command arguments", (): void => {
   it("parses the short game, host, and port form", (): void => {
     expect(parseQueryArguments(["rust", "play.example.com", "28015"])).toEqual({
       kind: "query",
-      options: { game: "rust", host: "play.example.com", port: 28_015 },
+      options: { game: "rust", host: "play.example.com", port: 28_015, compact: false },
     });
   });
 
@@ -44,6 +54,7 @@ describe("query command arguments", (): void => {
         mode: "summary",
         timeoutMs: 3_000,
         queryPort: 28_016,
+        compact: false,
       },
     });
   });
@@ -52,19 +63,25 @@ describe("query command arguments", (): void => {
     expect(parseQueryArguments(["auto", "play.example.com", "28015", "--mode", "summary"])).toEqual(
       {
         kind: "query",
-        options: { game: "auto", host: "play.example.com", port: 28_015, mode: "summary" },
+        options: {
+          game: "auto",
+          host: "play.example.com",
+          port: 28_015,
+          mode: "summary",
+          compact: false,
+        },
       },
     );
     expect(parseQueryArguments(["auto", "play.example.com"])).toEqual({
       kind: "query",
-      options: { game: "auto", host: "play.example.com" },
+      options: { game: "auto", host: "play.example.com", compact: false },
     });
   });
 
   it("accepts the canonical Satisfactory profile and optional custom port", (): void => {
     expect(parseQueryArguments(["satisfactory", "play.example.com", "17777"])).toEqual({
       kind: "query",
-      options: { game: "satisfactory", host: "play.example.com", port: 17_777 },
+      options: { game: "satisfactory", host: "play.example.com", port: 17_777, compact: false },
     });
   });
 
@@ -97,7 +114,7 @@ describe("query command arguments", (): void => {
   ] as const)("normalizes the %s alias", (alias, game): void => {
     expect(parseQueryArguments([alias, "play.example.com"])).toEqual({
       kind: "query",
-      options: { game, host: "play.example.com" },
+      options: { game, host: "play.example.com", compact: false },
     });
   });
 
@@ -107,6 +124,29 @@ describe("query command arguments", (): void => {
       expect(parseQueryArguments(args)).toEqual({ kind: "help" });
     },
   );
+
+  it.each([
+    [["a2s", "play.example.com", "--query-port", "27015"]],
+    [["a2s", "play.example.com", "27015"]],
+    [["a2s", "play.example.com", "27015", "--query-port", "27015"]],
+  ])("takes generic A2S's query port as its port: %j", (args): void => {
+    expect(parseQueryArguments(args)).toEqual({
+      kind: "query",
+      options: { game: "a2s", host: "play.example.com", port: 27_015, compact: false },
+    });
+  });
+
+  it("parses --compact and --list-games", (): void => {
+    expect(parseQueryArguments(["rust", "play.example.com", "--compact"])).toEqual({
+      kind: "query",
+      options: { game: "rust", host: "play.example.com", compact: true },
+    });
+    expect(parseQueryArguments(["--list-games"])).toEqual({ kind: "list-games", compact: false });
+    expect(parseQueryArguments(["--compact", "--list-games"])).toEqual({
+      kind: "list-games",
+      compact: true,
+    });
+  });
 
   it.each(INVALID_ARGUMENT_CASES)("rejects malformed command arguments", (args, message): void => {
     const result = parseQueryArguments(args);

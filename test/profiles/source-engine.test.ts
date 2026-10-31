@@ -134,3 +134,19 @@ describe.each(SOURCE_ENGINE_GAMES)("%s game profile", (game, alias, gameName): v
     expect(ports).toEqual([27_015, 27_016, 27_100]);
   });
 });
+
+describe("A2S player counts", (): void => {
+  it("reports Info's player count unchanged, bots included", async (): Promise<void> => {
+    // The fixture's Info advertises three players, one of them a bot.
+    const result = await queryWithDependencies(
+      { game: "tf2", host: "play.example.com", mode: "summary" },
+      dependencies(await fixtureA2s("source-engine")),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      server: { players: { online: 3, max: 24 } },
+      data: { bots: 1 },
+    });
+  });
+});

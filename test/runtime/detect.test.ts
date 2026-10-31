@@ -3,10 +3,9 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 
 import type { DetectProbe, DetectProtocol } from "../../src/contracts/detect.js";
-import { GAME_IDS, GAME_REGISTRY } from "../../src/contracts/registry.js";
+import { conventionalQueryPort, GAME_IDS, GAME_REGISTRY } from "../../src/contracts/registry.js";
 import type { DnsAddressRecord, DnsResolver } from "../../src/network/target.js";
 import type { QueryDependencies } from "../../src/runtime/client.js";
-import { conventionalQueryPort } from "../../src/runtime/client.js";
 import { detectWithDependencies, planProbes } from "../../src/runtime/detect.js";
 import type { ExecutionScope } from "../../src/runtime/execution.js";
 import {
@@ -529,6 +528,46 @@ describe("detect", (): void => {
     expect(new Set(attempts).size).toBe(3);
   });
 
+  it("gives every planned probe a window when early destinations stay silent", async (): Promise<void> => {
+    const { dependencies, attempts } = harness({ silent: true });
+
+    // 1,500 ms leaves 900 ms of probing: three waves of four, four and one probes, 300 ms each.
+    // The real clock matters here, because each probe's window is cut from the time still left.
+    const detected = await detectWithDependencies(
+      { host: "play.example.com", timeoutMs: 1_500 },
+      { ...dependencies, now: (): number => performance.now() },
+    );
+
+    expect(detected).toMatchObject({ ok: false, error: { code: "NOT_DETECTED" } });
+    expect(attempts).toContain("project-reclaimer@49176");
+    expect(attempts).toContain("a2s@27016");
+    expect(detected.probes.slice(0, 9).every(({ status }) => status === "failed")).toBe(true);
+    expect(detected.probes.slice(9).every(({ status }) => status === "skipped")).toBe(true);
+  });
+
+  it("reports cancellation during the detected game's own query as ABORTED", async (): Promise<void> => {
+    const controller = new AbortController();
+    const info = a2sInfoOn(28_017, sourceInfoPacket({ gameId: 252_490n }));
+    const { dependencies } = harness({
+      silent: true,
+      a2s: (options) => {
+        // Player is asked only by the full-mode final query, after the summary probe matched.
+        if (options.target.port === 28_017 && packetType(options) === 0x55) {
+          controller.abort();
+        }
+        return info(options);
+      },
+    });
+
+    const detected = await detectWithDependencies(
+      { host: "play.example.com", port: 28_015, timeoutMs: 30_000, signal: controller.signal },
+      dependencies,
+    );
+
+    expect(detected).toMatchObject({ ok: false, error: { code: "ABORTED" } });
+    expect(statuses(detected.probes)[0]).toBe("a2s@28017:matched");
+  });
+
   it("resolves the host once for every probe", async (): Promise<void> => {
     const { dependencies, resolver: dns } = harness();
 
@@ -559,6 +598,8 @@ describe("detect", (): void => {
     );
 
     expect(detected).toMatchObject({ ok: false, error: { code: "ABORTED" } });
+    // Nothing started, so no probe reads as cancelled.
+    expect(detected.probes.every(({ status }) => status === "skipped")).toBe(true);
   });
 
   it.each([

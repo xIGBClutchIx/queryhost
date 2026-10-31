@@ -377,6 +377,8 @@ describe("Minecraft Bedrock game profile", (): void => {
       game: "minecraft-bedrock",
       server: {
         name: "QueryHost Bedrock",
+        // The RakNet sub-MOTD is the level name, mapped like NetherNet's world name.
+        map: "Bedrock level",
         version: "1.21.100",
         players: { online: 12, max: 50 },
         queryRttMs: 7,
@@ -456,6 +458,8 @@ describe("Minecraft Bedrock game profile", (): void => {
       ok: true,
       data: { crossplay: { bridge: "geyser", evidence: "bedrock-sub-motd" } },
     });
+    // Geyser's placeholder sub-MOTD is not a level name.
+    expect(result.ok && result.server.map).toBeUndefined();
   });
 
   it("does not invent fields omitted by a valid partial advertisement", async (): Promise<void> => {

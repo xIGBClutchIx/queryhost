@@ -8,4 +8,5 @@
 
 > `const` **GAME\_REGISTRY**: [`GameRegistry`](../type-aliases/GameRegistry.md)
 
-Single source of truth consumed by the library and, later, the API, documentation, and website.
+Single source of truth consumed by the library, the hosted API, and the website. Every
+definition and its capability map is frozen.

@@ -8,6 +8,9 @@
 
 Team Fortress 2 data collected from its game-port A2S endpoint. The game adds a tag whenever
 one of these cvars differs from its default, so with tags present an absent tag means default.
+Steam keeps at most 127 bytes of tags; when the keywords reach that limit, later tags may be
+lost, so `gameModes` and every default-valued setting are omitted and only settings confirmed by
+a whole tag remain.
 
 ## Extends
 
@@ -31,6 +34,8 @@ the server sends one, because the base Info field is 16 bits and truncates large
 ### bots
 
 > `readonly` **bots**: `number`
+
+Bots A2S Info reports; they are also counted in `server.players.online`.
 
 #### Inherited from
 

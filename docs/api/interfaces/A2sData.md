@@ -22,6 +22,8 @@ Present only for modern Source-style Info responses; 16 bits, so larger App IDs 
 
 > `readonly` **bots**: `number`
 
+Bots A2S Info reports; they are also counted in `server.players.online`.
+
 ***
 
 ### environment
