@@ -60,6 +60,34 @@ describe("staggered attempt race", () => {
     scope.close();
   });
 
+  it("keeps one stagger timer when an attempt throws synchronously", async () => {
+    const scope = createExecutionContext({ timeoutMs: 5_000 });
+    const started: string[] = [];
+    // Only the root deadline timer exists before the race starts.
+    const baseline = vi.getTimerCount();
+
+    const pending = race(scope, ["throws", "slow", "late"], (candidate, operation) => {
+      started.push(candidate);
+      if (candidate === "throws") {
+        throw new Error("synchronous failure");
+      }
+      return hangUntilAborted(operation);
+    });
+
+    // The failure starts "slow" at once; "late" waits a full stagger after it, and only one
+    // stagger timer is armed alongside "slow"'s operation deadline.
+    expect(started).toEqual(["throws", "slow"]);
+    expect(vi.getTimerCount()).toBe(baseline + 2);
+    await vi.advanceTimersByTimeAsync(ATTEMPT_STAGGER_MS - 1);
+    expect(started).toEqual(["throws", "slow"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(started).toEqual(["throws", "slow", "late"]);
+
+    scope.close();
+    await expect(pending).rejects.toBeInstanceOf(TerminatedError);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("starts the next candidate after the stagger and cancels the loser", async () => {
     const scope = createExecutionContext({ timeoutMs: 5_000 });
     const started: string[] = [];
