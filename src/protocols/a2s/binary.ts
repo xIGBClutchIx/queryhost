@@ -1,16 +1,16 @@
 /** Bounds-checked little-endian primitives for A2S packet parsers. */
 
+import { decodeTruncatedUtf8 } from "../text.js";
 import { failA2s } from "./errors.js";
 
-const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
-
-/** Decodes protocol-owned UTF-8 bytes or fails with the stable A2S malformed response. */
+/**
+ * Decodes protocol-owned UTF-8 bytes or fails with the stable A2S malformed response.
+ *
+ * Engines cut A2S strings to byte budgets without respecting character boundaries, so one
+ * incomplete multi-byte sequence at the very end is dropped; invalid bytes anywhere still fail.
+ */
 export function decodeA2sUtf8(bytes: Uint8Array): string {
-  try {
-    return UTF8_DECODER.decode(bytes);
-  } catch {
-    return failA2s("MALFORMED_RESPONSE");
-  }
+  return decodeTruncatedUtf8(bytes) ?? failA2s("MALFORMED_RESPONSE");
 }
 
 /** Stateful reader that either consumes a concrete value or fails without advancing past input. */

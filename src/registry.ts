@@ -17,6 +17,7 @@ export type {
   GameDefinition,
   GameProtocol,
   GameRegistry,
+  QueryPortInput,
   SupportLevel,
 } from "./contracts/registry.js";
 export {
@@ -31,6 +32,7 @@ export {
   isGameId,
   isGameInputId,
   listGames,
+  resolveQueryPort,
   SUPPORT_LEVELS,
 } from "./contracts/registry.js";
 export type { DetectErrorCode } from "./contracts/detect.js";

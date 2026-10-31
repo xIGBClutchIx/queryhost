@@ -1,11 +1,11 @@
 /** Bounded TCP request/response exchanges over one validated, pinned destination. */
 
-import { isIP, Socket } from "node:net";
+import { Socket } from "node:net";
 
 import type { QueryErrorCode } from "../contracts/shared.js";
-import { normalizeIpAddress } from "../network/ip.js";
 import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { addressesMatch, terminationCode } from "./shared.js";
 
 const MAX_TCP_EXCHANGE_BYTES = 1_048_576;
 
@@ -69,7 +69,11 @@ export interface TcpExchangeOptions {
   readonly request: Uint8Array;
   /** Maximum combined response bytes accepted from 1 through 1 MiB. */
   readonly maxResponseBytes: number;
-  /** Synchronous framing check over immutable bytes from the selected connection. */
+  /**
+   * Synchronous framing check over every accumulated byte from the selected connection, called
+   * after each segment. It receives a view of the transport's buffer that is valid only for the
+   * call and must be neither retained nor modified.
+   */
   readonly inspectResponse: (data: Uint8Array) => TcpResponseState;
 }
 
@@ -120,19 +124,6 @@ function fail(code: TcpTransportErrorCode): never {
   throw new TcpTransportError(code);
 }
 
-function addressesMatch(left: PinnedAddress, right: PinnedAddress): boolean {
-  const normalizedLeft = normalizeIpAddress(left.address);
-  const normalizedRight = normalizeIpAddress(right.address);
-  return (
-    normalizedLeft !== undefined &&
-    normalizedRight !== undefined &&
-    isIP(normalizedLeft) === left.family &&
-    isIP(normalizedRight) === right.family &&
-    left.family === right.family &&
-    normalizedLeft === normalizedRight
-  );
-}
-
 function validateOptions(options: TcpExchangeOptions): void {
   if (
     !Number.isSafeInteger(options.target.port) ||
@@ -149,22 +140,45 @@ function validateOptions(options: TcpExchangeOptions): void {
   }
 }
 
-function terminationCode(scope: ExecutionScope): TcpTransportErrorCode {
-  return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
-}
-
 function isAborted(signal: AbortSignal): boolean {
   return signal.aborted;
 }
 
-function mergedBytes(chunks: readonly Uint8Array[], totalBytes: number): Uint8Array {
-  const merged = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
+/**
+ * Append-only bytes with amortized doubling capped at `limit`, so a response trickled in many
+ * small segments costs linear copying instead of rebuilding the whole response per segment.
+ */
+class ResponseBuffer {
+  #bytes = new Uint8Array(0);
+  #length = 0;
+  readonly #limit: number;
+
+  public constructor(limit: number) {
+    this.#limit = limit;
   }
-  return merged;
+
+  public get length(): number {
+    return this.#length;
+  }
+
+  /** Callers check the limit first; appending past it is a programming error. */
+  public append(data: Uint8Array): void {
+    const end = this.#length + data.byteLength;
+    if (end > this.#bytes.byteLength) {
+      const grown = new Uint8Array(
+        Math.min(this.#limit, Math.max(end, this.#bytes.byteLength * 2, 4_096)),
+      );
+      grown.set(this.#bytes.subarray(0, this.#length));
+      this.#bytes = grown;
+    }
+    this.#bytes.set(data, this.#length);
+    this.#length = end;
+  }
+
+  /** A view of the bytes so far; invalidated by the next append that grows the buffer. */
+  public view(): Uint8Array {
+    return this.#bytes.subarray(0, this.#length);
+  }
 }
 
 /**
@@ -196,8 +210,7 @@ export function tcpExchange(
     let destroyed = false;
     let settled = false;
     let unregisterCleanup = (): void => undefined;
-    const chunks: Uint8Array[] = [];
-    let totalBytes = 0;
+    const response = new ResponseBuffer(options.maxResponseBytes);
 
     const destroySocket = (): void => {
       if (destroyed) {
@@ -247,16 +260,14 @@ export function tcpExchange(
         finish(new TcpTransportError("MALFORMED_RESPONSE"));
         return;
       }
-      totalBytes += data.byteLength;
-      if (totalBytes > options.maxResponseBytes) {
+      if (response.length + data.byteLength > options.maxResponseBytes) {
         finish(new TcpTransportError("RESPONSE_TOO_LARGE"));
         return;
       }
-      chunks.push(Uint8Array.from(data));
-      const response = mergedBytes(chunks, totalBytes);
+      response.append(data);
       let state: TcpResponseState;
       try {
-        state = options.inspectResponse(Uint8Array.from(response));
+        state = options.inspectResponse(response.view());
       } catch {
         state = "malformed";
       }
@@ -266,12 +277,12 @@ export function tcpExchange(
         finish(new TcpTransportError("RESPONSE_TOO_LARGE"));
       } else if (state === "complete") {
         finish({
-          data: response,
+          data: response.view().slice(),
           rttMs: Math.max(0, dependencies.now() - startedMs),
           address: options.address,
           port: options.target.port,
         });
-      } else if (totalBytes === options.maxResponseBytes) {
+      } else if (response.length === options.maxResponseBytes) {
         finish(new TcpTransportError("RESPONSE_TOO_LARGE"));
       }
     });

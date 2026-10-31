@@ -12,6 +12,13 @@ import {
   type QuicResponseState,
   type QuicTransportDependencies,
 } from "../../transports/quic.js";
+import {
+  isJsonObject,
+  withinJsonBudget,
+  type JsonBudget,
+  type JsonObject,
+  type JsonValue,
+} from "../json.js";
 import { failProjectReclaimer } from "./errors.js";
 
 const FRAME_HEADER_BYTES = 4;
@@ -24,17 +31,11 @@ const SERVER_NAME = "reclaimer";
 const STATUS_VERSION = 2;
 /** Upper bound for one framed answer; observed answers with many mods stay under 5 KB. */
 export const PROJECT_RECLAIMER_MAX_RESPONSE_BYTES = 65_536;
-const MAX_JSON_DEPTH = 8;
-const MAX_JSON_NODES = 16_384;
+const JSON_BUDGET: JsonBudget = { maxDepth: 8, maxNodes: 16_384 };
 const MAX_STRING_LENGTH = 1_024;
 const MAX_PLAYER_NAMES = 512;
 const MAX_MODS = 256;
 const MAX_MOD_MAPS = 256;
-
-type JsonValue = boolean | null | number | string | JsonValue[] | JsonObject;
-interface JsonObject {
-  [key: string]: JsonValue;
-}
 
 /** One map file a listed mod provides. */
 export interface ProjectReclaimerStatusModMap {
@@ -135,30 +136,6 @@ export function inspectProjectReclaimerStatusResponse(data: Uint8Array): QuicRes
   return available < length ? "incomplete" : available === length ? "complete" : "malformed";
 }
 
-function isObject(value: JsonValue | undefined): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function validateJsonBudget(value: JsonValue): void {
-  let nodes = 0;
-  const visit = (current: JsonValue, depth: number): void => {
-    nodes += 1;
-    if (nodes > MAX_JSON_NODES || depth > MAX_JSON_DEPTH) {
-      failProjectReclaimer("MALFORMED_RESPONSE");
-    }
-    if (Array.isArray(current)) {
-      for (const entry of current) {
-        visit(entry, depth + 1);
-      }
-    } else if (isObject(current)) {
-      for (const entry of Object.values(current)) {
-        visit(entry, depth + 1);
-      }
-    }
-  };
-  visit(value, 0);
-}
-
 function parseJson(data: Uint8Array): JsonObject {
   let value: JsonValue;
   try {
@@ -167,8 +144,9 @@ function parseJson(data: Uint8Array): JsonObject {
   } catch {
     return failProjectReclaimer("MALFORMED_RESPONSE");
   }
-  validateJsonBudget(value);
-  return isObject(value) ? value : failProjectReclaimer("MALFORMED_RESPONSE");
+  return withinJsonBudget(value, JSON_BUDGET) && isJsonObject(value)
+    ? value
+    : failProjectReclaimer("MALFORMED_RESPONSE");
 }
 
 function present(object: JsonObject, key: string): JsonValue | undefined {
@@ -219,7 +197,7 @@ function nested(object: JsonObject, key: string): JsonObject | undefined {
   if (value === undefined) {
     return undefined;
   }
-  return isObject(value) ? value : failProjectReclaimer("MALFORMED_RESPONSE");
+  return isJsonObject(value) ? value : failProjectReclaimer("MALFORMED_RESPONSE");
 }
 
 function playerNames(object: JsonObject): readonly string[] | undefined {
@@ -247,7 +225,7 @@ function withoutOmitted<T extends object>(fields: {
 }
 
 function modMap(entry: JsonValue): ProjectReclaimerStatusModMap {
-  if (!isObject(entry)) {
+  if (!isJsonObject(entry)) {
     return failProjectReclaimer("MALFORMED_RESPONSE");
   }
   const stem = text(entry, "stem");
@@ -259,7 +237,7 @@ function modMap(entry: JsonValue): ProjectReclaimerStatusModMap {
 }
 
 function mod(entry: JsonValue): ProjectReclaimerStatusMod {
-  if (!isObject(entry)) {
+  if (!isJsonObject(entry)) {
     return failProjectReclaimer("MALFORMED_RESPONSE");
   }
   const id = text(entry, "id") ?? failProjectReclaimer("MALFORMED_RESPONSE");

@@ -230,17 +230,58 @@ describe("queryMany batching", (): void => {
       entries.push(entry);
     }
     expect(pending).toHaveLength(2);
+    // The two in-flight queries resolve ABORTED; the three never started are reported too.
+    expect(entries.map((entry) => entry?.index)).toEqual([0, 1, 2, 3, 4]);
     expect(
       entries.map((entry) => (entry?.result.ok === false ? entry.result.error.code : "ok")),
-    ).toEqual(["ABORTED", "ABORTED"]);
+    ).toEqual(["ABORTED", "ABORTED", "ABORTED", "ABORTED", "ABORTED"]);
+    expect(entries[4]).toEqual({
+      index: 4,
+      input: { game: "rust", host: "play4.example.com" },
+      result: {
+        ok: false,
+        game: "rust",
+        error: { code: "ABORTED", message: "The query was cancelled." },
+        durationMs: 0,
+        sources: [],
+        warnings: [],
+      },
+    });
   });
 
-  it("starts nothing when the batch signal is already aborted", async (): Promise<void> => {
+  it("starts nothing when the batch signal is already aborted but reports every input", async (): Promise<void> => {
     const run = vi.fn<QueryRunner<"rust">>(() => Promise.resolve(failed()));
+    const servers = inputs(3);
 
-    const entries = await collect(queryManyWith(inputs(3), { signal: AbortSignal.abort() }, run));
+    const entries = await collect(queryManyWith(servers, { signal: AbortSignal.abort() }, run));
 
-    expect(entries).toEqual([]);
+    expect(entries.map(({ index, input }) => [index, input])).toEqual(
+      servers.map((input, index) => [index, input]),
+    );
+    expect(entries.every(({ result }) => !result.ok && result.error.code === "ABORTED")).toBe(true);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("reads never-started inputs only as fast as the consumer iterates after an abort", async (): Promise<void> => {
+    const run = vi.fn<QueryRunner<"rust">>(() => Promise.resolve(failed()));
+    let read = 0;
+    function* endless(): Generator<RustInput> {
+      for (;;) {
+        read += 1;
+        yield { game: "rust", host: "play.example.com" };
+      }
+    }
+
+    const entries: number[] = [];
+    for await (const entry of queryManyWith(endless(), { signal: AbortSignal.abort() }, run)) {
+      entries.push(entry.index);
+      if (entries.length === 3) {
+        break;
+      }
+    }
+
+    expect(entries).toEqual([0, 1, 2]);
+    expect(read).toBe(3);
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -311,5 +352,19 @@ describe("queryMany batching", (): void => {
     const [entry] = await collect(queryMany(servers));
 
     expect(entry?.result).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+  });
+
+  it("yields an entry for an undefined untyped input instead of treating it as the end", async (): Promise<void> => {
+    const servers = untypedInputs([
+      undefined,
+      { game: "rust", host: "play.example.com", timeoutMs: 0 },
+    ]);
+
+    const entries = await collect(queryMany(servers));
+
+    expect(entries.map((entry) => entry.index).sort((left, right) => left - right)).toEqual([0, 1]);
+    for (const entry of entries) {
+      expect(entry.result).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+    }
   });
 });

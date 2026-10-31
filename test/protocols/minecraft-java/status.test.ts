@@ -251,12 +251,11 @@ describe("Minecraft Java status protocol", (): void => {
       },
     ],
     [
-      "invalid favicon",
+      "a non-string color",
       {
         version: { name: "1", protocol: 1 },
         players: { max: 1, online: 0 },
-        description: "Hi",
-        favicon: "data:text/plain;base64,SGk=",
+        description: { text: "Hi", color: 1 },
       },
     ],
   ])("rejects a malformed document with %s", (_name, document): void => {
@@ -286,12 +285,70 @@ describe("Minecraft Java status protocol", (): void => {
     expect(inspectMinecraftStatusResponse(encodeVarInt(300_000))).toBe("too-large");
   });
 
-  it("bounds favicon dimensions and total status text", (): void => {
+  it("accepts a favicon wrapped every 76 characters and returns it unwrapped", (): void => {
+    const favicon = fixtureFavicon();
+    const payload = favicon.slice(favicon.indexOf(",") + 1);
+    const wrapped = `data:image/png;base64,${(payload.match(/.{1,76}/gu) ?? []).join("\r\n")}\n`;
+    expect(wrapped).toContain("\n");
+    const status = parseMinecraftStatusResponse(
+      statusPacket(statusDocument(`,"favicon":${JSON.stringify(wrapped)}`)),
+    );
+    expect(status.favicon).toBe(favicon);
+  });
+
+  it.each([
+    ["a non-PNG data URL", JSON.stringify("data:text/plain;base64,SGk=")],
+    ["a non-string value", "42"],
+    ["invalid base64", JSON.stringify("data:image/png;base64,@@@@")],
+  ])("omits %s favicon without failing the status", (_name, favicon): void => {
+    const status = parseMinecraftStatusResponse(
+      statusPacket(statusDocument(`,"favicon":${favicon}`)),
+    );
+    expect(status.versionName).toBe("1.21.8");
+    expect("favicon" in status).toBe(false);
+  });
+
+  it("leaves an unknown color name unstyled instead of failing the status", (): void => {
+    const status = parseMinecraftStatusResponse(
+      statusPacket(
+        JSON.stringify({
+          version: { name: "1", protocol: 1 },
+          players: { max: 1, online: 0 },
+          description: { text: "QueryHost", color: "chartreuse", bold: true },
+        }),
+      ),
+    );
+    expect(status.motd).toEqual({
+      plain: "QueryHost",
+      html: '<span style="font-weight:bold">QueryHost</span>',
+    });
+  });
+
+  it("styles later array items from the first item, as vanilla does", (): void => {
+    const document = JSON.stringify({
+      version: { name: "1", protocol: 1 },
+      players: { max: 1, online: 0 },
+      description: [
+        { text: "A", color: "red", extra: [{ text: "x", italic: true }] },
+        "B",
+        { text: "C", bold: true },
+      ],
+    });
+    const status = parseMinecraftStatusResponse(statusPacket(document));
+    expect(status.motd).toEqual({
+      plain: "AxBC",
+      html:
+        '<span style="color:#ff5555">A</span>' +
+        '<span style="color:#ff5555;font-style:italic">x</span>' +
+        '<span style="color:#ff5555">B</span>' +
+        '<span style="color:#ff5555;font-weight:bold">C</span>',
+    });
+  });
+
+  it("omits favicons with wrong dimensions or corrupt chunks and bounds status text", (): void => {
     const invalid = fixtureFavicon(32, 32);
     const badIcon = statusPacket(statusDocument(`,"favicon":"${invalid}"`));
-    expect(() => parseMinecraftStatusResponse(badIcon)).toThrow(
-      expect.toSatisfy(protocolCode("MALFORMED_RESPONSE")),
-    );
+    expect("favicon" in parseMinecraftStatusResponse(badIcon)).toBe(false);
 
     const corruptIcon = fixtureFavicon();
     const corruptBytes = Buffer.from(corruptIcon.slice(corruptIcon.indexOf(",") + 1), "base64");
@@ -301,9 +358,10 @@ describe("Minecraft Java status protocol", (): void => {
     }
     corruptBytes[corruptBytes.length - 1] = lastByte ^ 1;
     const corrupt = `data:image/png;base64,${corruptBytes.toString("base64")}`;
-    expect(() =>
-      parseMinecraftStatusResponse(statusPacket(statusDocument(`,"favicon":"${corrupt}"`))),
-    ).toThrow(expect.toSatisfy(protocolCode("MALFORMED_RESPONSE")));
+    expect(
+      "favicon" in
+        parseMinecraftStatusResponse(statusPacket(statusDocument(`,"favicon":"${corrupt}"`))),
+    ).toBe(false);
 
     const large = "x".repeat(32_768);
     const oversized = statusPacket(

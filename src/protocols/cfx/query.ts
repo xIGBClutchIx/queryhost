@@ -11,6 +11,13 @@ import {
   type FixedHttpExchangeResult,
   type HttpTransportDependencies,
 } from "../../transports/http.js";
+import {
+  isJsonObject,
+  withinJsonBudget,
+  type JsonBudget,
+  type JsonObject,
+  type JsonValue,
+} from "../json.js";
 
 const INFO_PATH = "/info.json";
 const DYNAMIC_PATH = "/dynamic.json";
@@ -23,13 +30,13 @@ const MAX_JSON_NODES = 65_536;
 const MAX_COLLECTION_ITEMS = 4_096;
 const MAX_SHORT_STRING_LENGTH = 8_192;
 const MAX_JSON_STRING_LENGTH = INFO_MAX_BYTES;
-
-type JsonPrimitive = boolean | null | number | string;
-type JsonValue = JsonPrimitive | JsonArray | JsonObject;
-type JsonArray = JsonValue[];
-interface JsonObject {
-  [key: string]: JsonValue;
-}
+const JSON_BUDGET: JsonBudget = {
+  maxDepth: MAX_JSON_DEPTH,
+  maxNodes: MAX_JSON_NODES,
+  maxCollectionItems: MAX_COLLECTION_ITEMS,
+  maxKeyLength: MAX_SHORT_STRING_LENGTH,
+  maxStringLength: MAX_JSON_STRING_LENGTH,
+};
 
 /** Source identities and caller-facing label for one Cfx game profile. */
 export interface CfxEndpointDefinition {
@@ -103,42 +110,6 @@ function malformed(source: QuerySourceName, gameName: string): never {
   });
 }
 
-function isObject(value: JsonValue): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function validateJsonBudget(value: JsonValue): void {
-  let nodes = 0;
-  const visit = (current: JsonValue, depth: number): void => {
-    nodes += 1;
-    if (nodes > MAX_JSON_NODES || depth > MAX_JSON_DEPTH) {
-      throw new RangeError("JSON budget exceeded.");
-    }
-    if (Array.isArray(current)) {
-      if (current.length > MAX_COLLECTION_ITEMS) {
-        throw new RangeError("JSON collection budget exceeded.");
-      }
-      for (const entry of current) {
-        visit(entry, depth + 1);
-      }
-    } else if (isObject(current)) {
-      const entries = Object.entries(current);
-      if (entries.length > MAX_COLLECTION_ITEMS) {
-        throw new RangeError("JSON collection budget exceeded.");
-      }
-      for (const [key, entry] of entries) {
-        if (key.length > MAX_SHORT_STRING_LENGTH) {
-          throw new RangeError("JSON string budget exceeded.");
-        }
-        visit(entry, depth + 1);
-      }
-    } else if (typeof current === "string" && current.length > MAX_JSON_STRING_LENGTH) {
-      throw new RangeError("JSON string budget exceeded.");
-    }
-  };
-  visit(value, 0);
-}
-
 function parseJson(data: Uint8Array, source: QuerySourceName, gameName: string): JsonValue {
   let text: string;
   try {
@@ -154,13 +125,14 @@ function parseJson(data: Uint8Array, source: QuerySourceName, gameName: string):
       source,
     });
   }
+  let value: JsonValue;
   try {
-    const value = JSON.parse(text) as JsonValue;
-    validateJsonBudget(value);
-    return value;
+    // JSON.parse can only produce this recursive value domain; field validation follows.
+    value = JSON.parse(text) as JsonValue;
   } catch {
     return malformed(source, gameName);
   }
+  return withinJsonBudget(value, JSON_BUDGET) ? value : malformed(source, gameName);
 }
 
 function optionalString(
@@ -238,7 +210,7 @@ function parseVariables(
   if (value === undefined) {
     return undefined;
   }
-  if (!isObject(value)) {
+  if (!isJsonObject(value)) {
     return malformed(source, gameName);
   }
   const result: Record<string, string> = Object.create(null) as Record<string, string>;
@@ -265,7 +237,7 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
 export function parseCfxInfo(data: Uint8Array, definition: CfxEndpointDefinition): CfxInfo {
   const source = definition.sources.info;
   const value = parseJson(data, source, definition.gameName);
-  if (!isObject(value)) {
+  if (!isJsonObject(value)) {
     return malformed(source, definition.gameName);
   }
   const variables = parseVariables(value["vars"], source, definition.gameName);
@@ -310,7 +282,7 @@ function optionalInteger(
 export function parseCfxDynamic(data: Uint8Array, definition: CfxEndpointDefinition): CfxDynamic {
   const source = definition.sources.dynamic;
   const value = parseJson(data, source, definition.gameName);
-  if (!isObject(value)) {
+  if (!isJsonObject(value)) {
     return malformed(source, definition.gameName);
   }
   const hostname = optionalString(value, "hostname", source, definition.gameName);
@@ -339,7 +311,7 @@ export function parseCfxPlayers(
   }
   const result: CfxPlayer[] = [];
   for (const entry of value) {
-    if (!isObject(entry)) {
+    if (!isJsonObject(entry)) {
       return malformed(source, definition.gameName);
     }
     const name = optionalString(entry, "name", source, definition.gameName);

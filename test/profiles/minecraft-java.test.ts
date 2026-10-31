@@ -518,6 +518,40 @@ describe("Minecraft Java game profile", (): void => {
     }
   });
 
+  it("keeps Query on the address that answered SLP when Query fails there", async (): Promise<void> => {
+    const queried: string[] = [];
+    const queryDependencies: MinecraftQueryDependencies = {
+      converse(options) {
+        queried.push(options.address.address);
+        return Promise.reject(new UdpTransportError("TIMEOUT"));
+      },
+    };
+    const result = await queryWithDependencies(
+      { game: "minecraft-java", host: "play.example.com" },
+      dependencies(
+        scriptedTcp({ response: SUCCESS_RESPONSE, failAddresses: new Set(["1.1.1.1"]) }),
+        resolver([
+          { address: "1.1.1.1", family: 4 },
+          { address: "8.8.8.8", family: 4 },
+        ]),
+        queryDependencies,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      partial: true,
+      sources: [
+        { source: "minecraft-srv", status: "unsupported" },
+        { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "failed" },
+        { source: "minecraft-query", status: "timeout" },
+      ],
+    });
+    // Another pinned address may be a different server instance, so it is never queried.
+    expect(queried).toEqual(["8.8.8.8"]);
+  });
+
   it("maps malformed SLP data into a stable required-source failure", async (): Promise<void> => {
     const result = await queryWithDependencies(
       { game: "minecraft-java", host: "play.example.com" },
@@ -861,3 +895,54 @@ function legacyKick(text: string): Uint8Array {
 function legacyOnly(request: Uint8Array, text: string): Uint8Array | undefined {
   return request[0] === 0xfe ? legacyKick(text) : undefined;
 }
+
+describe("Minecraft Java SRV lookup failure", (): void => {
+  it("falls back to the default port and reports the failed lookup", async (): Promise<void> => {
+    const ports: number[] = [];
+    const dns: DnsResolver = {
+      resolveAddresses: vi.fn((): Promise<readonly DnsAddressRecord[]> =>
+        Promise.resolve([PUBLIC_ADDRESS]),
+      ),
+      resolveSrv: vi.fn((): Promise<readonly DnsSrvRecord[]> =>
+        Promise.reject(new Error("SERVFAIL")),
+      ),
+    };
+
+    const result = await queryWithDependencies(
+      { game: "mc", host: "play.example.com" },
+      dependencies(scriptedTcp({ response: SUCCESS_RESPONSE, ports }), dns),
+    );
+
+    expect(ports).toEqual([25_565]);
+    expect(result).toMatchObject({
+      ok: true,
+      sources: [
+        { source: "minecraft-srv", status: "failed" },
+        { source: "minecraft-slp", status: "ok" },
+        { source: "minecraft-legacy-ping", status: "not-requested" },
+        { source: "minecraft-query", status: "ok" },
+      ],
+      warnings: [{ code: "PARTIAL_RESULT" }, { code: "SOURCE_FAILED", source: "minecraft-srv" }],
+      partial: true,
+    });
+  });
+
+  it("keeps an invalid SRV answer fatal", async (): Promise<void> => {
+    const oversized = Array.from<DnsSrvRecord>({ length: 5 }).fill({
+      name: "node.example.com",
+      port: 25_565,
+      priority: 0,
+      weight: 0,
+    });
+
+    const result = await queryWithDependencies(
+      { game: "mc", host: "play.example.com" },
+      dependencies(
+        scriptedTcp({ response: SUCCESS_RESPONSE }),
+        resolver([PUBLIC_ADDRESS], oversized),
+      ),
+    );
+
+    expect(result).toMatchObject({ ok: false, error: { code: "DNS_FAILED" } });
+  });
+});

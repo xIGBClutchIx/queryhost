@@ -2,6 +2,38 @@
 
 QueryHost records user-visible package changes in this file.
 
+## [1.12.0] - 2026-10-31
+
+### Added
+
+- `resolveQueryPort(game, { port?, queryPort? })` and the `QueryPortInput` type from the package root and `queryhost/registry`, returning the port `query()` contacts, or `undefined` when the input cannot produce a valid port.
+- CLI `--compact` for single-line JSON and `--list-games` to print every game ID, name, and alias.
+
+### Changed
+
+- The `players` capability now means a player list can be returned; player counts belong to `summary`. Minecraft: Java Edition is now `conditional` (the list comes from the optional Query source), and Minecraft: Bedrock Edition and Vintage Story are now `unsupported`.
+- `GAME_REGISTRY`, its entries, `GAME_IDS`, and the `listGames()` array are deeply frozen.
+- Hosts in non-canonical numeric forms (`127.1`, `0x7f.1`, `1.2.3`, `8.8.2056`), hosts containing `%`, and bracketed non-IPv6 hosts now fail with `INVALID_INPUT` instead of being rewritten to an IP address.
+- A Minecraft Java SRV lookup that fails (rather than finding no records) still falls back to port 25565, but now reports `minecraft-srv` as `failed` with warnings and marks the result partial. More than four SRV records fails with `DNS_FAILED` instead of `TARGET_BLOCKED`.
+- `detect()` gives each probe a fair share of the timeout, so later protocols such as Project Reclaimer and the second Steam query port are still tried when earlier hosts stay silent. Cancelling during the final query now returns a `DetectFailure` with `ABORTED`.
+- `queryMany()` yields an `ABORTED` entry for every input that had not started when the batch was cancelled, instead of dropping it.
+- Minecraft: Bedrock Edition RakNet results report the level name as `server.map`, matching NetherNet.
+- The CLI reports usage errors with exit code 2 and usage on stderr before querying, accepts `--query-port` for `a2s`, and exits with 130 when interrupted.
+- The package no longer ships source maps or maintainer documents, cutting the unpacked size by about 40%.
+
+### Fixed
+
+- A2S Player responses where every player has the same index (common on Source servers) are accepted instead of failing as malformed.
+- Server and player names that the game truncated mid-character no longer fail the query; only the incomplete trailing character is dropped.
+- Minecraft Java favicons containing line breaks are accepted. A malformed favicon is omitted and an unknown MOTD color renders unstyled, instead of failing the status source. Later MOTD array items inherit the first item's style.
+- Minecraft Query strings are decoded as UTF-8, falling back to Latin-1.
+- Minecraft Bedrock pongs with a negative server ID and names with escaped semicolons are accepted.
+- A2S Info from The Ship decodes correctly.
+- Minecraft Query stays on the address that answered SLP instead of merging data from another server behind the same name.
+- Team Fortress 2 omits inferred settings when its tags may have been truncated at Steam's limit instead of reporting defaults.
+- Responses delivered in many small TCP segments or QUIC frames no longer cause repeated full-buffer copies.
+- HTTP requests use a fixed 16 KiB header limit regardless of Node.js flags.
+
 ## [1.11.0] - 2026-10-29
 
 ### Added
@@ -157,6 +189,7 @@ QueryHost records user-visible package changes in this file.
 
 - Public-address enforcement, DNS and SRV answer validation, global deadlines, operation budgets, byte and collection limits, and deterministic transport cleanup.
 
+[1.12.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.12.0
 [1.11.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.11.0
 [1.10.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.10.0
 [1.9.0]: https://github.com/xIGBClutchIx/queryhost/releases/tag/v1.9.0

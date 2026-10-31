@@ -362,7 +362,10 @@ export interface QueryManyOptions {
   readonly concurrency?: number;
   /**
    * Stops the batch: no further input is started, and queries already in flight resolve with
-   * `ABORTED` before iteration ends.
+   * `ABORTED`. Every input not yet started is still read and yields its own `ABORTED` failure
+   * entry (with `durationMs` 0 and no sources), so each input produces exactly one entry. Those
+   * inputs are read only as fast as the consumer iterates, so with an unbounded input iterable,
+   * stop iterating once the signal aborts.
    */
   readonly signal?: AbortSignal;
 }

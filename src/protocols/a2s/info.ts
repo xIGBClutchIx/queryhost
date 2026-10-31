@@ -16,6 +16,7 @@ const EDF_SOURCE_TV = 0x40;
 const EDF_KEYWORDS = 0x20;
 const EDF_GAME_ID = 0x01;
 const KNOWN_EDF_MASK = EDF_PORT | EDF_STEAM_ID | EDF_SOURCE_TV | EDF_KEYWORDS | EDF_GAME_ID;
+const THE_SHIP_APP_ID = 2_400;
 
 /** Maximum single-packet A2S response accepted by the direct parser. */
 export const A2S_SINGLE_PACKET_MAX_BYTES: number = A2S_MAX_DATAGRAM_BYTES;
@@ -60,6 +61,19 @@ export interface A2sSourceTv {
   readonly name: string;
 }
 
+/**
+ * The Ship's extra Info fields. Valve's protocol inserts them after the VAC byte only when the
+ * response's App ID is 2400, so reading them is protocol behavior rather than a game branch.
+ */
+export interface A2sShipInfo {
+  /** Game mode: 0 Hunt, 1 Elimination, 2 Duel, 3 Deathmatch, 4 VIP Team, 5 Team Elimination. */
+  readonly mode: number;
+  /** Witnesses needed to arrest a player. */
+  readonly witnesses: number;
+  /** Seconds before a player is arrested while being witnessed. */
+  readonly duration: number;
+}
+
 /** Modern Source-style A2S Info response. */
 export interface A2sSourceInfo {
   readonly format: "source";
@@ -76,6 +90,7 @@ export interface A2sSourceInfo {
   readonly environment: A2sEnvironment;
   readonly password: boolean;
   readonly vac: boolean;
+  readonly ship?: A2sShipInfo;
   readonly version: string;
   readonly extraDataFlags?: number;
   readonly port?: number;
@@ -185,6 +200,10 @@ function parseSourceInfo(reader: A2sBinaryReader): A2sSourceInfo {
   const environment = readEnvironment(reader);
   const password = readBoolean(reader);
   const vac = readBoolean(reader);
+  const ship =
+    appId === THE_SHIP_APP_ID
+      ? { mode: reader.readUint8(), witnesses: reader.readUint8(), duration: reader.readUint8() }
+      : undefined;
   const version = reader.readString();
 
   if (reader.remaining === 0) {
@@ -203,6 +222,7 @@ function parseSourceInfo(reader: A2sBinaryReader): A2sSourceInfo {
       environment,
       password,
       vac,
+      ...(ship === undefined ? {} : { ship }),
       version,
     };
   }
@@ -237,6 +257,7 @@ function parseSourceInfo(reader: A2sBinaryReader): A2sSourceInfo {
     environment,
     password,
     vac,
+    ...(ship === undefined ? {} : { ship }),
     version,
     extraDataFlags,
     ...(port === undefined ? {} : { port }),

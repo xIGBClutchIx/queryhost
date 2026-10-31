@@ -1,12 +1,12 @@
 /** Bounded UDP exchanges with strict peer, size, deadline, and cleanup boundaries. */
 
 import { createSocket } from "node:dgram";
-import { isIP } from "node:net";
 
 import type { QueryErrorCode } from "../contracts/shared.js";
 import { normalizeIpAddress } from "../network/ip.js";
 import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { addressesMatch, terminationCode } from "./shared.js";
 
 const MAX_UDP_DATAGRAM_BYTES = 65_507;
 
@@ -167,20 +167,6 @@ function fail(code: UdpTransportErrorCode): never {
   throw new UdpTransportError(code);
 }
 
-/** Whether two pinned addresses name the same IP literal in the same family. */
-export function addressesMatch(left: PinnedAddress, right: PinnedAddress): boolean {
-  const normalizedLeft = normalizeIpAddress(left.address);
-  const normalizedRight = normalizeIpAddress(right.address);
-  return (
-    normalizedLeft !== undefined &&
-    normalizedRight !== undefined &&
-    isIP(normalizedLeft) === left.family &&
-    isIP(normalizedRight) === right.family &&
-    left.family === right.family &&
-    normalizedLeft === normalizedRight
-  );
-}
-
 function validateOptions(options: UdpExchangeOptions): void {
   if (
     !Number.isSafeInteger(options.target.port) ||
@@ -235,10 +221,6 @@ export function peerMatches(peer: UdpRemotePeer, address: PinnedAddress, port: n
   const normalizedPeer = normalizeIpAddress(peer.address);
   const normalizedTarget = normalizeIpAddress(address.address);
   return normalizedPeer !== undefined && normalizedPeer === normalizedTarget && peer.port === port;
-}
-
-function terminationCode(scope: ExecutionScope): UdpTransportErrorCode {
-  return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
 }
 
 function isAborted(signal: AbortSignal): boolean {
@@ -535,7 +517,11 @@ export function udpCollect(
       datagrams.push(Uint8Array.from(message));
       let complete: boolean;
       try {
-        complete = options.isComplete(datagrams);
+        // A frozen snapshot of copies: the callback cannot reorder, drop, or rewrite the datagrams
+        // the transport counts against its limits and returns.
+        complete = options.isComplete(
+          Object.freeze(datagrams.map((datagram) => Uint8Array.from(datagram))),
+        );
       } catch {
         finish(new UdpTransportError("MALFORMED_RESPONSE"));
         return;

@@ -9,6 +9,7 @@ import type {
   QueryManyOptions,
   QueryResult,
 } from "../contracts/query.js";
+import type { QueryError } from "../contracts/shared.js";
 import { canonicalGameId, isGameInputId } from "../contracts/registry.js";
 
 const DEFAULT_CONCURRENCY = 8;
@@ -51,9 +52,19 @@ function validateBatch<G extends GameInputId>(
   }
 }
 
-/** A runner that rejects still yields one entry, so one target can never fail the whole batch. */
-function internalFailure<G extends GameInputId>(
+const INTERNAL_ERROR: QueryError = Object.freeze({
+  code: "INTERNAL_ERROR",
+  message: "The query could not be completed.",
+});
+const ABORTED_ERROR: QueryError = Object.freeze({
+  code: "ABORTED",
+  message: "The query was cancelled.",
+});
+
+/** A failure entry produced by the batch itself rather than by a query. */
+function batchFailure<G extends GameInputId>(
   input: QueryInput<G>,
+  error: QueryError,
 ): QueryFailure<CanonicalGameId<G>> {
   const game: string | number | object | null | undefined =
     typeof input === "object" && input !== null ? input.game : undefined;
@@ -63,7 +74,7 @@ function internalFailure<G extends GameInputId>(
     game: (typeof game === "string" && isGameInputId(game)
       ? canonicalGameId(game)
       : game) as CanonicalGameId<G>,
-    error: Object.freeze({ code: "INTERNAL_ERROR", message: "The query could not be completed." }),
+    error,
     durationMs: 0,
     sources: Object.freeze([]),
     warnings: Object.freeze([]),
@@ -97,7 +108,8 @@ async function runOne<G extends GameInputId>(
   try {
     result = await run(withBatchSignal(input, batchSignal));
   } catch {
-    result = internalFailure(input);
+    // A runner that rejects still yields one entry, so one target can never fail the whole batch.
+    result = batchFailure(input, INTERNAL_ERROR);
   }
   return Object.freeze({ index, input, result });
 }
@@ -119,27 +131,38 @@ async function* runBatch<G extends GameInputId>(
   let exhausted = false;
   let nextIndex = 0;
 
+  // The next caller input step. Exhaustion is reported by `done`, never by the value, because an
+  // untyped caller's input (or an array hole) can itself be `undefined` and must still yield an
+  // entry of its own.
+  const readNext = (source: Iterator<QueryInput<G>>): IteratorResult<QueryInput<G>> => {
+    let step: IteratorResult<QueryInput<G>>;
+    try {
+      step = source.next();
+    } catch (error) {
+      exhausted = true;
+      throw error;
+    }
+    if (step.done === true) {
+      exhausted = true;
+    }
+    return step;
+  };
+
   try {
     iterator = inputs[Symbol.iterator]();
     for (;;) {
       // A result waiting for the consumer still holds its slot, so a slow consumer applies
       // backpressure and buffered results never exceed the concurrency limit.
       while (!exhausted && !batchSignal.aborted && running.size < concurrency) {
-        let step: IteratorResult<QueryInput<G>>;
-        try {
-          step = iterator.next();
-        } catch (error) {
-          exhausted = true;
-          throw error;
-        }
+        const step = readNext(iterator);
         if (step.done === true) {
-          exhausted = true;
           break;
         }
+        const input = step.value;
         const index = nextIndex++;
         running.set(
           index,
-          runOne(index, step.value, batchSignal, run).then((entry) => {
+          runOne(index, input, batchSignal, run).then((entry) => {
             settled.push(entry);
             wake?.();
             return entry;
@@ -147,6 +170,21 @@ async function* runBatch<G extends GameInputId>(
         );
       }
       if (running.size === 0) {
+        // Only an abort leaves inputs unread with nothing in flight. Each one is reported as
+        // ABORTED without starting it, so every input still yields exactly one entry. Reading
+        // stays paced by the consumer, which can stop iterating at any time.
+        while (!exhausted) {
+          const step = readNext(iterator);
+          if (step.done === true) {
+            break;
+          }
+          const input = step.value;
+          yield Object.freeze({
+            index: nextIndex++,
+            input,
+            result: batchFailure(input, ABORTED_ERROR),
+          });
+        }
         return;
       }
       let entry = settled.shift();

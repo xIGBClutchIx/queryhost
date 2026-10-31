@@ -39,6 +39,8 @@ Whether BattlEye protection is enabled, from the `b` keyword.
 
 > `readonly` **bots**: `number`
 
+Bots A2S Info reports; they are also counted in `server.players.online`.
+
 #### Inherited from
 
 [`SteamA2sData`](SteamA2sData.md).[`bots`](SteamA2sData.md#bots)

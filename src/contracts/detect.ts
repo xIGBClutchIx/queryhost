@@ -21,7 +21,10 @@ export interface DetectInput {
    * to 5,000 ms.
    */
   readonly timeoutMs?: number;
-  /** Caller cancellation propagated to every outstanding probe and query. */
+  /**
+   * Caller cancellation propagated to every outstanding probe and query. Aborting at any point,
+   * including during the detected game's own query, resolves as a failure with `ABORTED`.
+   */
   readonly signal?: AbortSignal;
   /** Distinct protocol and port pairs to probe, from 1 through 16; defaults to 9. */
   readonly maxProbes?: number;

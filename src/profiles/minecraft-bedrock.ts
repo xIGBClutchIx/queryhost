@@ -110,8 +110,13 @@ async function raknetProfile(options: MinecraftBedrockProfileOptions): Promise<B
           ...(pong.playersOnline === undefined ? {} : { online: pong.playersOnline }),
           ...(pong.playersMax === undefined ? {} : { max: pong.playersMax }),
         });
+  const crossplay = bedrockCrossplay(pong.subMotd);
+  // Vanilla servers put the level name in the sub-MOTD, matching NetherNet's world name. Geyser's
+  // default sub-MOTDs are its own placeholders rather than a level, so they are not a map.
+  const map = crossplay.crossplay === undefined ? pong.subMotd : undefined;
   const server: ServerInfo = Object.freeze({
     ...(pong.motd === undefined ? {} : { name: pong.motd }),
+    ...(map === undefined ? {} : { map }),
     ...(pong.version === undefined ? {} : { version: pong.version }),
     ...(players === undefined ? {} : { players }),
     queryRttMs: ping.result.rttMs,
@@ -129,7 +134,7 @@ async function raknetProfile(options: MinecraftBedrockProfileOptions): Promise<B
     ...(pong.advertisedIpv6Port === undefined
       ? {}
       : { advertisedIpv6Port: pong.advertisedIpv6Port }),
-    ...bedrockCrossplay(pong.subMotd),
+    ...crossplay,
   });
   return Object.freeze({ server, data, report: ping.report });
 }

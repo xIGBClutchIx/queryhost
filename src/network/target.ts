@@ -16,6 +16,8 @@ import type { QueryErrorCode } from "../contracts/shared.js";
 const MAX_PINNED_ADDRESSES = 4; // Bounds the transport's fallback set.
 const MAX_ADDRESS_ANSWERS = 64; // Bounds validation work; real answer sets are far smaller.
 const MAX_SRV_RECORDS = 4; // Prevents SRV targets from multiplying the address fallback set.
+/** Node resolver codes for a name or record type that authoritatively does not exist. */
+const NO_SRV_RECORD_CODES: ReadonlySet<string> = new Set(["ENODATA", "ENOTFOUND"]);
 
 /** Target-validation failures that map directly to stable public query error codes. */
 export type TargetResolutionErrorCode = Extract<
@@ -112,6 +114,17 @@ export class TargetResolutionError extends Error {
   public constructor(code: TargetResolutionErrorCode) {
     super(ERROR_MESSAGES[code]);
     this.code = code;
+  }
+}
+
+/**
+ * The SRV query itself failed (for example SERVFAIL, refusal, or a resolver timeout), so whether
+ * records exist is unknown. Distinct from an empty answer, which resolves to no targets, and from a
+ * derived target that fails validation, which remains a plain {@link TargetResolutionError}.
+ */
+export class SrvLookupError extends TargetResolutionError {
+  public constructor() {
+    super("DNS_FAILED");
   }
 }
 
@@ -224,8 +237,18 @@ export function createDnsResolver(dns: DnsFunctions): DnsResolver {
       return abortableDns(signal, dns.cancel, async (): Promise<readonly DnsSrvRecord[]> => {
         try {
           return await dns.resolveSrv(name);
-        } catch {
-          return [];
+        } catch (error) {
+          // Only an authoritative "no such name" or "no SRV data" answer means there are no
+          // records. SERVFAIL, refusal, and timeouts leave discovery unknown and must surface.
+          if (
+            error instanceof Error &&
+            "code" in error &&
+            typeof error.code === "string" &&
+            NO_SRV_RECORD_CODES.has(error.code)
+          ) {
+            return [];
+          }
+          throw error;
         }
       });
     },
@@ -368,16 +391,21 @@ function selectPinnedAddresses(addresses: readonly PinnedAddress[]): readonly Pi
 /**
  * Normalizes a DNS hostname, IDN, or IP literal.
  *
- * URL syntax, whitespace, ambiguous numeric hosts, zone identifiers, and malformed labels fail
- * with `INVALID_INPUT`. A terminal DNS root dot is accepted and removed.
+ * URL syntax, whitespace, percent-encoding, zone identifiers, malformed labels, and ambiguous
+ * numeric hosts fail with `INVALID_INPUT`. IPv4 is accepted only in canonical dotted-quad form, so
+ * shorthand such as `127.1`, `1.2.3`, or `8.8.2056` and hexadecimal or octal parts such as
+ * `0x7f.1` are rejected rather than reinterpreted. Brackets may enclose only an IPv6 literal. A
+ * terminal DNS root dot is accepted and removed from a DNS name or a dotted-quad IPv4 literal.
  */
 export function normalizeHostname(host: string): string {
-  if (host.length === 0 || host !== host.trim()) {
+  // `%` is rejected outright: the WHATWG host parser would percent-decode it into another name.
+  if (host.length === 0 || host !== host.trim() || host.includes("%")) {
     return fail("INVALID_INPUT");
   }
 
   let candidate = host;
-  if (candidate.startsWith("[") || candidate.endsWith("]")) {
+  const bracketed = candidate.startsWith("[") || candidate.endsWith("]");
+  if (bracketed) {
     if (!(candidate.startsWith("[") && candidate.endsWith("]"))) {
       return fail("INVALID_INPUT");
     }
@@ -386,9 +414,9 @@ export function normalizeHostname(host: string): string {
 
   const literal = normalizeIpAddress(candidate);
   if (literal !== undefined) {
-    return literal;
+    return bracketed && isIP(literal) !== 6 ? fail("INVALID_INPUT") : literal;
   }
-  if (candidate.includes(":") || /^\d+$/u.test(candidate)) {
+  if (bracketed || candidate.includes(":") || /^\d+$/u.test(candidate)) {
     return fail("INVALID_INPUT");
   }
 
@@ -400,6 +428,12 @@ export function normalizeHostname(host: string): string {
   }
   if (ascii.endsWith(".")) {
     ascii = ascii.slice(0, -1);
+  }
+  // The WHATWG host parser turns numeric shorthand, hexadecimal, octal, and full-width digits into
+  // IPv4. Only a canonical dotted quad with a root dot may arrive here as an address.
+  if (isIP(ascii) !== 0) {
+    const rooted = candidate.endsWith(".") ? normalizeIpAddress(candidate.slice(0, -1)) : undefined;
+    return rooted === ascii ? rooted : fail("INVALID_INPUT");
   }
 
   if (ascii.length === 0 || ascii.length > 253 || !ascii.split(".").every(isValidDnsLabel)) {
@@ -431,6 +465,10 @@ export async function resolveTarget(
 /**
  * Resolves a fixed SRV owner name and reapplies target safety to every derived host and port.
  *
+ * An absent name or SRV record type resolves to no targets. A failed lookup throws
+ * {@link SrvLookupError} unless the scope was terminated; more than four records, or any derived
+ * target that fails validation, throws a plain {@link TargetResolutionError}.
+ *
  * This function preserves DNS priority and weight metadata but intentionally defers profile-specific
  * ordering and weighted selection to the protocol slice that consumes it.
  */
@@ -450,11 +488,15 @@ export async function resolveSrvTargets(
   try {
     records = await resolver.resolveSrv(`_${service}._${input.protocol}.${hostname}`, scope.signal);
   } catch {
-    return fail("DNS_FAILED");
+    if (scope.signal.aborted) {
+      return fail("DNS_FAILED");
+    }
+    throw new SrvLookupError();
   }
 
+  // An oversized answer is a usable-DNS failure, not an address-policy block.
   if (records.length > MAX_SRV_RECORDS) {
-    return fail("TARGET_BLOCKED");
+    return fail("DNS_FAILED");
   }
   if (records.length === 1 && records[0]?.name === ".") {
     return Object.freeze([]);

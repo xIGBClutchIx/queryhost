@@ -92,6 +92,13 @@ export function raceAttempts<C, T>(
       operations.push(operation);
       pending += 1;
 
+      // Arm the stagger before the attempt runs. An attempt that throws synchronously starts the
+      // next candidate from inside `run()`, and that nested start must clear and own this timer
+      // rather than have this call overwrite (and so leak) the timer the nested start armed.
+      if (!isLast) {
+        timer = setTimeout(startNext, staggerMs);
+      }
+
       const run = async (): Promise<void> => {
         let value: T;
         try {
@@ -122,10 +129,6 @@ export function raceAttempts<C, T>(
         });
       };
       void run();
-
-      if (!isLast) {
-        timer = setTimeout(startNext, staggerMs);
-      }
     };
 
     scope.signal.addEventListener("abort", handleAbort, { once: true });

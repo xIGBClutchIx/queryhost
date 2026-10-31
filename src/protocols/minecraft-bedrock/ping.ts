@@ -30,6 +30,7 @@ const OFFLINE_MESSAGE_MAGIC = Uint8Array.of(
   0x78,
 );
 const UINT64_MAX = 0xffff_ffff_ffff_ffffn;
+const INT64_MIN = -0x8000_0000_0000_0000n;
 const MAX_RESPONSE_BYTES = 2_048;
 const PONG_HEADER_BYTES = 35;
 const MAX_FIELDS = 32;
@@ -127,17 +128,41 @@ function optionalServerId(fields: readonly string[]): string | undefined {
   if (value === undefined) {
     return undefined;
   }
-  if (!/^(?:0|[1-9][0-9]*)$/u.test(value)) {
+  // Vanilla prints the ID unsigned, while Nukkit and Geyser print the same 64 bits as a signed
+  // Java long, so both canonical forms are accepted and the text is kept as the server sent it.
+  if (!/^(?:0|-?[1-9][0-9]*)$/u.test(value)) {
     return failMinecraftBedrock("MALFORMED_RESPONSE");
   }
-  try {
-    if (BigInt(value) > UINT64_MAX) {
-      return failMinecraftBedrock("MALFORMED_RESPONSE");
-    }
-  } catch {
+  const parsed = BigInt(value);
+  if (parsed < INT64_MIN || parsed > UINT64_MAX) {
     return failMinecraftBedrock("MALFORMED_RESPONSE");
   }
   return value;
+}
+
+/**
+ * Splits on `;` except where PocketMine-MP escaped it as `\;` inside the server name. PocketMine
+ * also strips trailing backslashes from the name, so `\;` never ends an escaped field. Vanilla
+ * forbids `;` in `server-name`; other servers that send a raw `;` are not disambiguated, because
+ * a server name can itself contain numeric segments that look like the following fields.
+ */
+function splitFields(decoded: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  for (let index = 0; index < decoded.length; index += 1) {
+    const character = decoded.charAt(index);
+    if (character === "\\" && decoded[index + 1] === ";") {
+      current += ";";
+      index += 1;
+    } else if (character === ";") {
+      fields.push(current);
+      current = "";
+    } else {
+      current += character;
+    }
+  }
+  fields.push(current);
+  return fields;
 }
 
 function semicolonFields(payload: Uint8Array): readonly string[] {
@@ -147,7 +172,7 @@ function semicolonFields(payload: Uint8Array): readonly string[] {
   } catch {
     return failMinecraftBedrock("MALFORMED_RESPONSE");
   }
-  const fields = decoded.split(";");
+  const fields = splitFields(decoded);
   // A conventional trailing delimiter does not advertise another field.
   if (fields.at(-1) === "") {
     fields.pop();

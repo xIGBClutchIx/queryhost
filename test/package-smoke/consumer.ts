@@ -9,7 +9,7 @@ import {
   type RustData,
   type VintageStoryData,
 } from "queryhost";
-import { listGames, type GameDefinition } from "queryhost/registry";
+import { listGames, resolveQueryPort, type GameDefinition } from "queryhost/registry";
 
 const rustQuery: Promise<QueryResult<"rust">> = query({
   game: "rust",
@@ -37,3 +37,4 @@ dayz.dedicated satisfies boolean | undefined;
 void rustQuery;
 
 listGames() satisfies readonly GameDefinition[];
+resolveQueryPort("rust", { port: 28_100 }) satisfies number | undefined;

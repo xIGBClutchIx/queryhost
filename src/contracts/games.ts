@@ -22,6 +22,7 @@ export interface A2sData {
   readonly protocol: number;
   readonly game: string;
   readonly folder: string;
+  /** Bots A2S Info reports; they are also counted in `server.players.online`. */
   readonly bots: number;
   readonly serverType: "dedicated" | "listen" | "proxy";
   readonly environment: "linux" | "macos" | "windows";
@@ -59,6 +60,7 @@ export interface DontStarveTogetherData {
   readonly protocol: number;
   readonly game: string;
   readonly folder: string;
+  /** Bots A2S Info reports; they are also counted in `server.players.online`. */
   readonly bots: number;
   readonly serverType: "dedicated" | "listen" | "proxy";
   readonly environment: "linux" | "macos" | "windows";
@@ -229,6 +231,7 @@ export interface SteamA2sData {
   readonly game: string;
   /** Game content directory, such as `tf` or `garrysmod`, which also identifies Source mods. */
   readonly folder: string;
+  /** Bots A2S Info reports; they are also counted in `server.players.online`. */
   readonly bots: number;
   readonly serverType: "dedicated" | "listen" | "proxy";
   readonly environment: "linux" | "macos" | "windows";
@@ -289,6 +292,9 @@ export type TeamFortress2GameMode =
 /**
  * Team Fortress 2 data collected from its game-port A2S endpoint. The game adds a tag whenever
  * one of these cvars differs from its default, so with tags present an absent tag means default.
+ * Steam keeps at most 127 bytes of tags; when the keywords reach that limit, later tags may be
+ * lost, so `gameModes` and every default-valued setting are omitted and only settings confirmed by
+ * a whole tag remain.
  */
 export interface TeamFortress2Data extends SteamA2sData {
   /** Game modes of the current map; `cp` also covers King of the Hill and attack/defend maps. */

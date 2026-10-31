@@ -20,7 +20,14 @@ export const SUPPORT_LEVELS: readonly ["supported", "conditional", "unsupported"
   "unsupported",
 ] as const);
 
-/** Whether a capability is guaranteed, source-dependent, or unavailable for a profile. */
+/**
+ * Whether a profile can return a capability's data:
+ *
+ * - `supported`: returned whenever the profile's required source answers.
+ * - `conditional`: returned only when server configuration, server build, or an optional source
+ *   allows it; otherwise the field is omitted.
+ * - `unsupported`: never returned by this profile.
+ */
 export type SupportLevel = (typeof SUPPORT_LEVELS)[number];
 
 /** Every {@link GameCapability}, in declaration order. */
@@ -34,7 +41,20 @@ export const GAME_CAPABILITIES: readonly [
   "srv",
 ] = Object.freeze(["summary", "players", "rules", "mods", "plugins", "resources", "srv"] as const);
 
-/** Features exposed through normalized or game-specific query results. */
+/**
+ * Features exposed through normalized or game-specific query results:
+ *
+ * - `summary`: normalized server facts under `server`.
+ * - `players`: a player list (names, possibly empty strings when the server hides them) under
+ *   `data.players`. Aggregate counts in `server.players` are part of `summary`, not this
+ *   capability, so a game can report counts while `players` is `unsupported`.
+ * - `rules`: server-reported rule or setting key-value pairs, such as A2S Rules in
+ *   `rawData.rules` or Cfx server variables in `data.variables`.
+ * - `mods`: server mod or Workshop metadata in a game-specific `data` field.
+ * - `plugins`: a list of server plugins in `data.plugins`.
+ * - `resources`: a list of server resources in `data.resources`.
+ * - `srv`: DNS SRV discovery of the query destination, reported in `data.srv`.
+ */
 export type GameCapability = (typeof GAME_CAPABILITIES)[number];
 
 /** Every {@link GameProtocol}, in declaration order. */
@@ -143,7 +163,7 @@ export const GAME_IDS: readonly [
   "vein",
   "avorion",
   "project-reclaimer",
-] = [
+] = Object.freeze([
   "a2s",
   "dont-starve-together",
   "rust",
@@ -188,7 +208,7 @@ export const GAME_IDS: readonly [
   "vein",
   "avorion",
   "project-reclaimer",
-] as const;
+] as const);
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
 export const GAME_ALIASES: GameAliasMap = Object.freeze({
@@ -265,10 +285,22 @@ const STEAM_A2S_CAPABILITIES: GameDefinition["capabilities"] = Object.freeze({
   srv: "unsupported",
 });
 
+// Consumers share one registry object, so every level is frozen: a caller that mutates a definition
+// or its capabilities would otherwise change query dispatch, detection, and port derivation for the
+// whole process.
+function freezeRegistry(registry: GameRegistry): GameRegistry {
+  for (const definition of Object.values(registry)) {
+    Object.freeze(definition.capabilities);
+    Object.freeze(definition);
+  }
+  return Object.freeze(registry);
+}
+
 /**
- * Single source of truth consumed by the library and, later, the API, documentation, and website.
+ * Single source of truth consumed by the library, the hosted API, and the website. Every
+ * definition and its capability map is frozen.
  */
-export const GAME_REGISTRY: GameRegistry = {
+export const GAME_REGISTRY: GameRegistry = freezeRegistry({
   a2s: {
     id: "a2s",
     name: "Generic A2S",
@@ -409,7 +441,8 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 25565,
     capabilities: {
       summary: "supported",
-      players: "supported",
+      // Names come only from optional UDP Query, which servers commonly leave disabled.
+      players: "conditional",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "conditional",
@@ -424,7 +457,8 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 19132,
     capabilities: {
       summary: "supported",
-      players: "supported",
+      // NetherNet status and RakNet pongs carry counts but never names.
+      players: "unsupported",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",
@@ -484,7 +518,8 @@ export const GAME_REGISTRY: GameRegistry = {
     defaultPort: 42420,
     capabilities: {
       summary: "supported",
-      players: "conditional",
+      // The query answer carries counts but never names.
+      players: "unsupported",
       rules: "unsupported",
       mods: "unsupported",
       plugins: "unsupported",
@@ -803,7 +838,7 @@ export const GAME_REGISTRY: GameRegistry = {
       srv: "unsupported",
     },
   },
-};
+});
 
 /** Returns whether an arbitrary string is a registered game identifier. */
 export function isGameId(value: string): value is GameId {
@@ -836,7 +871,95 @@ export function getGameDefinition<G extends GameInputId>(
   return GAME_REGISTRY[canonicalGameId(game)];
 }
 
-/** Lists game definitions in the stable order defined by {@link GAME_IDS}. */
+/**
+ * Query port the registry convention derives from a game port: the port itself for a game with no
+ * separate query port, the fixed query port, or the game port shifted by the conventional offset.
+ * The result can fall outside the valid port range for a custom game port. Internal: callers use
+ * {@link resolveQueryPort}.
+ */
+export function conventionalQueryPort(definition: GameDefinition, gamePort: number): number {
+  if (definition.defaultPort === undefined) {
+    return gamePort;
+  }
+  if (definition.queryPortStrategy === "fixed" && definition.defaultQueryPort !== undefined) {
+    return definition.defaultQueryPort;
+  }
+  return (
+    gamePort + (definition.defaultQueryPort ?? definition.defaultPort) - definition.defaultPort
+  );
+}
+
+function isPort(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 65_535;
+}
+
+/** Port fields that decide a query's destination, as accepted by `query()`. */
+export interface QueryPortInput {
+  /** Game or service port players connect to; defaults to the game's `defaultPort`. */
+  readonly port?: number;
+  /** Explicit query destination; always wins over the derived port when present. */
+  readonly queryPort?: number;
+}
+
+/**
+ * Returns the port `query()` sends its required source to for `game` and the given ports, using
+ * the same registry convention: an explicit `queryPort` wins; otherwise the game port (or the
+ * game's `defaultPort`) maps to the fixed query port, the port shifted by the conventional offset,
+ * or the port itself for games without a separate query port.
+ *
+ * Returns `undefined` when a given port is not an integer from 1 through 65535, when the game has
+ * no default port and no `port` is given (generic `a2s`, whose destination is always `port`), or
+ * when the offset moves a custom game port
+ * outside that range; `query()` rejects those inputs as `INVALID_INPUT`. Minecraft: Java Edition
+ * may still follow DNS SRV to another port when no explicit `port` is given, and its explicit
+ * `queryPort` applies only to the optional UDP Query source.
+ *
+ * Pure and browser-safe: it reads only {@link GAME_REGISTRY}.
+ *
+ * @example
+ * ```ts
+ * resolveQueryPort("rust"); // 28017
+ * resolveQueryPort("rust", { port: 28_100 }); // 28102
+ * resolveQueryPort("palworld", { port: 8_300 }); // 27015 (fixed)
+ * resolveQueryPort("a2s"); // undefined: generic A2S has no default
+ * ```
+ */
+export function resolveQueryPort(
+  game: GameInputId,
+  ports: QueryPortInput = {},
+): number | undefined {
+  const { port, queryPort } = ports;
+  // Untyped JavaScript callers can pass any string as the game.
+  if (!isGameInputId(game)) {
+    return undefined;
+  }
+  if ((port !== undefined && !isPort(port)) || (queryPort !== undefined && !isPort(queryPort))) {
+    return undefined;
+  }
+  const definition = getGameDefinition(game);
+  // Generic A2S takes its destination only as `port`, as `query()` requires.
+  if (definition.defaultPort === undefined && port === undefined) {
+    return undefined;
+  }
+  if (queryPort !== undefined) {
+    return queryPort;
+  }
+  const gamePort = port ?? definition.defaultPort;
+  if (gamePort === undefined) {
+    return undefined;
+  }
+  const derived = conventionalQueryPort(definition, gamePort);
+  return isPort(derived) ? derived : undefined;
+}
+
+const GAME_LIST: readonly GameDefinition[] = Object.freeze(
+  GAME_IDS.map((game): GameDefinition => GAME_REGISTRY[game]),
+);
+
+/**
+ * Lists game definitions in the stable order defined by {@link GAME_IDS}. The array and every
+ * definition in it are frozen and shared between calls.
+ */
 export function listGames(): readonly GameDefinition[] {
-  return GAME_IDS.map((game) => GAME_REGISTRY[game]);
+  return GAME_LIST;
 }

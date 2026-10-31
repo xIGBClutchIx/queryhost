@@ -4,7 +4,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { PinnedAddress, PinnedTarget } from "../../src/network/target.js";
 import { createExecutionContext, type ExecutionScope } from "../../src/runtime/execution.js";
-import { tcpExchange, TcpTransportError } from "../../src/transports/tcp.js";
+import {
+  tcpExchange,
+  TcpTransportError,
+  type TcpResponseState,
+  type TcpSocketAdapter,
+  type TcpTransportDependencies,
+} from "../../src/transports/tcp.js";
 
 const servers: Server[] = [];
 const serverSockets = new Map<Server, Set<Socket>>();
@@ -193,5 +199,139 @@ describe("bounded TCP transport", (): void => {
       }),
     ).rejects.toSatisfy(transportCode("MALFORMED_RESPONSE"));
     malformedScope.close();
+  });
+});
+
+interface ScriptedSocket {
+  readonly dependencies: TcpTransportDependencies;
+  readonly destroyed: () => number;
+}
+
+/** A socket that connects, then delivers `chunks` (or an error) after the request is written. */
+function scriptedSocket(script: readonly Uint8Array[] | Error): ScriptedSocket {
+  let destroyed = 0;
+  return {
+    destroyed: () => destroyed,
+    dependencies: {
+      now: () => 0,
+      createSocket(): TcpSocketAdapter {
+        let onConnect = (): void => undefined;
+        let onData: (data: Uint8Array) => void = (): void => undefined;
+        let onError: (error: Error) => void = (): void => undefined;
+        return {
+          onConnect(listener): void {
+            onConnect = listener;
+          },
+          onData(listener): void {
+            onData = listener;
+          },
+          onEnd(): void {
+            // Not scripted.
+          },
+          onError(listener): void {
+            onError = listener;
+          },
+          connect(): void {
+            queueMicrotask(onConnect);
+          },
+          write(_data, completion): void {
+            completion(undefined);
+            queueMicrotask((): void => {
+              if (script instanceof Error) {
+                onError(script);
+                return;
+              }
+              for (const chunk of script) {
+                onData(chunk);
+              }
+            });
+          },
+          destroy(): void {
+            destroyed += 1;
+          },
+        };
+      },
+    },
+  };
+}
+
+function scriptedExchange(
+  scope: ExecutionScope,
+  socket: ScriptedSocket,
+  inspectResponse: (data: Uint8Array) => TcpResponseState,
+  maxResponseBytes = 64,
+): Promise<Uint8Array> {
+  const selected = target(25_565);
+  return tcpExchange(
+    {
+      scope,
+      target: selected,
+      address: firstAddress(selected),
+      request: Uint8Array.of(1),
+      maxResponseBytes,
+      inspectResponse,
+    },
+    socket.dependencies,
+  ).then((result) => result.data);
+}
+
+describe("TCP transport accumulation", (): void => {
+  it("accumulates many tiny segments without rebuilding the response each time", async (): Promise<void> => {
+    const total = 16_384;
+    const chunks = Array.from({ length: total }, (_, index) => Uint8Array.of(index % 251));
+    const lengths: number[] = [];
+    const buffers = new Set<ArrayBufferLike>();
+    const scope = createExecutionContext({ timeoutMs: 2_000 });
+    try {
+      const data = await scriptedExchange(
+        scope,
+        scriptedSocket(chunks),
+        (view): TcpResponseState => {
+          lengths.push(view.byteLength);
+          buffers.add(view.buffer);
+          return view.byteLength === total ? "complete" : "incomplete";
+        },
+        total,
+      );
+
+      expect(data).toEqual(Uint8Array.from(chunks.map((chunk) => chunk[0] ?? 0)));
+      expect(lengths).toHaveLength(total);
+      expect(lengths.at(-1)).toBe(total);
+      // Amortized doubling: a handful of allocations rather than one per segment.
+      expect(buffers.size).toBeLessThanOrEqual(4);
+      // The result is a copy, not a view of the buffer the callback saw.
+      expect(buffers.has(data.buffer)).toBe(false);
+    } finally {
+      scope.close();
+    }
+  });
+
+  it("maps a protocol too-large verdict to RESPONSE_TOO_LARGE", async (): Promise<void> => {
+    const socket = scriptedSocket([Uint8Array.of(1, 2)]);
+    const scope = createExecutionContext({ timeoutMs: 500 });
+    try {
+      await expect(scriptedExchange(scope, socket, () => "too-large")).rejects.toSatisfy(
+        transportCode("RESPONSE_TOO_LARGE"),
+      );
+      expect(socket.destroyed()).toBe(1);
+    } finally {
+      scope.close();
+    }
+  });
+
+  it("maps a socket error to CONNECTION_FAILED and destroys the socket once", async (): Promise<void> => {
+    const socket = scriptedSocket(new Error("ECONNRESET detail"));
+    const scope = createExecutionContext({ timeoutMs: 500 });
+    try {
+      const failure = scriptedExchange(scope, socket, () => "incomplete");
+      await expect(failure).rejects.toSatisfy(transportCode("CONNECTION_FAILED"));
+      await expect(failure).rejects.toMatchObject({
+        message: "The TCP exchange could not be completed.",
+      });
+      scope.close();
+      expect(socket.destroyed()).toBe(1);
+    } finally {
+      scope.close();
+    }
   });
 });
