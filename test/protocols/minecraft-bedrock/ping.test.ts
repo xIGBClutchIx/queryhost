@@ -10,6 +10,7 @@ import {
   encodeMinecraftBedrockPing,
   parseMinecraftBedrockPong,
   queryMinecraftBedrockPing,
+  type MinecraftBedrockPong,
 } from "../../../src/protocols/minecraft-bedrock/ping.js";
 import { createExecutionContext } from "../../../src/runtime/execution.js";
 import { UdpTransportError } from "../../../src/transports/udp.js";
@@ -222,6 +223,43 @@ describe("Minecraft Bedrock RakNet primitives", (): void => {
     expect(() => parseMinecraftBedrockPong(pongPacket(fields), TIMESTAMP)).toThrow(
       expect.toSatisfy(protocolCode("MALFORMED_RESPONSE")),
     );
+  });
+
+  it.each([
+    ["-9223372036854775808", true],
+    ["-1", true],
+    ["18446744073709551615", true],
+    ["-9223372036854775809", false],
+    ["-0", false],
+    ["-01", false],
+    ["+1", false],
+  ])("handles server ID %s as signed or unsigned 64-bit text", (value, accepted): void => {
+    const fields: string[] = [...VALID_FIELDS];
+    fields[6] = value;
+    const parse = (): MinecraftBedrockPong =>
+      parseMinecraftBedrockPong(pongPacket(fields), TIMESTAMP);
+    if (accepted) {
+      expect(parse()).toMatchObject({ serverId: value });
+    } else {
+      expect(parse).toThrow(expect.toSatisfy(protocolCode("MALFORMED_RESPONSE")));
+    }
+  });
+
+  it("unescapes PocketMine's \\; in the server name without shifting fields", (): void => {
+    const fields: string[] = [...VALID_FIELDS];
+    fields[1] = "Lobby\\;Survival";
+    expect(parseMinecraftBedrockPong(pongPacket(fields), TIMESTAMP)).toMatchObject({
+      motd: "Lobby;Survival",
+      protocolVersion: 900,
+      version: "1.21.100",
+      playersOnline: 12,
+      serverId: "18364758544493064720",
+    });
+    // A backslash that does not precede `;` stays literal.
+    fields[1] = "C:\\Games";
+    expect(parseMinecraftBedrockPong(pongPacket(fields), TIMESTAMP)).toMatchObject({
+      motd: "C:\\Games",
+    });
   });
 
   it("rejects invalid UTF-8 without replacement characters", (): void => {
