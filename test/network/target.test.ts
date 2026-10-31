@@ -12,6 +12,7 @@ import {
   type DnsResolver,
   type DnsSrvRecord,
   type ResolvedSrvTarget,
+  SrvLookupError,
   TargetResolutionError,
   createDnsResolver,
   normalizeHostname,
@@ -137,6 +138,39 @@ describe("target input normalization", () => {
     expect(normalizeHostname("PLAY.Example.COM.")).toBe("play.example.com");
     expect(normalizeHostname("münich.example")).toBe("xn--mnich-kva.example");
     expect(normalizeHostname("[2606:4700:4700::1111]")).toBe("2606:4700:4700::1111");
+  });
+
+  it.each([
+    ["8.8.8.8", "8.8.8.8"],
+    ["8.8.8.8.", "8.8.8.8"],
+    ["2606:4700:4700:0:0:0:0:1111", "2606:4700:4700::1111"],
+    ["[2606:4700:4700::1111]", "2606:4700:4700::1111"],
+    ["play.example.com.", "play.example.com"],
+    ["0x7f.example.com", "0x7f.example.com"],
+    ["1.2.3.example", "1.2.3.example"],
+  ])("accepts canonical host %j as %j", (host, expected) => {
+    expect(normalizeHostname(host)).toBe(expected);
+  });
+
+  it.each([
+    ["0x7f.1", "hexadecimal IPv4 shorthand"],
+    ["127.1", "two-part IPv4 shorthand"],
+    ["127.1.", "rooted IPv4 shorthand"],
+    ["0177.0.0.1", "octal IPv4 part"],
+    ["1.2.3", "three-part IPv4 shorthand"],
+    ["8.8.2056", "IPv4 with a widened last part"],
+    ["0x8.0x8.0x8.0x8", "hexadecimal IPv4 parts"],
+    ["0x08080808", "single hexadecimal IPv4 number"],
+    ["８.８.８.８", "full-width IPv4 digits"],
+    ["ex%41mple.com", "percent-encoded hostname"],
+    ["%31.1.1.1", "percent-encoded IPv4"],
+    ["[8.8.8.8]", "bracketed IPv4"],
+    ["[play.example.com]", "bracketed DNS name"],
+    ["[]", "empty brackets"],
+  ])("rejects %j (%s)", (host) => {
+    expect(() => normalizeHostname(host)).toThrow(
+      expect.objectContaining({ name: "TargetResolutionError", code: "INVALID_INPUT" }),
+    );
   });
 
   it.each([
@@ -505,6 +539,72 @@ describe("SRV resolution primitives", () => {
     );
   });
 
+  it.each(["ENODATA", "ENOTFOUND"])("adapts a %s SRV answer to no records", async (code) => {
+    const resolver = createDnsResolver({
+      resolve4: () => Promise.resolve([]),
+      resolve6: () => Promise.resolve([]),
+      resolveSrv: () => Promise.reject(Object.assign(new Error("absent"), { code })),
+      cancel: vi.fn(),
+    });
+
+    await expect(
+      resolveSrvTargets(
+        { service: "minecraft", protocol: "tcp", host: "play.example.com" },
+        resolver,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it.each(["ESERVFAIL", "ETIMEOUT", "ECONNREFUSED", "EREFUSED", undefined])(
+    "reports a %s SRV lookup as a failure rather than no records",
+    async (code) => {
+      const resolver = createDnsResolver({
+        resolve4: () => Promise.resolve([]),
+        resolve6: () => Promise.resolve([]),
+        resolveSrv: () =>
+          Promise.reject(
+            Object.assign(new Error("resolver detail"), code === undefined ? {} : { code }),
+          ),
+        cancel: vi.fn(),
+      });
+
+      const lookup = resolveSrvTargets(
+        { service: "minecraft", protocol: "tcp", host: "play.example.com" },
+        resolver,
+      );
+      await expect(lookup).rejects.toBeInstanceOf(SrvLookupError);
+      await expect(lookup).rejects.toMatchObject({
+        name: "TargetResolutionError",
+        code: "DNS_FAILED",
+        message: "The target could not be resolved.",
+      });
+    },
+  );
+
+  it("does not report a cancelled SRV lookup as a resolver failure", async () => {
+    const caller = new AbortController();
+    const scope = createExecutionContext({ timeoutMs: 5_000, signal: caller.signal });
+    const resolver: DnsResolver = {
+      resolveAddresses: () => Promise.resolve([]),
+      resolveSrv: () => {
+        caller.abort();
+        return Promise.reject(new Error("cancelled"));
+      },
+    };
+
+    try {
+      const lookup = resolveSrvTargetsWithScope(
+        { service: "minecraft", protocol: "tcp", host: "play.example.com" },
+        scope,
+        resolver,
+      );
+      await expect(lookup).rejects.toMatchObject({ code: "DNS_FAILED" });
+      await expect(lookup).rejects.not.toBeInstanceOf(SrvLookupError);
+    } finally {
+      scope.close();
+    }
+  });
+
   it("treats no records as optional discovery absence", async () => {
     const resolver = createResolver([{ address: "1.1.1.1", family: 4 }], []);
     await expect(
@@ -537,7 +637,7 @@ describe("SRV resolution primitives", () => {
           { service: "minecraft", protocol: "tcp", host: "play.example.com" },
           createResolver([address], oversized),
         ),
-      "TARGET_BLOCKED",
+      "DNS_FAILED",
     );
     await expectResolutionError(
       () =>

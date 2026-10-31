@@ -80,7 +80,7 @@ Arbitrary exceptions and abort reasons are internal details. Code crossing into 
 
 Target resolution is an SSRF and network-abuse boundary:
 
-- Accept a hostname or IP literal, never a caller-provided URL, path, packet, or redirect target.
+- Accept a hostname or IP literal, never a caller-provided URL, path, packet, or redirect target. IPv4 must be a canonical dotted quad and brackets may enclose only IPv6; input containing `%` is rejected, and any name the WHATWG host parser would reinterpret as an address (`127.1`, `0x7f.1`, `8.8.2056`, full-width digits) is invalid rather than rewritten.
 - Validate ports as integers from 1 through 65535.
 - Validate up to 64 address answers, then pin at most four, and accept at most four SRV records before derived work grows. When more than four answers pass validation, the pinned set alternates address families in resolver order so a dual-stack host keeps a fallback in each family.
 - Use one Node resolver per public query. Pass the root signal into every lookup, cancel native resolver work on termination, and settle the lookup adapter immediately even if a platform promise is slow to reject.
@@ -89,6 +89,7 @@ Target resolution is an SSRF and network-abuse boundary:
 - Use the returned pinned address set for connection; never resolve the hostname again inside a transport.
 - Preserve the normalized hostname only for protocol identity such as Host headers or SNI.
 - Apply the same validation to every SRV-derived hostname and port.
+- Report only `ENODATA` and `ENOTFOUND` SRV answers as no records. Any other resolver failure (SERVFAIL, refusal, timeout) raises `SrvLookupError`, so a caller can tell an unknown answer from an absent one. More than four SRV records is `DNS_FAILED`, not an address-policy block.
 
 IPv6 uses an allocation allowlist because unallocated gaps inside `2000::/3` remain reserved. The tables in `network/ip.ts` record their human-readable prefixes and allocation purpose; update them only after reviewing IANA's [IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry), [IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry), and [IPv6 global-unicast allocations](https://www.iana.org/assignments/ipv6-unicast-address-assignments), then extend the policy tests.
 
@@ -214,7 +215,7 @@ The answer is capped at 64 KiB, observed answers are under 5 KB, and the JSON al
 
 ## Minecraft Java SLP invariants
 
-With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. At most four SRV records are accepted and at most four addresses are pinned per derived hostname; all are validated, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. Their DNS work and every later connection share the root attempt budget, so the record and address caps cannot multiply into an unbounded fallback set. An absent SRV answer falls back to the original hostname on port 25565. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
+With no explicit game port, a DNS hostname first attempts `_minecraft._tcp` discovery. At most four SRV records are accepted and at most four addresses are pinned per derived hostname; all are validated, grouped by ascending priority, then placed in RFC 2782 weighted order using an injectable random source. Their DNS work and every later connection share the root attempt budget, so the record and address caps cannot multiply into an unbounded fallback set. An absent SRV answer falls back to the original hostname on port 25565 and reports `minecraft-srv` as `unsupported`. A failed SRV lookup takes the same fallback, as the vanilla client does, but reports `minecraft-srv` as `failed` with `SOURCE_FAILED` and `PARTIAL_RESULT` warnings, because the default port may not be the server the record would have named. Invalid or unsafe SRV answers still fail the query. An explicit game port or IP literal bypasses SRV; an explicit `queryPort` affects only optional UDP Query.
 
 SLP races the validated addresses of every target in one SRV priority group, staggered in weighted order, and moves to the next priority only after the whole group fails, so a backup priority never answers while a preferred target is still responding. The handshake uses the selected SRV hostname and port when discovery succeeds, and `data.srv` records the target that actually answered rather than the first DNS record.
 
