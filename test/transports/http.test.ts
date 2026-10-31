@@ -1,14 +1,16 @@
 import http from "node:http";
 import https from "node:https";
+import { createServer } from "node:net";
 import type { Duplex } from "node:stream";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { PinnedAddress, PinnedTarget } from "../../src/network/target.js";
 import { createExecutionContext } from "../../src/runtime/execution.js";
 import {
   fixedHttpExchange,
   HttpTransportError,
+  MAX_HTTP_HEADER_BYTES,
   type HttpRequestAdapter,
   type HttpRequestConfiguration,
   type HttpResponseAdapter,
@@ -414,5 +416,72 @@ describe("fixed-path HTTP transport", (): void => {
       contentType: "application/json",
       rejectUnauthorized: false,
     });
+  });
+});
+
+describe("HTTP response header bound", (): void => {
+  it("passes an explicit header limit so a host flag cannot widen it", async (): Promise<void> => {
+    const fake = await startFakeHttpServer((_request, response): void => {
+      response.end("{}");
+    });
+    const request = vi.spyOn(http, "request");
+    const selected = target(fake.port);
+    const scope = createExecutionContext({ timeoutMs: 500 });
+    try {
+      await fixedHttpExchange({
+        scope,
+        target: selected,
+        address: firstAddress(selected),
+        protocol: "http",
+        path: "/info.json",
+        maxResponseBytes: 64,
+      });
+      expect(request).toHaveBeenCalledWith(
+        expect.objectContaining({ maxHeaderSize: MAX_HTTP_HEADER_BYTES }),
+        expect.any(Function),
+      );
+    } finally {
+      request.mockRestore();
+      scope.close();
+    }
+  });
+
+  it("fails a response whose headers exceed the bound", async (): Promise<void> => {
+    const server = createServer((socket): void => {
+      socket.once("data", (): void => {
+        socket.end(
+          `HTTP/1.1 200 OK\r\nX-Padding: ${"a".repeat(MAX_HTTP_HEADER_BYTES + 1_024)}\r\n` +
+            "Content-Length: 2\r\nConnection: close\r\n\r\n{}",
+        );
+      });
+    });
+    await new Promise<void>((resolve): void => {
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    const address = server.address();
+    if (address === null || typeof address === "string") {
+      throw new Error("The raw HTTP server did not expose an IP port.");
+    }
+    const selected = target(address.port);
+    const scope = createExecutionContext({ timeoutMs: 1_000 });
+    try {
+      await expect(
+        fixedHttpExchange({
+          scope,
+          target: selected,
+          address: firstAddress(selected),
+          protocol: "http",
+          path: "/info.json",
+          maxResponseBytes: 64,
+        }),
+      ).rejects.toSatisfy(transportCode("CONNECTION_FAILED"));
+    } finally {
+      scope.close();
+      await new Promise<void>((resolve): void => {
+        server.close((): void => {
+          resolve();
+        });
+      });
+    }
   });
 });

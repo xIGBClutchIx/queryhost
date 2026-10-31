@@ -88,6 +88,7 @@ export interface QuicConnectionOptions {
   readonly alpn: readonly string[];
   readonly request: Uint8Array;
   readonly maxResponseBytes: number;
+  /** Called when the contiguous prefix grows, with a view valid only during the call. */
   readonly inspectResponse: (data: Uint8Array) => QuicResponseState;
   readonly randomBytes: (length: number) => Uint8Array;
 }
@@ -249,6 +250,9 @@ export class QuicClientConnection {
   readonly #response: Reassembly;
   #finalSize: number | undefined;
   #complete: Uint8Array | undefined;
+  /** Contiguous prefix length last given to `inspectResponse`, and its answer. */
+  #inspectedLength = 0;
+  #inspectedState: QuicResponseState | undefined;
 
   public constructor(options: QuicConnectionOptions) {
     this.#options = options;
@@ -628,12 +632,20 @@ export class QuicClientConnection {
     }
     const received = this.#response.contiguous();
     const finished = this.#finalSize !== undefined && received.byteLength === this.#finalSize;
-    let state: QuicResponseState;
-    try {
-      state = this.#options.inspectResponse(Uint8Array.from(received));
-    } catch {
-      state = "malformed";
+    // Inspect only when the contiguous prefix grows (or once for an empty stream), so duplicate,
+    // out-of-order, and zero-length frames cost no protocol work. The callback gets a view of the
+    // reassembly buffer; only the final answer is copied.
+    if (received.byteLength > this.#inspectedLength || this.#inspectedState === undefined) {
+      this.#inspectedLength = received.byteLength;
+      try {
+        this.#inspectedState = this.#options.inspectResponse(received);
+      } catch {
+        this.#inspectedState = "malformed";
+      }
+    } else if (!finished) {
+      return;
     }
+    const state = this.#inspectedState;
     if (state === "malformed" || (state === "incomplete" && finished)) {
       failQuic("MALFORMED_RESPONSE");
     }

@@ -79,6 +79,11 @@ export interface FakeQuicBehavior {
   readonly closeInsteadOfResponding?: boolean;
   /** Protocol selected in EncryptedExtensions. */
   readonly alpn?: string;
+  /**
+   * Replaces the response with these 1-RTT packets, each a list of encoded frames, for frame
+   * shapes `chunkBytes` cannot express. HANDSHAKE_DONE still rides in the first packet.
+   */
+  readonly responsePackets?: (response: Uint8Array) => readonly (readonly Uint8Array[])[];
 }
 
 /** Observable server state for assertions. */
@@ -344,6 +349,12 @@ export async function startFakeQuicServer(
       return;
     }
     response ??= (behavior.respond ?? ((data: Uint8Array): Uint8Array => data))(request);
+    if (behavior.responsePackets !== undefined) {
+      behavior.responsePackets(response).forEach((frames, index): void => {
+        send(shortPacket(index === 0 ? [Uint8Array.of(0x1e), ...frames] : frames), remote);
+      });
+      return;
+    }
     const chunkBytes = Math.max(1, behavior.chunkBytes ?? response.byteLength);
     const packets: Uint8Array[] = [];
     for (let offset = 0; offset < response.byteLength || offset === 0; offset += chunkBytes) {

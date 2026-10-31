@@ -35,6 +35,7 @@ import {
   orderSrvTargets,
   resolveSrvTargets,
   resolveTarget,
+  SrvLookupError,
   validatePort,
   type DnsResolver,
   type PinnedAddress,
@@ -168,9 +169,25 @@ async function discover(options: MinecraftJavaProfileOptions): Promise<Discovery
   }
 
   options.observer.onSourceStarted("minecraft-srv");
-  const records = await srvTargets(hostname, options.scope, options.resolver);
+  let records: Awaited<ReturnType<typeof srvTargets>>;
+  let lookupFailed = false;
+  try {
+    records = await srvTargets(hostname, options.scope, options.resolver);
+  } catch (error) {
+    // A failed SRV query (SERVFAIL, refusal, resolver timeout) leaves discovery unknown. The
+    // vanilla client still connects to the default port then, so do the same and say so; invalid
+    // or unsafe SRV answers remain fatal.
+    if (!(error instanceof SrvLookupError)) {
+      throw error;
+    }
+    records = [];
+    lookupFailed = true;
+  }
   if (records.length === 0) {
-    const report: QuerySource = Object.freeze({ source: "minecraft-srv", status: "unsupported" });
+    const report: QuerySource = Object.freeze({
+      source: "minecraft-srv",
+      status: lookupFailed ? "failed" : "unsupported",
+    });
     options.observer.onSourceCompleted(report);
     return Object.freeze({
       candidates: Object.freeze([
@@ -195,6 +212,28 @@ async function discover(options: MinecraftJavaProfileOptions): Promise<Discovery
     ),
     report,
   });
+}
+
+/** A failed SRV lookup fell back to the default port, which may not be the advertised server. */
+function discoveryWarnings(report: QuerySource, alreadyPartial: boolean): readonly QueryWarning[] {
+  if (report.status !== "failed") {
+    return Object.freeze([]);
+  }
+  return Object.freeze([
+    ...(alreadyPartial
+      ? []
+      : [
+          Object.freeze({
+            code: "PARTIAL_RESULT",
+            message: "The Minecraft SRV lookup did not complete successfully.",
+          } as const),
+        ]),
+    Object.freeze({
+      code: "SOURCE_FAILED",
+      message: "The Minecraft SRV lookup failed, so the default port was queried instead.",
+      source: "minecraft-srv",
+    } as const),
+  ]);
 }
 
 function attemptGroups(candidates: readonly MinecraftCandidate[]): readonly StatusAttempt[][] {
@@ -523,7 +562,11 @@ export async function queryMinecraftJavaProfile(
     status.legacy,
     query.report,
   ]);
-  const warnings = queryWarnings(query.report);
+  const optionalWarnings = queryWarnings(query.report);
+  const warnings = Object.freeze([
+    ...optionalWarnings,
+    ...discoveryWarnings(discovery.report, optionalWarnings.length > 0),
+  ]);
   return Object.freeze({
     server,
     data,

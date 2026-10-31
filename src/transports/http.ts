@@ -4,11 +4,16 @@ import type { ClientRequest, IncomingMessage } from "node:http";
 import { isIP } from "node:net";
 
 import type { QueryErrorCode } from "../contracts/shared.js";
-import { normalizeIpAddress } from "../network/ip.js";
 import type { IpFamily, PinnedAddress, PinnedTarget } from "../network/target.js";
 import type { ExecutionScope } from "../runtime/execution.js";
+import { addressesMatch, terminationCode } from "./shared.js";
 
 const MAX_HTTP_RESPONSE_BYTES = 1_048_576;
+/**
+ * Response header bound, Node's own default, set per request so a host's
+ * `--max-http-header-size` cannot widen it.
+ */
+export const MAX_HTTP_HEADER_BYTES = 16_384;
 const FIXED_PATH = /^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*$/u;
 
 /** HTTP failures that map directly into the stable public query contract. */
@@ -172,6 +177,7 @@ function nodeRequest(
     },
     ...(configuration.servername === undefined ? {} : { servername: configuration.servername }),
     rejectUnauthorized: configuration.rejectUnauthorized,
+    maxHeaderSize: MAX_HTTP_HEADER_BYTES,
     agent,
   } as const;
   let request: ClientRequest;
@@ -201,19 +207,6 @@ const NODE_DEPENDENCIES: HttpTransportDependencies = {
   createRequest: nodeRequest,
   now: performance.now.bind(performance),
 };
-
-function addressesMatch(left: PinnedAddress, right: PinnedAddress): boolean {
-  const normalizedLeft = normalizeIpAddress(left.address);
-  const normalizedRight = normalizeIpAddress(right.address);
-  return (
-    normalizedLeft !== undefined &&
-    normalizedRight !== undefined &&
-    isIP(normalizedLeft) === left.family &&
-    isIP(normalizedRight) === right.family &&
-    left.family === right.family &&
-    normalizedLeft === normalizedRight
-  );
-}
 
 function validateOptions(options: FixedHttpExchangeOptions): void {
   if (
@@ -249,10 +242,6 @@ function mergedBytes(chunks: readonly Uint8Array[], totalBytes: number): Uint8Ar
     offset += chunk.byteLength;
   }
   return merged;
-}
-
-function terminationCode(scope: ExecutionScope): HttpTransportErrorCode {
-  return scope.getError()?.code === "TIMEOUT" ? "TIMEOUT" : "ABORTED";
 }
 
 function isAborted(signal: AbortSignal): boolean {
