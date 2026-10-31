@@ -118,7 +118,18 @@ isGameId("rust"); // true
 listGames().map((game) => game.id); // every supported game ID
 ```
 
-The registry is exhaustive over `GameId`. Game inputs accept aliases (`GAME_ALIASES`, `canonicalGameId()`), while results always use the canonical ID.
+The registry is exhaustive over `GameId` and deeply frozen. Game inputs accept aliases (`GAME_ALIASES`, `canonicalGameId()`), while results always use the canonical ID. Each game's `capabilities` map rates every `GameCapability` as `supported`, `conditional`, or `unsupported`; `players` means a player list can be returned, while player counts are part of `summary`.
+
+`resolveQueryPort()` returns the port `query()` will contact for a game and optional `port`/`queryPort`, or `undefined` when the input cannot produce a valid port:
+
+```ts
+import { resolveQueryPort } from "queryhost";
+
+resolveQueryPort("rust"); // 28017
+resolveQueryPort("rust", { port: 28100 }); // 28102
+resolveQueryPort("rust", { port: 28100, queryPort: 28200 }); // 28200
+resolveQueryPort("a2s"); // undefined: generic A2S needs a port
+```
 
 The result vocabulary is exported as frozen tuples that list every member of their union in declaration order: `GAME_PROTOCOLS`, `GAME_CAPABILITIES`, `SUPPORT_LEVELS`, `QUERY_SOURCE_NAMES`, `QUERY_SOURCE_STATUSES`, `QUERY_ERROR_CODES`, `QUERY_WARNING_CODES`, and `DETECT_ERROR_CODES`. Each union type is derived from its tuple, so schemas, validators, and documentation built from them gain new members with the package instead of a hand-kept copy. `QUERY_SOURCE_LABELS` gives each query source a short display label:
 
@@ -244,7 +255,7 @@ Either Minecraft edition reports a `crossplay` hint when the server advertises a
 
 ## Command line
 
-The package installs a `queryhost` command. Pass a game ID or alias, a host, and an optional port; pass `auto` instead of a game to run `detect()`. It writes the complete parsed result as formatted JSON and exits with 0 for success, 1 for a query failure, or 2 for invalid command arguments.
+The package installs a `queryhost` command. Pass a game ID or alias, a host, and an optional port; pass `auto` instead of a game to run `detect()`. It writes the complete parsed result as formatted JSON (or one line with `--compact`) to stdout and exits with 0 for success, 1 for a query failure, 2 for invalid command arguments (with usage on stderr), or 130 when interrupted. `--list-games` prints every game ID, name, and alias from the registry.
 
 ```bash
 npx queryhost rust play.example.com 28015
@@ -258,6 +269,8 @@ queryhost mc play.example.com 25565
 queryhost mcbe play.example.com 19132
 queryhost fivem play.example.com 30120
 queryhost reclaimer play.example.com 49176
+queryhost rust play.example.com 28015 --compact
+queryhost --list-games
 ```
 
 Run `queryhost --help` for the complete option list. The command uses the library's normal target policy, so private, loopback, link-local, reserved, and other non-public destinations remain blocked.
