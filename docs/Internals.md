@@ -230,7 +230,7 @@ The request is the 1.6 form, `FE 01` followed by an `MC|PingHost` plugin message
 
 ## Minecraft Query invariants
 
-Full mode attempts one optional UDP Query source after SLP. The challenge request and full-stat request share one bounded UDP socket because the challenge belongs to the client's endpoint. Session IDs, challenge tokens, packet types, full-stat markers, field counts, string sizes, plugin counts, player counts, response bytes, and exact packet endings are validated before merge. The parser also understands bounded basic-stat responses without fabricating full-stat player or plugin lists.
+Full mode attempts one optional UDP Query source after SLP, only on the address that answered SLP (at the explicit `queryPort` when one is given). A Query failure there is reported; it is never retried on another pinned address, which could be a different server instance. The challenge request and full-stat request share one bounded UDP socket because the challenge belongs to the client's endpoint. Session IDs, challenge tokens, packet types, full-stat markers, field counts, string sizes, plugin counts, player counts, response bytes, and exact packet endings are validated before merge. The parser also understands bounded basic-stat responses without fabricating full-stat player or plugin lists.
 
 SLP remains authoritative for the primary version, player counts, MOTD, and query RTT. Query can add the normalized map plus Minecraft-specific software, plugins, and player names. Missing Query fields remain omitted, while confirmed empty plugin or player lists remain empty arrays. Summary mode reports Query as `not-requested`; timeout, malformed data, or transport failure keeps `ok: true`, marks the result partial, and emits source-specific warnings.
 
