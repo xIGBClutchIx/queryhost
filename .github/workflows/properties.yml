@@ -1,0 +1,52 @@
+name: Property exploration
+
+# The verify gate replays a fixed seed so every run is reproducible. This weekly job explores
+# fresh random inputs with many more runs; a failure prints the seed to replay locally with
+# QUERYHOST_PROPERTY_SEED=<seed> npm run test:properties.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Seed to replay (leave empty for a random seed)
+        required: false
+      runs:
+        description: Runs per property
+        required: false
+        default: "20000"
+
+permissions:
+  contents: read
+
+jobs:
+  properties:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Use repository npm version
+        run: npm install --global "$(node -p "require('./package.json').packageManager")"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Explore parser properties
+        env:
+          INPUT_SEED: ${{ inputs.seed }}
+          QUERYHOST_PROPERTY_RUNS: ${{ inputs.runs || '20000' }}
+        run: |
+          seed="${INPUT_SEED:-$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')}"
+          seed=$((seed % 2147483648))
+          echo "Property seed: $seed (runs per property: $QUERYHOST_PROPERTY_RUNS)"
+          echo "Property seed: \`$seed\`" >> "$GITHUB_STEP_SUMMARY"
+          QUERYHOST_PROPERTY_SEED="$seed" npm run test:properties -- --testTimeout=600000

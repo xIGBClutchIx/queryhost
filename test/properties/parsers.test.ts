@@ -37,7 +37,28 @@ import { splitDatagram } from "../../src/transports/quic/packet.js";
 import { readHandshakeMessages } from "../../src/transports/quic/tls.js";
 import { parsePeerTransportParameters } from "../../src/transports/quic/transport-parameters.js";
 
-const PROPERTY_OPTIONS = Object.freeze({ numRuns: 300, seed: 0x51_14_2026 });
+/**
+ * Reads a non-negative integer override. The default suite is fixed and reproducible; the
+ * scheduled workflow sets QUERYHOST_PROPERTY_SEED and QUERYHOST_PROPERTY_RUNS to explore further,
+ * and fast-check reports the seed of any failure so it can be replayed locally.
+ */
+function integerFromEnvironment(name: string, fallback: number): number {
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
+const PROPERTY_RUNS = Math.max(1, integerFromEnvironment("QUERYHOST_PROPERTY_RUNS", 300));
+const PROPERTY_OPTIONS = Object.freeze({
+  numRuns: PROPERTY_RUNS,
+  seed: integerFromEnvironment("QUERYHOST_PROPERTY_SEED", 0x51_14_2026),
+});
 const bytes = fc.uint8Array({ maxLength: 4_096 });
 const datagrams = fc.array(fc.uint8Array({ maxLength: 512 }), { maxLength: 8 });
 
@@ -87,7 +108,7 @@ describe("bounded parser properties", (): void => {
           await reconstructA2sResponse(packets);
         }, A2sProtocolError);
       }),
-      { ...PROPERTY_OPTIONS, numRuns: 150 },
+      { ...PROPERTY_OPTIONS, numRuns: Math.max(1, Math.floor(PROPERTY_RUNS / 2)) },
     );
   });
 
