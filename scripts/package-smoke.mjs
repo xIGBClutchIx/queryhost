@@ -79,13 +79,14 @@ try {
   const packOutput = run(npmCommand, ["pack", "--json", "--pack-destination", temporary]);
   const packed = packResult(packOutput);
   assert(packed !== undefined, "npm pack did not report an artifact.");
-  assert(packed.size <= 512_000, `Packed package is too large: ${String(packed.size)} bytes.`);
+  // Ceilings sit roughly 30% above the measured artifact; docs/ReleaseReadiness.md records them.
+  assert(packed.size <= 300_000, `Packed package is too large: ${String(packed.size)} bytes.`);
   assert(
-    packed.unpackedSize <= 1_750_000,
+    packed.unpackedSize <= 1_250_000,
     `Unpacked package is too large: ${String(packed.unpackedSize)} bytes.`,
   );
   assert(
-    packed.entryCount <= 600,
+    packed.entryCount <= 450,
     `Packed package has too many files: ${String(packed.entryCount)}.`,
   );
 
@@ -108,6 +109,12 @@ try {
     assert(!path.startsWith("src/"), `Packed package leaked source file ${path}.`);
     assert(!path.startsWith("test/"), `Packed package leaked test file ${path}.`);
     assert(!path.startsWith("scripts/"), `Packed package leaked script ${path}.`);
+    // Maps would point at unshipped src/ files, and only the API reference is consumer-facing.
+    assert(!path.endsWith(".map"), `Packed package contains source map ${path}.`);
+    assert(
+      !path.startsWith("docs/") || path.startsWith("docs/api/"),
+      `Packed package leaked maintainer document ${path}.`,
+    );
   }
 
   cpSync(fixture, temporary, { recursive: true });

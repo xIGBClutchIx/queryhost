@@ -4,10 +4,25 @@
   "description": "Fast, typed game server queries for TypeScript.",
   "keywords": [
     "game-server",
-    "minecraft",
+    "server-query",
+    "server-status",
+    "a2s",
     "source-query",
-    "typescript",
-    "vintage-story"
+    "steam",
+    "minecraft",
+    "minecraft-bedrock",
+    "rust",
+    "fivem",
+    "redm",
+    "cs2",
+    "counter-strike",
+    "ark",
+    "palworld",
+    "valheim",
+    "dayz",
+    "project-zomboid",
+    "satisfactory",
+    "typescript"
   ],
   "homepage": "https://query.host/",
   "bugs": {
@@ -22,7 +37,7 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "docs",
+    "docs/api",
     "examples",
     "CHANGELOG.md",
     "LICENSE",
