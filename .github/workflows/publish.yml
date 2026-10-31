@@ -15,30 +15,35 @@ jobs:
 
     steps:
       - name: Check out release tag
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Use repository npm version
-        run: npm install --global npm@12.0.2
+        run: npm install --global "$(node -p "require('./package.json').packageManager")"
+
+      # A mismatched tag fails in seconds, before dependencies install or the gate runs.
+      - name: Check release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: npm run release:check -- "$TAG"
 
       - name: Install dependencies
         run: npm ci
 
       - name: Verify release
-        run: |
-          npm run verify
-          npm run release:check -- "${{ github.event.release.tag_name }}"
+        run: npm run verify
 
+      # The gate just ran; --ignore-scripts skips prepublishOnly so it does not run twice.
       - name: Publish with provenance
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --ignore-scripts
 
   # Starts each hosted consumer's `QueryHost release` workflow with the version just
   # published, so the bump pull request opens without waiting for its 15-minute schedule,
