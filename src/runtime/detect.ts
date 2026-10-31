@@ -532,7 +532,7 @@ export async function detectWithDependencies(
     return failure(INPUT_ERROR, [], elapsed());
   }
 
-  const { host, maxProbes, port } = options;
+  const { host, maxProbes, port, signal } = options;
   const plan = planProbes(port);
   const lifetime = new AbortController();
   const probeDependencies: QueryDependencies = {
@@ -559,7 +559,9 @@ export async function detectWithDependencies(
     function* probeInputs(): Generator<QueryInput, void, undefined> {
       for (const probe of plan.slice(0, budget)) {
         const remaining = Math.floor(probeBudget - elapsed());
-        if (remaining < 1) {
+        // After cancellation the batch reports unread inputs as ABORTED; ending here keeps the
+        // probes that never started reported as skipped.
+        if (remaining < 1 || callerAborted(signal)) {
           return;
         }
         pulled += 1;

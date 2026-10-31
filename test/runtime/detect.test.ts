@@ -598,6 +598,8 @@ describe("detect", (): void => {
     );
 
     expect(detected).toMatchObject({ ok: false, error: { code: "ABORTED" } });
+    // Nothing started, so no probe reads as cancelled.
+    expect(detected.probes.every(({ status }) => status === "skipped")).toBe(true);
   });
 
   it.each([

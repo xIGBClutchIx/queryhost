@@ -929,10 +929,12 @@ export function query<G extends GameInputId>(
 /**
  * Queries many game servers with bounded concurrency, yielding each result as it settles.
  *
- * Entries arrive in completion order; `index` gives each input's position. Every input started
- * yields exactly one entry, and a failed target is a {@link QueryFailure} entry rather than a
- * rejected batch. Inputs are read lazily, and no query starts until iteration begins.
- * Stopping iteration early cancels the queries still in flight and waits for their cleanup.
+ * Entries arrive in completion order; `index` gives each input's position. Every input yields
+ * exactly one entry, and a failed target is a {@link QueryFailure} entry rather than a rejected
+ * batch. After `options.signal` aborts, inputs that never started yield `ABORTED` entries without
+ * any network work. Inputs are read lazily, and no query starts until iteration begins.
+ * Stopping iteration early cancels the queries still in flight, waits for their cleanup, and
+ * yields nothing for inputs not yet read.
  *
  * @throws TypeError or RangeError, synchronously, when `inputs` is not iterable or `options` is
  * invalid. Invalid individual inputs resolve as `INVALID_INPUT` entries instead.
