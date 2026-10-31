@@ -15,6 +15,10 @@ import {
   SUPPORT_LEVELS,
   type GameProtocol,
 } from "../../src/index.js";
+import {
+  GAME_IDS as BROWSER_GAME_IDS,
+  GAME_REGISTRY as BROWSER_GAME_REGISTRY,
+} from "../../src/registry.js";
 
 const CAPABILITIES = [...GAME_CAPABILITIES].sort();
 const LEVELS: ReadonlySet<string> = new Set(SUPPORT_LEVELS);
@@ -452,5 +456,25 @@ describe("game registry", () => {
 
   it("lists games in the documented registry order", () => {
     expect(listGames().map(({ id }) => id)).toEqual(GAME_IDS);
+  });
+
+  it("deeply freezes the shared registry, its ID list, and listed definitions", () => {
+    expect(BROWSER_GAME_REGISTRY).toBe(GAME_REGISTRY);
+    expect(BROWSER_GAME_IDS).toBe(GAME_IDS);
+    expect(Object.isFrozen(GAME_REGISTRY)).toBe(true);
+    expect(Object.isFrozen(GAME_IDS)).toBe(true);
+    expect(Object.isFrozen(listGames())).toBe(true);
+    for (const definition of Object.values(GAME_REGISTRY)) {
+      expect(Object.isFrozen(definition)).toBe(true);
+      expect(Object.isFrozen(definition.capabilities)).toBe(true);
+    }
+    for (const definition of listGames()) {
+      expect(definition).toBe(GAME_REGISTRY[definition.id]);
+    }
+    expect(Reflect.set(GAME_REGISTRY.rust, "defaultPort", 1)).toBe(false);
+    expect(Reflect.set(GAME_REGISTRY.rust.capabilities, "players", "supported")).toBe(false);
+    expect(Reflect.set(GAME_IDS, 0, "rust")).toBe(false);
+    expect(GAME_REGISTRY.rust.defaultPort).toBe(28_015);
+    expect(GAME_IDS[0]).toBe("a2s");
   });
 });

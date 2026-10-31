@@ -143,7 +143,7 @@ export const GAME_IDS: readonly [
   "vein",
   "avorion",
   "project-reclaimer",
-] = [
+] = Object.freeze([
   "a2s",
   "dont-starve-together",
   "rust",
@@ -188,7 +188,7 @@ export const GAME_IDS: readonly [
   "vein",
   "avorion",
   "project-reclaimer",
-] as const;
+] as const);
 
 /** Accepted aliases keyed by their alternate spelling. Values always remain canonical IDs. */
 export const GAME_ALIASES: GameAliasMap = Object.freeze({
@@ -265,10 +265,22 @@ const STEAM_A2S_CAPABILITIES: GameDefinition["capabilities"] = Object.freeze({
   srv: "unsupported",
 });
 
+// Consumers share one registry object, so every level is frozen: a caller that mutates a definition
+// or its capabilities would otherwise change query dispatch, detection, and port derivation for the
+// whole process.
+function freezeRegistry(registry: GameRegistry): GameRegistry {
+  for (const definition of Object.values(registry)) {
+    Object.freeze(definition.capabilities);
+    Object.freeze(definition);
+  }
+  return Object.freeze(registry);
+}
+
 /**
- * Single source of truth consumed by the library and, later, the API, documentation, and website.
+ * Single source of truth consumed by the library, the hosted API, and the website. Every
+ * definition and its capability map is frozen.
  */
-export const GAME_REGISTRY: GameRegistry = {
+export const GAME_REGISTRY: GameRegistry = freezeRegistry({
   a2s: {
     id: "a2s",
     name: "Generic A2S",
@@ -803,7 +815,7 @@ export const GAME_REGISTRY: GameRegistry = {
       srv: "unsupported",
     },
   },
-};
+});
 
 /** Returns whether an arbitrary string is a registered game identifier. */
 export function isGameId(value: string): value is GameId {
@@ -836,7 +848,14 @@ export function getGameDefinition<G extends GameInputId>(
   return GAME_REGISTRY[canonicalGameId(game)];
 }
 
-/** Lists game definitions in the stable order defined by {@link GAME_IDS}. */
+const GAME_LIST: readonly GameDefinition[] = Object.freeze(
+  GAME_IDS.map((game): GameDefinition => GAME_REGISTRY[game]),
+);
+
+/**
+ * Lists game definitions in the stable order defined by {@link GAME_IDS}. The array and every
+ * definition in it are frozen and shared between calls.
+ */
 export function listGames(): readonly GameDefinition[] {
-  return GAME_IDS.map((game) => GAME_REGISTRY[game]);
+  return GAME_LIST;
 }

@@ -35,7 +35,7 @@ Dependencies point downward. Networking code must not interpret game-specific ru
 - `contracts/query.ts` connects literal game IDs to game-specific result types and defines success/failure discrimination.
 - `contracts/games.ts` contains stable game-specific fields. It does not contain transport or parser state.
 - `contracts/shared.ts` contains only concepts that are genuinely common across games, including provenance and stable errors.
-- `contracts/registry.ts` is the exhaustive source of game metadata and capability support.
+- `contracts/registry.ts` is the exhaustive source of game metadata and capability support. `GAME_REGISTRY`, every definition and capability map in it, `GAME_IDS`, `GAME_ALIASES`, and the array `listGames()` returns are frozen, because every consumer in the process shares them.
 - `runtime/execution.ts` owns deadlines, cancellation propagation, the root outbound-attempt budget, cleanup, and internal-error redaction.
 - `network/ip.ts` owns canonical IP parsing and the public-routability policy.
 - `network/target.ts` owns hostname/port normalization, DNS boundaries, answer validation, pinning, and SRV-derived target safety.
