@@ -97,6 +97,7 @@ Superseded decisions keep their number and original text so later references sta
 58. **Pin hosted consumers to exact public versions.** Replace vendored tarballs only after the registry artifact and provenance verify, then run each consumer's finish gate.
 59. **Keep WebMCP in the web project.** Browser tool registration adapts the existing site and same-origin query path; it does not add browser concerns or new network authority to the portable library.
 60. **Expose exactly two document-scoped WebMCP tools.** One tool returns package-owned game metadata and one tool runs the existing playground query. Both are read-only, server-provided values are explicitly untrusted, and unsupported browsers keep the ordinary site without a polyfill.
+    - _Superseded in part:_ a third read-only tool, `compare_game_servers`, queries two to four servers sequentially within one deadline and reports each server's failure individually. In the browser it runs outside the visible playground, so it never rewrites the form, the address, or recent checks. The same three tools are served by the web service's remote `/mcp` endpoint. The rest of this decision holds.
 61. **Open the hosted source without opening the API runtime.** The web and API repositories use Apache-2.0 and are publicly inspectable for the hackathon; Railway private networking, the origin token, and the absence of an API public domain remain unchanged.
 
 ## Revisiting a decision
