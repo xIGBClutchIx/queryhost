@@ -170,6 +170,26 @@ describe("Minecraft Query stat parsing", (): void => {
     });
   });
 
+  it("decodes UTF-8 strings and falls back to Latin-1 per string", (): void => {
+    // "Café" in Latin-1 is not valid UTF-8, while the player name is valid UTF-8.
+    const latin1Motd = concat([Uint8Array.of(0x43, 0x61, 0x66, 0xe9), Uint8Array.of(0)]);
+    const packet = concat([
+      Uint8Array.of(0x00),
+      int32(SESSION_ID),
+      FULL_HEADER,
+      string("hostname"),
+      latin1Motd,
+      Uint8Array.of(0),
+      PLAYER_SECTION,
+      string("Zoë 🙂"),
+      Uint8Array.of(0),
+    ]);
+    expect(parseMinecraftQueryStat(packet, SESSION_ID)).toMatchObject({
+      motd: "Café",
+      players: ["Zoë 🙂"],
+    });
+  });
+
   it("preserves confirmed empty plugin and player lists", (): void => {
     expect(parseMinecraftQueryStat(fullStat([["plugins", ""]], []), SESSION_ID)).toMatchObject({
       plugins: [],

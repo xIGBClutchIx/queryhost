@@ -8,6 +8,7 @@ import {
   type UdpConversationOptions,
   type UdpConversationResult,
 } from "../../transports/udp.js";
+import { decodeUtf8OrLatin1 } from "../text.js";
 import { failMinecraftJava } from "./errors.js";
 
 const MAGIC = Uint8Array.of(0xfe, 0xfd);
@@ -35,7 +36,6 @@ const MAX_VALUE_BYTES = 4_096;
 const MAX_PLAYERS = 1_024;
 const MAX_PLAYER_BYTES = 256;
 const MAX_PLUGINS = 512;
-const LATIN1 = new TextDecoder("latin1");
 
 /** Parsed facts provided by a basic or full Minecraft Query stat response. */
 export interface MinecraftQueryStat {
@@ -145,7 +145,8 @@ class QueryReader {
     if (this.#offset >= this.#data.byteLength) {
       return failMinecraftJava("MALFORMED_RESPONSE");
     }
-    const value = LATIN1.decode(this.#data.subarray(start, this.#offset));
+    // Vanilla writes UTF-8, while some older servers and plugins write Latin-1 without saying so.
+    const value = decodeUtf8OrLatin1(this.#data.subarray(start, this.#offset));
     this.#offset += 1;
     return value;
   }
