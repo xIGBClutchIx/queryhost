@@ -24,9 +24,33 @@ function isGameMode(tag: string): tag is TeamFortress2GameMode {
   return GAME_MODES.has(tag);
 }
 
-function tagData(tags: readonly string[] | undefined): Partial<TeamFortress2Data> {
+/**
+ * Steam stores game tags in a 128-byte buffer that includes its terminator, so a keyword string of
+ * 127 bytes or more may have lost later tags, and its last tag may be cut short.
+ */
+const STEAM_TAG_LIMIT_BYTES = 127;
+
+function isTruncated(keywords: string): boolean {
+  return new TextEncoder().encode(keywords).byteLength >= STEAM_TAG_LIMIT_BYTES;
+}
+
+function tagData(
+  tags: readonly string[] | undefined,
+  keywords: string | undefined,
+): Partial<TeamFortress2Data> {
   if (tags === undefined) {
     return {};
+  }
+  if (keywords !== undefined && isTruncated(keywords)) {
+    // An absent tag may only have been cut off, so only tags that survived whole confirm a
+    // non-default value. The final tag may itself be partial and is ignored.
+    const whole = tags.slice(0, -1);
+    return {
+      ...(whole.includes("friendlyfire") ? { friendlyFire: true } : {}),
+      ...(whole.includes("nocrits") ? { randomCrits: false } : {}),
+      ...(whole.includes("highlander") ? { highlander: true } : {}),
+      ...(whole.includes("medieval") ? { medieval: true } : {}),
+    };
   }
   return {
     gameModes: Object.freeze([...new Set(tags.filter(isGameMode))]),
@@ -43,6 +67,9 @@ export async function queryTeamFortress2Profile(
 ): Promise<SteamA2sProfileResult<TeamFortress2Data>> {
   return querySteamA2sGame(
     { ...options, gameName: GAME_REGISTRY["team-fortress-2"].name },
-    ({ server, data }) => ({ server, data: { ...data, ...tagData(data.tags) } }),
+    ({ server, data, keywords }) => ({
+      server,
+      data: { ...data, ...tagData(data.tags, keywords) },
+    }),
   );
 }
