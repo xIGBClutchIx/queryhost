@@ -9,8 +9,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporary = mkdtempSync(join(tmpdir(), "queryhost-package-smoke-"));
 const fixture = join(repository, "test", "package-smoke");
-const npmCommand = "npm";
 const nodeCommand = process.execPath;
+// npm sets npm_execpath to its own CLI script when it runs this file. Running that script with
+// Node avoids spawning the Windows `npm.cmd` shim, which execFileSync cannot start directly.
+const npmCli = process.env.npm_execpath;
+const npmInvocation =
+  npmCli !== undefined && npmCli.endsWith(".js") ? [nodeCommand, [npmCli]] : ["npm", []];
 const tsc = join(repository, "node_modules", "typescript", "bin", "tsc");
 const expectedRuntimeDependencies = Object.freeze({
   "@foxglove/wasm-bz2": "MIT",
@@ -25,6 +29,11 @@ function run(command, args, cwd = repository) {
   });
 }
 
+function runNpm(args, cwd = repository) {
+  const [command, prefix] = npmInvocation;
+  return run(command, [...prefix, ...args], cwd);
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -37,7 +46,7 @@ function packResult(output) {
 }
 
 function packLocalPackage(path) {
-  const output = run(npmCommand, [
+  const output = runNpm([
     "pack",
     "--json",
     "--ignore-scripts",
@@ -117,7 +126,7 @@ try {
     );
   }
 
-  const packOutput = run(npmCommand, ["pack", "--json", "--pack-destination", temporary]);
+  const packOutput = runNpm(["pack", "--json", "--pack-destination", temporary]);
   const packed = packResult(packOutput);
   assert(packed !== undefined, "npm pack did not report an artifact.");
   // Ceilings sit roughly 30% above the measured artifact; docs/ReleaseReadiness.md records them.
@@ -162,8 +171,7 @@ try {
   const archive = join(temporary, packed.filename);
   const bzipArchive = packLocalPackage(join(repository, "node_modules", "@foxglove", "wasm-bz2"));
   const tslibArchive = packLocalPackage(join(repository, "node_modules", "tslib"));
-  run(
-    npmCommand,
+  runNpm(
     [
       "install",
       "--offline",
@@ -184,11 +192,7 @@ try {
     await import(pathToFileURL(join(installed, "dist", "registry.js")).href),
   );
   run(nodeCommand, [tsc, "--project", join(temporary, "tsconfig.json")], temporary);
-  const commandHelp = run(
-    npmCommand,
-    ["exec", "--offline", "--", "queryhost", "--help"],
-    temporary,
-  );
+  const commandHelp = runNpm(["exec", "--offline", "--", "queryhost", "--help"], temporary);
   assert(
     commandHelp.includes("QueryHost game-server query probe"),
     "The installed queryhost command did not run.",
