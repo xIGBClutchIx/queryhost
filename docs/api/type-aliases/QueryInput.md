@@ -10,6 +10,12 @@
 
 Input accepted by the public `query()` entry point. Generic A2S requires its query port.
 
+## Type Parameters
+
+### G
+
+`G` *extends* [`GameInputId`](GameInputId.md) = [`GameInputId`](GameInputId.md)
+
 ## Type Declaration
 
 ### game
@@ -55,9 +61,3 @@ Caller cancellation propagated to every outstanding operation.
 > `readonly` `optional` **timeoutMs?**: `number`
 
 Global deadline from 1 through 30,000 ms; defaults to 5,000 ms.
-
-## Type Parameters
-
-### G
-
-`G` *extends* [`GameInputId`](GameInputId.md) = [`GameInputId`](GameInputId.md)

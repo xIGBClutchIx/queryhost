@@ -10,7 +10,8 @@ Icarus data collected from its Steam A2S query port.
 
 ## Extends
 
-- [`SteamA2sData`](SteamA2sData.md).[`UnrealSessionData`](UnrealSessionData.md)
+- [`SteamA2sData`](SteamA2sData.md)
+- [`UnrealSessionData`](UnrealSessionData.md)
 
 ## Properties
 

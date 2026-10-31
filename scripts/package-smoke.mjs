@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporary = mkdtempSync(join(tmpdir(), "queryhost-package-smoke-"));
@@ -48,6 +48,47 @@ function packLocalPackage(path) {
   const packed = packResult(output);
   assert(packed !== undefined, `npm pack did not report an artifact for ${path}.`);
   return join(temporary, packed.filename);
+}
+
+/**
+ * Keeps the README's hand-written game count and supported-games table equal to the packed
+ * registry, so a new game or alias cannot ship with stale user documentation.
+ */
+function checkReadmeGames(readme, registry) {
+  const games = registry.listGames();
+  const aliasesByGame = new Map();
+  for (const [alias, id] of Object.entries(registry.GAME_ALIASES)) {
+    aliasesByGame.set(id, [...(aliasesByGame.get(id) ?? []), alias]);
+  }
+  const namedGames = games.filter((game) => game.id !== "a2s").length;
+  assert(
+    readme.includes(`**${String(namedGames)} games plus generic A2S.**`),
+    `README.md must advertise ${String(namedGames)} games plus generic A2S.`,
+  );
+  const rows = readme.split("\n").filter((line) => /^\|[^|]+\| `[^`]+` +\|/u.test(line));
+  assert(
+    rows.length === games.length,
+    `README.md lists ${String(rows.length)} games; the registry has ${String(games.length)}.`,
+  );
+  for (const game of games) {
+    const row = rows.find((line) => line.includes(`| \`${game.id}\` `));
+    assert(row !== undefined, `README.md is missing a supported-games row for ${game.id}.`);
+    const cells = row
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim());
+    const aliases = (aliasesByGame.get(game.id) ?? []).map((alias) => `\`${alias}\``);
+    const expected = [
+      game.name,
+      `\`${game.id}\``,
+      aliases.length === 0 ? "—" : aliases.join(", "),
+      game.defaultPort === undefined ? "—" : String(game.defaultPort),
+    ];
+    assert(
+      JSON.stringify(cells) === JSON.stringify(expected),
+      `README.md row for ${game.id} must read: | ${expected.join(" | ")} |`,
+    );
+  }
 }
 
 try {
@@ -137,6 +178,11 @@ try {
     temporary,
   );
   run(nodeCommand, [join(temporary, "consumer.mjs")], temporary);
+  const installed = join(temporary, "node_modules", "queryhost");
+  checkReadmeGames(
+    readFileSync(join(installed, "README.md"), "utf8"),
+    await import(pathToFileURL(join(installed, "dist", "registry.js")).href),
+  );
   run(nodeCommand, [tsc, "--project", join(temporary, "tsconfig.json")], temporary);
   const commandHelp = run(
     npmCommand,

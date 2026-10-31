@@ -78,7 +78,7 @@ Superseded decisions keep their number and original text so later references sta
 ## Scope decisions
 
 49. **Prove a few protocol families first.** Initial profiles are Rust, Project Zomboid, 7 Days to Die, Minecraft Java, Minecraft Bedrock, and FiveM.
-    - _Completed:_ those families are proven; the registry now covers 43 profiles. Decision 7 still governs additions.
+    - _Completed:_ those families are proven; the registry now has 44 entries: 43 named game profiles plus the generic A2S profile. Decision 7 still governs additions.
 50. **Use Satisfactory as a likely post-MVP extension.** Its public lightweight query is appropriate; authenticated administration is not.
     - _Completed:_ Satisfactory is supported through its public lightweight query only.
 51. **Defer credentialed Palworld APIs.** Public A2S support may be considered separately.
